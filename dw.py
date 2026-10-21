@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -50,8 +51,16 @@ def main(argv: list[str]) -> int:
         args = [sys.executable, "-m", "transform", *(rest if len(rest) > 1 else [*(rest or ["run"]), db])]
     elif cmd == "seeds":
         args = [sys.executable, "-m", "loader.seeds", rest[0] if rest else db]
-    elif cmd == "build":
-        args = ["bash", "build_db.sh", rest[0]]
+    elif cmd == "build":                     # same files, same order as build_db.sh, without needing bash on Windows
+        files = re.findall(r"\b\d{3}_\w+\.sql\b", (HERE / "build_db.sh").read_text(encoding="utf-8"))
+        for f in files:
+            print(f">> {f}", flush=True)
+            r = subprocess.run([str(PG_BIN / "psql"), "-d", rest[0], "-v", "ON_ERROR_STOP=1", "-q", "--single-transaction",
+                                "-f", str(HERE / "sql" / f)], env=env)
+            if r.returncode:
+                return r.returncode
+        print("Build complete.")
+        return 0
     elif cmd == "pytest":                    # tests against a DISPOSABLE database: set DW_DATABASE to it
         if db == "ellementry_dw":
             sys.exit("refusing to run tests against ellementry_dw: set DW_DATABASE to a disposable copy")

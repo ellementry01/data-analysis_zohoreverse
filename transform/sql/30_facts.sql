@@ -193,7 +193,7 @@ WHERE btrim(u.grn) <> '';
 -- --------------------------------------------------------------------- platform sell-out (demand, not revenue: BR-024)
 INSERT INTO core.fact_partner_sellout (source_name, order_date_key, platform_store_code, source_sku_code, channel_key, partner_key,
     location_key, product_key, city, units_sold, order_count, mrp_value, selling_value, batch_id)
-SELECT 'BLINKIT_SALES', stg.date_key(s.order_date), coalesce(s.supply_city, 'UNKNOWN'), s.source_sku_code,
+SELECT 'BLINKIT_SALES', stg.date_key(s.order_date), coalesce(s.supply_city, 'UNKNOWN'), coalesce(s.source_sku_code, '#NO_SKU'),
        coalesce((SELECT channel_key FROM lk_chan WHERE source_name = 'BLINKIT_SALES' AND source_value = '*'), -1),
        coalesce((SELECT dp.partner_key FROM ref.code_mapping m JOIN core.dim_partner dp ON dp.partner_name = m.standard_value AND dp.partner_role = 'CUSTOMER'
                  WHERE m.domain = 'PLATFORM_PARTNER' AND m.source_name = 'BLINKIT_SALES'), -1),
@@ -203,17 +203,17 @@ SELECT 'BLINKIT_SALES', stg.date_key(s.order_date), coalesce(s.supply_city, 'UNK
 FROM stg.blinkit_sales s LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
 WHERE s.order_status = 'DELIVERED'                                                                         -- BR-018
   AND s.order_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)
-GROUP BY s.order_date, s.supply_city, s.source_sku_code, p.product_key;
+GROUP BY s.order_date, s.supply_city, coalesce(s.source_sku_code, '#NO_SKU'), p.product_key;   -- no SKU: kept, Unknown product (BR-027)
 
 INSERT INTO core.fact_partner_sellout (source_name, order_date_key, platform_store_code, source_sku_code, channel_key, partner_key,
     location_key, product_key, city, units_sold, combo_units_sold, mrp_value, gmv_reported, batch_id)
-SELECT 'INSTAMART_SALES', stg.date_key(s.order_date), s.store_id, s.source_sku_code,
+SELECT 'INSTAMART_SALES', stg.date_key(s.order_date), s.store_id, coalesce(s.source_sku_code, '#NO_SKU'),
        coalesce((SELECT channel_key FROM lk_chan WHERE source_name = 'INSTAMART_SALES' AND source_value = '*'), -1),
        -1, -1, coalesce(p.product_key, -1), coalesce(max(s.city), 'UNKNOWN'),
        sum(s.units_sold), sum(s.combo_units_sold), sum(s.units_sold * s.unit_mrp), sum(s.gmv), max(s.batch_id)
 FROM stg.instamart_sales s LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
 WHERE s.order_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx) AND s.store_id IS NOT NULL
-GROUP BY s.order_date, s.store_id, s.source_sku_code, p.product_key;
+GROUP BY s.order_date, s.store_id, coalesce(s.source_sku_code, '#NO_SKU'), p.product_key;
 
 -- --------------------------------------------------------------------- stock snapshots (non-zero rows only)
 INSERT INTO core.fact_inventory_snapshot (source_name, snapshot_date_key, source_location_value, source_sku_code, location_key,

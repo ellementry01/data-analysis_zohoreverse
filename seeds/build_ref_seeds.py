@@ -121,6 +121,20 @@ for src,vals in [("ERP_STOCK_TRANSFER_OUT",st_out),("ERP_STOCK_TRANSFER_IN",st_i
     for v in vals:
         if v in longmap: LA.append((src,"CONTACTNAME",v,longmap[v],False,long_ev))
         else: UNRESOLVED.append((src,"CONTACTNAME",v,"Stock transfers (prefix BAG/DC, BAG/...)","Which location is 'Dileep Essentials Pvt Ltd Bagru'? It is NOT the bare 'Dileep Essentials Pvt Ltd' (= Bagru warehouse, prefix JPR). Is it '08 Bagru Popup'?"))
+# FY25-26 transfer names (full exports, Oct 2026): the Amazon FBA code is part of the name; each code exists in the location master.
+fy2526_fba = {'Dileep Essentials Private Limited DED5 FBA':'FBA_DED5','Dileep Essentials Pvt Ltd Bengaluru 5 FBA':'FBA_BLR5',
+              'Dileep Essentials Pvt Ltd Delhi FBA DED1':'FBA_DED1','Dileep Essentials Pvt Ltd FBA DED3':'FBA_DED3'}
+for src in ("ERP_STOCK_TRANSFER_OUT","ERP_STOCK_TRANSFER_IN"):
+    have = {v for (s_,f_,v,*_) in LA if s_ == src and f_ == "CONTACTNAME"}
+    for v,c in list(fy2526_fba.items()) + [(k,longmap[k]) for k in ('Dileep Essentials Pvt Ltd Delhi FBA DEX8','Dileep Essentials Pvt Ltd Delhi FBA PNQ2','Dileep Essentials Pvt Ltd FBA')]:
+        if v not in have:
+            LA.append((src,"CONTACTNAME",v,c,False,"FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts)"))
+for v,q in [("Dileep Essentials Pvt Ltd CG Road Ahmedabad","A store at CG Road, Ahmedabad in FY25-26 (1,534 transfer lines). Not in the Sep 2026 stock report: closed store? Add it as a location?"),
+            ("Dileep Essentials Pvt Ltd Lucknow","Lucknow store (FY25-26 transfers and retail sales) or the Lucknow FBA (LKO1)?"),
+            ("Dileep Essentials Pvt Ltd Jaipur Store","Which Jaipur store (FY25-26 transfers and sales)? Meeraki? C-Scheme?"),
+            ("Dileep Essentials Pvt Ltd Mumbai PPOB","Mumbai PPOB (principal place of business) in FY25-26 transfers: a warehouse, a store or an office?"),
+            ("Dileep Essentials Pvt Ltd Delhi","Delhi location in FY25-26 transfers: 07 DEPL Delhi, the GK store, or another?")]:
+    UNRESOLVED.append(("ERP_STOCK_TRANSFER_OUT / IN","CONTACTNAME",v,"FY25-26 stock transfers",q))
 # retail return receiving location
 d2c = ['Shopify_Customer','Amazon Website','Amazon Seller Flex','Myntra Customer','Nykaa','Nykaa Fashion','Pepperfry Customer','Tata Cliq','Tata Cliq Mall',
        'Tata Cliq Mall - Furniture','FNP E Retail Marketplace','Flipkart Website','Ellementry International']
@@ -140,7 +154,11 @@ PFX = [("AMD/DC","FBA_AMD2",24),("BOM/STK","FBA_BOM5",19),("FBA/STK","FBA_JAIPUR
  ("FBAX3/STK","FBA_DEX3",7),("FBAX8/STK","FBA_DEX8",3),("FBL7/STK","FBA_BLR7",63),("HYD8/DC","STORE_HYD_BANJARA",5),("IS/DF","DFAL",6),
  ("ISU/CCX","FBA_CCX1",23),("ISU/CJB","FBA_CJB1",16),("ISU/CX2","FBA_CCX2",3),("ISU/D4","FBA_DED4",91),("ISU/MAA","FBA_MAA4",10),
  ("JPR/DC","BAGRU_WH",160),("JPR3/DC","STORE_JPR_CSCHEME",52),("LK/DC","FBA_LKO1",11),("M10/STK","BLINKIT_MUM_M10",7),("P2/STK","BLINKIT_PUNE_P2",2),
- ("THA/IC","FBA_THANE",64)]
+ ("THA/IC","FBA_THANE",64),
+       ("ISU/DED5","FBA_DED5",129),("ISS/D3","FBA_DED3",19)  # FY25-26 exports, Oct 2026
+       ,("AHM4/DC","STORE_AMD_CGROAD",41),("LUC9/DC","DEPL_LUCKNOW",47),("JPR2/DC","STORE_JPR_MEERAKI",54),("BAG/DC","POPUP_BAGRU",12),
+       ("DEL/DC","DEPL_DELHI",4),("MUM/DC","DEPL_MUMBAI_PPOB",8)
+]
 UNRESOLVED.append(("ERP_STOCK_TRANSFER_OUT","DOCNUM prefix","BAG/DC","2 documents, sender = 'Dileep Essentials Pvt Ltd Bagru'","Resolved together with the 'Dileep Essentials Pvt Ltd Bagru' question above"))
 
 # ---------------------------------------------------------------- CHANNELS
@@ -180,6 +198,10 @@ for src in ["ERP_RETAIL_SALES","ERP_RETAIL_RETURN"]:
     for v,(c,conf) in retail_map.items():
         CA.append((src,"CONTACTNAME",v,c,10,conf,"Retail CONTACTNAME = channel (business confirmed rule)"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Flipkart Website","FLIPKART",10,False,"FY25-26 returns only"))
+# FY25-26 retail SALES carry the same contacts the FY25-26 returns already map (same unconfirmed mapping, same evidence)
+for v,c in [("Flipkart Website","FLIPKART"),("Dileep Essentials Pvt Ltd Blinkit Mumbai","BLINKIT"),("Dileep Essentials Pvt Ltd Blinkit Pune","BLINKIT"),
+            ("Dileep Essentials Pvt Ltd Jaipur Store","OWN_STORE"),("Dileep Essentials Pvt Ltd Lucknow","OWN_STORE")]:
+    CA.append(("ERP_RETAIL_SALES","CONTACTNAME",v,c,10,False,"FY25-26 sales; same contact as the mapped FY25-26 returns"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Blinkit Mumbai","BLINKIT",10,False,"FY25-26 retail returns from a Blinkit location"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Blinkit Pune","BLINKIT",10,False,"FY25-26 retail returns from a Blinkit location"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Jaipur Store","OWN_STORE",10,False,"FY25-26 returns; store identity unresolved"))
@@ -196,6 +218,31 @@ CA.append(("BLINKIT_SALES","(whole source)","*","BLINKIT",100,True,"Every row of
 CA.append(("INSTAMART_SALES","(whole source)","*","INSTAMART",100,True,"Every row of the Instamart sales file is Instamart"))
 PTC = [("B2B_CUSTOMER","B2B",True),("FRANCHISE_PARTNER","FRANCHISE",True),("SIS_PARTNER","SIS",True),("GROUP_EXPORT","EXPORT_VIA_DILEEP",True),
        ("EXPORT_CUSTOMER","EXPORT_DIRECT",False),("EMPLOYEE","INTERNAL_EMPLOYEE",True)]
+
+# ---------------------------------------------------------------- FY25-26 exports (received Oct 2026)
+# 1. Billing locations (CHANNELNAME) are exact ERP location names: every name in the location master is accepted for each sales /
+#    returns source, not only the ones the Apr-Sep 2026 samples happened to contain.
+for src in ("ERP_RETAIL_SALES","ERP_DOMESTIC_SALES","ERP_DOMESTIC_RETURN"):
+    have = {a[2] for a in LA if a[0] == src and a[1] == "CHANNELNAME"}
+    for n, code in erp_names.items():
+        if n not in have:
+            LA.append((src,"CHANNELNAME",n,code,False,"Exact ERP location name"))
+# 2. Long contact names resolved by data: in the FY25-26 retail sales each of these contacts is billed at ONE ERP location only
+#    (lines: Lucknow 1,166 / Jaipur Store 300 / Bagru 226 / Mumbai PPOB 45 / Delhi 32 / CG Road 11, all 100%).
+billed_at = {"Dileep Essentials Pvt Ltd Lucknow":("DEPL_LUCKNOW",1166),"Dileep Essentials Pvt Ltd Jaipur Store":("STORE_JPR_MEERAKI",300),
+             "Dileep Essentials Pvt Ltd Bagru":("POPUP_BAGRU",226),"Dileep Essentials Pvt Ltd Mumbai PPOB":("DEPL_MUMBAI_PPOB",45),
+             "Dileep Essentials Pvt Ltd Delhi":("DEPL_DELHI",32),"Dileep Essentials Pvt Ltd CG Road Ahmedabad":("STORE_AMD_CGROAD",11)}
+for src in ("ERP_STOCK_TRANSFER_OUT","ERP_STOCK_TRANSFER_IN","ERP_RETAIL_RETURN"):
+    have = {a[2] for a in LA if a[0] == src and a[1] == "CONTACTNAME"}
+    for v,(code,n) in billed_at.items():
+        if v not in have:
+            LA.append((src,"CONTACTNAME",v,code,False,f"FY25-26 retail sales bill this contact only at this ERP location ({n} lines, 100%)"))
+for v in ("Dileep Essentials Pvt Ltd Bagru","Dileep Essentials Pvt Ltd CG Road Ahmedabad"):   # both are shops (popup store, own store)
+    CA.append(("ERP_RETAIL_SALES","CONTACTNAME",v,"OWN_STORE",10,False,"FY25-26 sales billed at an own store / popup location"))
+    CA.append(("ERP_RETAIL_RETURN","CONTACTNAME",v,"OWN_STORE",10,False,"FY25-26 returns at an own store / popup location"))
+UNRESOLVED = [u for u in UNRESOLVED if u[2] not in billed_at and u[2] != "BAG/DC"]
+UNRESOLVED.append(("ERP_RETAIL_SALES","CONTACTNAME","Dileep Essentials Pvt Ltd Mumbai PPOB / Delhi",
+                   "FY25-26 retail sales billed at DEPL Mumbai PPOB / DEPL Delhi","Which sales channel are these (own store? B2B?) Location is known; channel left Unknown"))
 
 # ---------------------------------------------------------------- write CSV seeds
 def w(name, header, rows):

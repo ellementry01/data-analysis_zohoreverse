@@ -58,6 +58,11 @@ ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,AMAZON_FBA
 ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
 ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
 ERP_RETAIL_RETURN,CONTACTNAME,Flipkart Website,FLIPKART,10,false,FY25-26 returns only,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Flipkart Website,FLIPKART,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,OWN_STORE,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,OWN_STORE,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
 ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT,10,false,FY25-26 retail returns from a Blinkit location,BR-006
 ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT,10,false,FY25-26 retail returns from a Blinkit location,BR-006
 ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,OWN_STORE,10,false,FY25-26 returns; store identity unresolved,BR-006
@@ -76,3 +81,7 @@ WMS_DISPATCH,Site Location,FlipkartV3_MultiWH,FLIPKART,10,false,Seen on the full
 WMS_DISPATCH,Site Location,Amazon Flex,AMAZON_SELLER_FLEX,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
 BLINKIT_SALES,(whole source),*,BLINKIT,100,true,Every row of the Blinkit sales file is Blinkit,BR-018
 INSTAMART_SALES,(whole source),*,INSTAMART,100,true,Every row of the Instamart sales file is Instamart,
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OWN_STORE,10,false,FY25-26 sales billed at an own store / popup location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OWN_STORE,10,false,FY25-26 returns at an own store / popup location,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,OWN_STORE,10,false,FY25-26 sales billed at an own store / popup location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,OWN_STORE,10,false,FY25-26 returns at an own store / popup location,BR-006
