@@ -1,0 +1,23 @@
+channel_code,channel_name,sub_channel_name,channel_group,is_active,is_confirmed,notes,fulfilment_model,is_sale_or_return
+WEBSITE,Own Website,Shopify,D2C_WEBSITE,true,true,"Incl. COD (Delhivery, Shiprocket) and Snapmint - business confirmed via CONTACTNAME",SELF_SHIP,false
+AMAZON_FBA,Amazon,FBA,MARKETPLACE,true,true,Orders fulfilled from Amazon FBA warehouses,AMAZON_FBA,false
+AMAZON_SELF_SHIP,Amazon,Self-ship / Easyship,MARKETPLACE,true,false,"Contact 'Amazon Website', billed and shipped from Bagru; WMS shows Amazon_SC_Easyship",SELF_SHIP,false
+AMAZON_SELLER_FLEX,Amazon,Seller Flex,MARKETPLACE,true,false,Contact 'Amazon Seller Flex',SELLER_FLEX,false
+MYNTRA,Myntra,Myntra,MARKETPLACE,true,false,,SELF_SHIP,false
+NYKAA_FASHION,Nykaa,Nykaa Fashion,MARKETPLACE,true,false,,SELF_SHIP,false
+NYKAA,Nykaa,Nykaa,MARKETPLACE,true,false,Separate contact 'Nykaa' (34 lines) - kept as its own sub-channel,SELF_SHIP,false
+TATA_CLIQ,Tata Cliq,Tata Cliq,MARKETPLACE,true,false,,SELF_SHIP,false
+TATA_CLIQ_MALL,Tata Cliq,Tata Cliq Mall,MARKETPLACE,true,false,,SELF_SHIP,false
+TATA_CLIQ_MALL_FURNITURE,Tata Cliq,Tata Cliq Mall - Furniture,MARKETPLACE,true,false,,SELF_SHIP,false
+PEPPERFRY,Pepperfry,Pepperfry,MARKETPLACE,true,false,,SELF_SHIP,false
+FNP,FNP,FNP E-Retail,MARKETPLACE,true,false,,SELF_SHIP,false
+FLIPKART,Flipkart,Flipkart,MARKETPLACE,true,false,Seen only in FY25-26 returns; no sales Apr-Sep 2026,SELF_SHIP,false
+OWN_STORE,Own Stores,Own Stores,OFFLINE_RETAIL,true,false,"Store identity is the location, not the channel",STORE,false
+B2B,B2B / Wholesale,Outright,B2B,true,true,Final invoices (business confirmed),NONE,false
+FRANCHISE,Franchise Stores,Sale-or-return,B2B,true,true,Business confirmed sale-or-return,PARTNER,true
+SIS,Shop-in-Shop,Sale-or-return,B2B,true,true,Business confirmed sale-or-return,PARTNER,true
+BLINKIT,Blinkit,Quick commerce,QUICK_COMMERCE,true,true,Sale-or-return,PARTNER,true
+INSTAMART,Instamart,Quick commerce,QUICK_COMMERCE,true,true,Sale-or-return,PARTNER,true
+EXPORT_VIA_DILEEP,Exports,Via Dileep (cost-to-cost),B2B,true,true,Business confirmed,NONE,false
+EXPORT_DIRECT,Exports,Direct,B2B,true,false,"Only 2 Rs 1 lines (Hindustan Exports, Singapore)",NONE,false
+INTERNAL_EMPLOYEE,Internal,Employee exhibition stock,INTERNAL,true,true,Not a sale; excluded from revenue,NONE,false

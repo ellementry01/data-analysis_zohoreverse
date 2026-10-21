@@ -1,0 +1,185 @@
+{
+  "source_name": "ERP_RETAIL_RETURN",
+  "status": "verified",
+  "verified_against": "Retail_Sales_Return_Current_FY.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 41,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "RETURNNUM",
+      "column": "returnnum"
+    },
+    {
+      "header": "RETURNDATE",
+      "column": "returndate"
+    },
+    {
+      "header": "BILLNUM",
+      "column": "billnum"
+    },
+    {
+      "header": "BILLDATE",
+      "column": "billdate"
+    },
+    {
+      "header": "DOCREFNUM",
+      "column": "docrefnum"
+    },
+    {
+      "header": "DOCREFDATE",
+      "column": "docrefdate"
+    },
+    {
+      "header": "CONTACTNAME",
+      "column": "contactname"
+    },
+    {
+      "header": "LOYALTYCONTACTNAME",
+      "column": "loyaltycontactname"
+    },
+    {
+      "header": "LOYALTYCONTACTBILLADDRESS",
+      "column": "loyaltycontactbilladdress"
+    },
+    {
+      "header": "DOCDESTCONTACTADDRESSSTATECODE",
+      "column": "docdestcontactaddressstatecode"
+    },
+    {
+      "header": "MERCHANT",
+      "column": "merchant"
+    },
+    {
+      "header": "PAYGATEWAY",
+      "column": "paygateway"
+    },
+    {
+      "header": "ORDERTYPE",
+      "column": "ordertype"
+    },
+    {
+      "header": "AWB",
+      "column": "awb"
+    },
+    {
+      "header": "COURIER",
+      "column": "courier"
+    },
+    {
+      "header": "GSTN",
+      "column": "gstn"
+    },
+    {
+      "header": "DOCAMOUNT",
+      "column": "docamount"
+    },
+    {
+      "header": "DOCGROSSAMOUNT",
+      "column": "docgrossamount"
+    },
+    {
+      "header": "DOCOTHERCHARGETOTAL",
+      "column": "docotherchargetotal"
+    },
+    {
+      "header": "PRODNUM",
+      "column": "prodnum"
+    },
+    {
+      "header": "PRODNAME",
+      "column": "prodname"
+    },
+    {
+      "header": "PRODHSNCODE",
+      "column": "prodhsncode"
+    },
+    {
+      "header": "UOMNAME",
+      "column": "uomname"
+    },
+    {
+      "header": "PRODCONTACTQTY",
+      "column": "prodcontactqty"
+    },
+    {
+      "header": "PRODCONTACTRATE",
+      "column": "prodcontactrate"
+    },
+    {
+      "header": "PRODDISCPERCENTAGE",
+      "column": "proddiscpercentage"
+    },
+    {
+      "header": "PRODDISC",
+      "column": "proddisc"
+    },
+    {
+      "header": "PRODDOCVALUE",
+      "column": "proddocvalue"
+    },
+    {
+      "header": "PRODOTHERCHARGEAMOUNT",
+      "column": "prodotherchargeamount"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE",
+      "column": "otherchargepercentage"
+    },
+    {
+      "header": "IGSTAMOUNT",
+      "column": "igstamount"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE1",
+      "column": "otherchargepercentage1"
+    },
+    {
+      "header": "CGSTAMOUNT",
+      "column": "cgstamount"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE2",
+      "column": "otherchargepercentage2"
+    },
+    {
+      "header": "SGSTAMOUNT",
+      "column": "sgstamount"
+    },
+    {
+      "header": "PRODASSESSABLEVALUE",
+      "column": "prodassessablevalue"
+    },
+    {
+      "header": "STARTTIME",
+      "column": "starttime"
+    },
+    {
+      "header": "ENDTIME",
+      "column": "endtime"
+    },
+    {
+      "header": "DOCIRN",
+      "column": "docirn"
+    },
+    {
+      "header": "DOCACKNO",
+      "column": "docackno"
+    },
+    {
+      "header": "DOCACKDATE",
+      "column": "docackdate"
+    }
+  ],
+  "business_date": {
+    "header": "RETURNDATE",
+    "format": "excel_datetime"
+  },
+  "as_of_required": false
+}

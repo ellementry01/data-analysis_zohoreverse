@@ -1,0 +1,6 @@
+source_name,partner_role,default_partner_type,rationale,rule_id
+ERP_RETAIL_SALES,CUSTOMER,D2C_CHANNEL_ACCOUNT,Every retail invoice is a genuine D2C / marketplace / store sale,BR-005
+ERP_RETAIL_RETURN,CUSTOMER,D2C_CHANNEL_ACCOUNT,"Every retail return is a genuine customer return, incl. those received at Amazon FBA",BR-009
+ERP_DOMESTIC_SALES,CUSTOMER,EMPLOYEE,Any domestic name not on the business-account list is an employee (applied only once partner_list_complete = true),BR-011
+ERP_DOMESTIC_RETURN,CUSTOMER,EMPLOYEE,Any domestic name not on the business-account list is an employee (applied only once partner_list_complete = true),BR-011
+ERP_PURCHASE_ORDER,SUPPLIER,RETURN_SOURCE,Any PO counterparty not on the factory list is a return-inward (applied only once partner_list_complete = true),BR-013

@@ -1,0 +1,22 @@
+source_name,doc_prefix,location_code,is_confirmed,notes,rule_id
+ERP_STOCK_TRANSFER_OUT,AMD/DC,FBA_AMD2,false,Derived: 24 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,BOM/STK,FBA_BOM5,false,Derived: 19 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBA/STK,FBA_JAIPUR,false,Derived: 4 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBAHYD/STK,FBA_HYD,false,Derived: 32 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBAQ2/STK,FBA_PNQ2,false,Derived: 9 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBAX3/STK,FBA_DEX3,false,Derived: 7 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBAX8/STK,FBA_DEX8,false,Derived: 3 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,FBL7/STK,FBA_BLR7,false,Derived: 63 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,HYD8/DC,STORE_HYD_BANJARA,false,Derived: 5 linked receipts all name this sender (100%),
+ERP_STOCK_TRANSFER_OUT,IS/DF,DFAL,false,Derived: 6 linked receipts all name this sender (100%),
+ERP_STOCK_TRANSFER_OUT,ISU/CCX,FBA_CCX1,false,Derived: 23 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,ISU/CJB,FBA_CJB1,false,Derived: 16 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,ISU/CX2,FBA_CCX2,false,Derived: 3 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,ISU/D4,FBA_DED4,false,Derived: 91 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,ISU/MAA,FBA_MAA4,false,Derived: 10 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,JPR/DC,BAGRU_WH,false,Derived: 160 linked receipts all name this sender (100%),BR-016
+ERP_STOCK_TRANSFER_OUT,JPR3/DC,STORE_JPR_CSCHEME,false,Derived: 52 linked receipts all name this sender (100%),
+ERP_STOCK_TRANSFER_OUT,LK/DC,FBA_LKO1,false,Derived: 11 linked receipts all name this sender (100%),BR-019
+ERP_STOCK_TRANSFER_OUT,M10/STK,BLINKIT_MUM_M10,false,Derived: 7 linked receipts all name this sender (100%),
+ERP_STOCK_TRANSFER_OUT,P2/STK,BLINKIT_PUNE_P2,false,Derived: 2 linked receipts all name this sender (100%),
+ERP_STOCK_TRANSFER_OUT,THA/IC,FBA_THANE,false,Derived: 64 linked receipts all name this sender (100%),BR-019

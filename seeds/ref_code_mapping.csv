@@ -1,0 +1,18 @@
+domain,source_name,source_value,standard_value,is_confirmed,notes,rule_id
+PO_STATUS,ERP_PURCHASE_ORDER,Received,RECEIVED,true,,
+PO_STATUS,ERP_PURCHASE_ORDER,In Progress,IN_PROGRESS,true,,
+PO_STATUS,ERP_PURCHASE_ORDER,Overdue,OVERDUE,true,,
+PO_STATUS,ERP_PURCHASE_ORDER,Open,OPEN,true,,
+PO_STATUS,ERP_PURCHASE_ORDER,Closed,CLOSED,true,,
+PO_STATUS,ERP_PURCHASE_ORDER,Cancel,CANCELLED,true,,
+ITEM_TYPE_NAME,PRODUCT_MASTER,Trading,TRADING,true,ERP product type word,BR-014
+ITEM_TYPE_NAME,PRODUCT_MASTER,Packaging,PACKAGING,true,ERP product type word,BR-014
+ITEM_TYPE_NAME,PRODUCT_MASTER,Accessory,ACCESSORY,true,ERP product type word,BR-014
+ITEM_TYPE_NAME,PRODUCT_MASTER,Stores and Consumables,STORES_CONSUMABLES,true,ERP product type word,BR-014
+ITEM_TYPE_NAME,PRODUCT_MASTER,Service,SERVICE,true,ERP product type word (seen on one PO line),BR-014
+ITEM_TYPE,PRODUCT_MASTER,SHIPPING R,CHARGE,true,"Shipping Charges Receipt: a charge line, not a product",BR-014
+ITEM_TYPE,PRODUCT_MASTER,SHIPPING CHARGE RCPT,CHARGE,true,Shipping charge on domestic returns,BR-014
+ITEM_TYPE,PRODUCT_MASTER,GIFTING,CHARGE,true,Gifting Charges Receipt,BR-014
+ITEM_TYPE,PRODUCT_MASTER,PACKING,CHARGE,false,'Branding Expenses' on 7 domestic lines; treated as a charge,BR-014
+ORDER_NUMBER_PLACEHOLDER,ERP_RETAIL_SALES,Ellementry Store,NONE,false,Own-store bills carry this text instead of an order number,
+PLATFORM_PARTNER,BLINKIT_SALES,*,KIRANAKART TECHNOLOGIES PVT LTD,true,Blinkit's legal entity,BR-012

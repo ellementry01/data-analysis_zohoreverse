@@ -1,0 +1,17 @@
+partner_name,partner_role,partner_type,partner_group,is_confirmed,notes,channel_code,rule_id,consignment_location_code
+Dileep Crafts Private Limited,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Crafts Private Limited - Sampling Unit Customer,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Industries Ind Private Limited - Metal,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Industries Ind Private Limited - Upholstery,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Industries Ind Private Limited - WOOD,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Industries Pvt Ltd,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Jewelerry Pvt. Ltd-Customer,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Potteries Private Limited,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+Dileep Essentials Pvt Ltd,CUSTOMER,GROUP_EXPORT,Dileep group,true,,,BR-007,
+KIRANAKART TECHNOLOGIES PVT LTD,CUSTOMER,QUICK_COMMERCE_PARTNER,Kiranakart Technologies (Blinkit),true,,BLINKIT,BR-012,CONSIGN_BLINKIT
+KIRANAKART TECHNOLOGIES PVT LTD - Bangalore,CUSTOMER,QUICK_COMMERCE_PARTNER,Kiranakart Technologies (Blinkit),true,,BLINKIT,BR-012,CONSIGN_BLINKIT
+KIRANAKART TECHNOLOGIES PVT LTD - Bhiwandi,CUSTOMER,QUICK_COMMERCE_PARTNER,Kiranakart Technologies (Blinkit),true,,BLINKIT,BR-012,CONSIGN_BLINKIT
+KIRANAKART TECHNOLOGIES PVT LTD - Chennai,CUSTOMER,QUICK_COMMERCE_PARTNER,Kiranakart Technologies (Blinkit),true,,BLINKIT,BR-012,CONSIGN_BLINKIT
+Hindustan Exports,CUSTOMER,EXPORT_CUSTOMER,,false,Two Rs 1 lines to Singapore; open question,,,
+Sundry Customer,CUSTOMER,UNCLASSIFIED,,false,Catch-all account; open question. Listed so it is never classified by elimination,,,
+DILEEP ESSENTIALS INC,CUSTOMER,UNCLASSIFIED,,false,Seen once in FY25-26 domestic returns; open question,,,

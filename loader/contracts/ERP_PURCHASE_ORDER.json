@@ -1,0 +1,169 @@
+{
+  "source_name": "ERP_PURCHASE_ORDER",
+  "status": "verified",
+  "verified_against": "Pending_Purchase_Order_26-27_12_09.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 37,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "PO No.",
+      "column": "po_no"
+    },
+    {
+      "header": "PO Open Date",
+      "column": "po_open_date"
+    },
+    {
+      "header": "Ref No.",
+      "column": "ref_no"
+    },
+    {
+      "header": "Ref. Date",
+      "column": "ref_date"
+    },
+    {
+      "header": "CONTACTNAME",
+      "column": "contactname"
+    },
+    {
+      "header": "PRODTYPENAME",
+      "column": "prodtypename"
+    },
+    {
+      "header": "Category",
+      "column": "category"
+    },
+    {
+      "header": "Sub Category",
+      "column": "sub_category"
+    },
+    {
+      "header": "SKU No.",
+      "column": "sku_no"
+    },
+    {
+      "header": "Product Description",
+      "column": "product_description"
+    },
+    {
+      "header": "BUYERNUMBER",
+      "column": "buyernumber"
+    },
+    {
+      "header": "PO Due Date",
+      "column": "po_due_date"
+    },
+    {
+      "header": "Order Qty",
+      "column": "order_qty"
+    },
+    {
+      "header": "GRN Qty",
+      "column": "grn_qty"
+    },
+    {
+      "header": "ADJUSTEDGRNQTY",
+      "column": "adjustedgrnqty"
+    },
+    {
+      "header": "Returned Qty",
+      "column": "returned_qty"
+    },
+    {
+      "header": "Returned Value",
+      "column": "returned_value"
+    },
+    {
+      "header": "ACTUALGRNADJQTY AFTERRETURN",
+      "column": "actualgrnadjqty_afterreturn"
+    },
+    {
+      "header": "PO Pending Qty",
+      "column": "po_pending_qty"
+    },
+    {
+      "header": "PendingOnGRN",
+      "column": "pendingongrn"
+    },
+    {
+      "header": "UOM",
+      "column": "uom"
+    },
+    {
+      "header": "PURCHASE PRICE",
+      "column": "purchase_price"
+    },
+    {
+      "header": "CURRENCYCODE",
+      "column": "currencycode"
+    },
+    {
+      "header": "Purchase Amount FC",
+      "column": "purchase_amount_fc"
+    },
+    {
+      "header": "Purchase Amount",
+      "column": "purchase_amount"
+    },
+    {
+      "header": "STATUS",
+      "column": "status"
+    },
+    {
+      "header": "BALANCE/EXCESSQty",
+      "column": "balance_excessqty"
+    },
+    {
+      "header": "PENDING AMOUNT",
+      "column": "pending_amount"
+    },
+    {
+      "header": "BALANCE_PO_ADJQTY",
+      "column": "balance_po_adjqty"
+    },
+    {
+      "header": "Supplier Invoice Rate",
+      "column": "supplier_invoice_rate"
+    },
+    {
+      "header": "GRNNUM",
+      "column": "grnnum"
+    },
+    {
+      "header": "GRNDOCCREATEDDATE",
+      "column": "grndoccreateddate"
+    },
+    {
+      "header": "GRNDOCOPENDATE",
+      "column": "grndocopendate"
+    },
+    {
+      "header": "DIFFSUPRATEPORATE",
+      "column": "diffsuprateporate"
+    },
+    {
+      "header": "CREATEDBYUSER",
+      "column": "createdbyuser"
+    },
+    {
+      "header": "PARTNERNAME",
+      "column": "partnername"
+    },
+    {
+      "header": "OPENPURCHASEORDERS",
+      "column": "openpurchaseorders"
+    }
+  ],
+  "business_date": {
+    "header": "PO Open Date",
+    "format": "excel_datetime"
+  },
+  "as_of_required": true
+}

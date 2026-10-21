@@ -1,0 +1,65 @@
+source_name,note_id,category,source_header,note,rule_id,evidence,status
+ERP_RETAIL_SALES,1,COLUMN_MEANING,CHANNELNAME,"The billing / fulfilling LOCATION (e.g. '08 Jaipur Branch'), not the sales channel",BR-006,,ACTIVE
+ERP_RETAIL_SALES,2,COLUMN_MEANING,CONTACTNAME,"The sales channel: a pseudo-customer per channel (Shopify_Customer, Amazon Website, FBA and store contacts)",BR-006,28 values map cleanly,ACTIVE
+ERP_RETAIL_SALES,3,TRAP,PRODASSESSABLEVALUE,INCLUDES GST (MRP minus discount) despite its name; never use it as the excluding-GST value,BR-002,Verified on every product line,ACTIVE
+ERP_RETAIL_SALES,4,COLUMN_MEANING,PRODDOCVALUE,"Value excluding GST; blank on charge lines (SHIPPING R, Gifting)",BR-002,,ACTIVE
+ERP_RETAIL_SALES,5,CONTENT,PRODNUM,"Non-product lines appear: SHIPPING R (shipping charge), COCB04-11 (carry bags), Gifting",BR-014,,ACTIVE
+ERP_RETAIL_SALES,6,CONTENT,Payment mode/Account,Not used for the channel; 144 Jaipur Branch rows are blank,,,ACTIVE
+ERP_RETAIL_SALES,7,CONTENT,,"Contains customer personal data (names, phones, emails, addresses); kept in raw only",,,ACTIVE
+ERP_RETAIL_SALES,8,CONTENT,CONTACTNAME,Bare 'Dileep Essentials Pvt Ltd' (39 lines) = exports through Dileep,BR-007,,ACTIVE
+ERP_DOMESTIC_SALES,1,COLUMN_MEANING,CONTACTNAME,"Mixes outright B2B, franchise, SIS, quick-commerce partners, Dileep group exports and employees",BR-010,,ACTIVE
+ERP_DOMESTIC_SALES,2,TRAP,Net Amount,INCLUDES GST; the excluding-GST value is Taxable,BR-003,Taxable + Total Tax = Net Amount on 100% of lines,ACTIVE
+ERP_DOMESTIC_SALES,3,CONTENT,Taxable,Blank on 209 lines (mostly carry bags and Sundry Customer); value = Net Amount minus Total Tax,BR-003,,ACTIVE
+ERP_DOMESTIC_SALES,4,CONTENT,CONTACTNAME,'Sundry Customer' is a catch-all account (171 lines); classification open,,Issue log,ACTIVE
+ERP_DOMESTIC_SALES,5,CONTENT,PRODDISC,106 lines carry a 99-100% discount (near-free); whether these are samples is open,,Issue log,ACTIVE
+ERP_DOMESTIC_SALES,6,CONTENT,COUNTRYNAME,2 SINGAPORE lines to 'Hindustan Exports' at Rs 1 each,,,ACTIVE
+ERP_RETAIL_RETURN,1,COLUMN_MEANING,CONTACTNAME,FBA-named contact = return received back at that FBA warehouse,BR-009,,ACTIVE
+ERP_RETAIL_RETURN,2,COLUMN_MEANING,BILLNUM,Original invoice the return reverses (93% matched to the sample sales),,,ACTIVE
+ERP_RETAIL_RETURN,3,CONTENT,PRODNUM,SHIPPING R reversal lines (287 rows),BR-014,,ACTIVE
+ERP_RETAIL_RETURN,4,COVERAGE,RETURNDATE,Exports can run past the cut-off (to 22-Sep in the sample),BR-020,,ACTIVE
+ERP_RETAIL_RETURN,5,CONTENT,RETURNNUM,"Online-channel returns use the JPR prefix, i.e. are received at Bagru",BR-016,All 14 online contacts share the JPR prefix,ACTIVE
+ERP_RETAIL_RETURN,6,COVERAGE,CONTACTNAME,"FY25-26 file holds channels not seen later: Flipkart Website, Ellementry International, Blinkit contacts",,,ACTIVE
+ERP_DOMESTIC_RETURN,1,COLUMN_MEANING,BILLNUM,Credit-note number; BILLDATE is the credit-note date used for net sales,BR-023,,ACTIVE
+ERP_DOMESTIC_RETURN,2,COLUMN_MEANING,RTNFROMCUST,List of goods-receipt numbers joined by ';' (one credit note can cover several receipts),BR-023,,ACTIVE
+ERP_DOMESTIC_RETURN,3,TRAP,RTNFROMCUSTDT,"Mix of real Excel dates and typed text 'dd/mm/yyyy;dd/mm/yyyy'; one date per receipt, and they can differ",BR-023,437 FY25-26 rows join different dates,ACTIVE
+ERP_DOMESTIC_RETURN,4,CONTENT,CONTACTNAME,KIRANAKART TECHNOLOGIES (4 branch names) = Blinkit sending back unsold stock,BR-012,,ACTIVE
+ERP_DOMESTIC_RETURN,5,CONTENT,CONTACTNAME,'DILEEP ESSENTIALS INC' appears once; classification open,,Issue log,ACTIVE
+ERP_STOCK_TRANSFER_OUT,1,TRAP,PRODTRANSQTY,Quantities are negative; stored positive with a direction,,,ACTIVE
+ERP_STOCK_TRANSFER_OUT,2,TRAP,DOCNUM,"No sending-location column: the sender is only in the document prefix (JPR/DC = Bagru, THA/IC = Thane FBA...)",,"21 prefixes, each 100% consistent with linked receipts",ACTIVE
+ERP_STOCK_TRANSFER_OUT,3,COLUMN_MEANING,CONTACTNAME,"Receiving location, in long form",,,ACTIVE
+ERP_STOCK_TRANSFER_OUT,4,CONTENT,CONTACTNAME,'Dileep Essentials Pvt Ltd Bagru' (prefix BAG/) is a different location from the Bagru warehouse; open,,Issue log,ACTIVE
+ERP_STOCK_TRANSFER_IN,1,COLUMN_MEANING,REFDOCNUM1,The outward document this receipt is for (100% matched),,,ACTIVE
+ERP_STOCK_TRANSFER_IN,2,TRAP,DOCNUM,"Prefix 'STK' is used by two receivers (AMD2, LKO1): the receiver is taken from the linked outward document",,,ACTIVE
+ERP_STOCK_TRANSFER_IN,3,CONTENT,DOCNUM,Two document + SKU pairs repeat on separate lines,,,ACTIVE
+ERP_STOCK_TRANSFER_IN,4,COLUMN_MEANING,CONTACTNAME,"Sending location, in long form",,,ACTIVE
+ERP_PURCHASE_ORDER,1,CONTENT,CONTACTNAME,"Contains return-inward invoices from non-factory parties (customers, own stores)",BR-013,,ACTIVE
+ERP_PURCHASE_ORDER,2,TRAP,,The date in the file name is not the export date; the sample named '12_09' held dates up to 24-Sep,BR-030,,ACTIVE
+ERP_PURCHASE_ORDER,3,TRAP,GRNNUM,A part-delivered PO line lists ALL its goods receipts in one cell ('JPR/GRN/199;305;89') with ONE date and ONE total quantity; per-receipt dates and quantities are not exported. No receiving location either,,"47 lines carry 155 receipts in the sample; gaps G-025, G-027",ACTIVE
+ERP_PURCHASE_ORDER,4,CONTENT,Returned Qty,"Filled on 27 of 1,350 rows",,,ACTIVE
+ERP_INVENTORY_SNAPSHOT,1,LAYOUT,,Wide report: per location a Qty column and an Active MRP column; header on row 19; report date on row 3 as 'M/D/YYYY To M/D/YYYY',,,ACTIVE
+ERP_INVENTORY_SNAPSHOT,2,LAYOUT,Total,Row Total = sum of locations; a grand-total footer row (Indian number format) closes the report. Both are used as completeness checks,,,ACTIVE
+ERP_INVENTORY_SNAPSHOT,3,CONTENT,,7 locations selected in the report filter have no column (e.g. 08 Repair and Damage),,Issue log,ACTIVE
+ERP_INVENTORY_SNAPSHOT,4,CONTENT,Prod Type,"Includes Packaging, Accessory and Stores & Consumables items",BR-014,,ACTIVE
+ERP_INVENTORY_SNAPSHOT,5,EXPORT_PROCESS,,Only today's stock can be exported; save it daily,BR-021,,ACTIVE
+PRODUCT_MASTER,1,CONTENT,,Only Sheet1 is data; the other sheets are working sheets,,,ACTIVE
+PRODUCT_MASTER,2,TRAP,,After the Unit column Sheet1 carries a stale copy of the stock report; never used as stock,BR-015,,ACTIVE
+PRODUCT_MASTER,3,EXPORT_PROCESS,,"Updated whenever something changes; carries no date, so the export date is given at load",BR-030,,ACTIVE
+WMS_DISPATCH,1,COLUMN_MEANING,Site Location,"The sales channel (Nykaa Fashion, Shopify, Amazon_SC_Easyship...); 'Customer' is a placeholder (999999)",,,ACTIVE
+WMS_DISPATCH,2,TRAP,Order Date,Dates are month/day (4/14/2025),BR-026,,ACTIVE
+WMS_DISPATCH,3,TRAP,Ext Manifest No,Long numbers exported in scientific notation lose digits; export as CSV,,Gap G-003,ACTIVE
+WMS_DISPATCH,4,CONTENT,SKU,One cell can hold several SKUs with one combined quantity,,,ACTIVE
+WMS_DISPATCH,5,CONTENT,,"B2C orders only, all from the Bagru warehouse",BR-017,,ACTIVE
+WMS_DISPATCH,6,CONTENT,Customer Phone,"Placeholder contacts appear (9999999999, dummy@nykaa.com)",,,ACTIVE
+BLINKIT_SALES,1,CONTENT,Order Status,Only DELIVERED counts as sold; returns come in a separate sheet,BR-018,,ACTIVE
+BLINKIT_SALES,2,CONTENT,,No store id: only supply and customer city,,,ACTIVE
+BLINKIT_INVENTORY,1,TRAP,Net scheduled inventory,"Can be negative; meaning unconfirmed, so excluded from stock numbers",,Issue log,ACTIVE
+BLINKIT_INVENTORY,2,LAYOUT,,Last column has no header and holds only '--',,,ACTIVE
+BLINKIT_INVENTORY,3,EXPORT_PROCESS,,Carries no date; the export date is given at load,BR-030,,ACTIVE
+INSTAMART_SALES,1,LAYOUT,,"First column has no header: a 0, 1, 2... row counter",,,ACTIVE
+INSTAMART_SALES,2,CONTENT,,"The Brand Metrics sheet is city-level marketing data, not loaded",,,ACTIVE
+INSTAMART_INVENTORY,1,LAYOUT,,The sheet name changes with every export (ItemInventory_<number>),,,ACTIVE
+INSTAMART_INVENTORY,2,EXPORT_PROCESS,,Carries no date; the export date is given at load,BR-030,,ACTIVE
+ERP_DOMESTIC_RETURN,6,CONTENT,reason,A 'reason' column exists but is empty on every row: return reasons could be captured without a new report,,"5,924 of 5,924 rows empty; gap G-009",ACTIVE
+ERP_DOMESTIC_RETURN,7,TRAP,RTNFROMCUSTDT,"On some credit notes the date list is one shorter than the receipt list (e.g. 3 receipts, 2 dates), so receipts cannot be paired with dates",,100 receipts in the sample,ACTIVE
+INSTAMART_SALES,3,TRAP,ELLE_SKU,'Elle SKU' is a lookup that shows #N/A when it fails; such rows cannot be matched to a product,,4 rows in the sample,ACTIVE
+INSTAMART_INVENTORY,3,TRAP,Elle SKU,'Elle SKU' shows #N/A when Instamart's lookup fails; such rows cannot be matched to a product,,6 rows in the sample,ACTIVE

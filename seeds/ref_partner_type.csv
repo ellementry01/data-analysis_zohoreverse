@@ -1,0 +1,12 @@
+partner_type,description,is_internal,is_related_party,is_sale_or_return,rule_id
+D2C_CHANNEL_ACCOUNT,"ERP pseudo-customer on retail invoices (Shopify_Customer, Amazon Website, Amazon FBA and own-store contacts)",false,false,false,BR-005
+B2B_CUSTOMER,Outright B2B / wholesale sale. Final: not returned for being unsold,false,false,false,BR-010
+FRANCHISE_PARTNER,Franchise store supplied sale-or-return,false,false,true,BR-010
+SIS_PARTNER,"Shop-in-shop counter inside a retailer, supplied sale-or-return",false,false,true,BR-010
+QUICK_COMMERCE_PARTNER,"Quick-commerce entity (e.g. Kiranakart Technologies = Blinkit), supplied sale-or-return",false,false,true,BR-010
+GROUP_EXPORT,Dileep group entity billed cost-to-cost for export orders (exports are routed through Dileep),false,true,false,BR-007
+EXPORT_CUSTOMER,Overseas customer billed directly,false,false,false,
+EMPLOYEE,Company employee taking stock out for exhibitions or demos and bringing it back,true,false,false,BR-011
+FACTORY_SUPPLIER,Factory that goods are purchased from,false,false,false,BR-013
+RETURN_SOURCE,"Non-factory party on the PO report: a return-inward, not a purchase",false,false,false,BR-013
+UNCLASSIFIED,Not yet classified. Must be zero before a mart is trusted,false,false,false,

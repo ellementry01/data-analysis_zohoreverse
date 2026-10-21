@@ -1,0 +1,206 @@
+{
+  "source_name": "WMS_DISPATCH",
+  "status": "draft",
+  "verified_against": null,
+  "draft_note": "Built from the column list pasted in chat (Apr 2025 rows). No real file seen yet.",
+  "layout": "TABLE",
+  "sheet": {
+    "index": 0
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 46,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "Order No",
+      "column": "order_no"
+    },
+    {
+      "header": "Extern Order No",
+      "column": "extern_order_no"
+    },
+    {
+      "header": "Outbound Delivery No",
+      "column": "outbound_delivery_no"
+    },
+    {
+      "header": "Order Type",
+      "column": "order_type"
+    },
+    {
+      "header": "Tracking No",
+      "column": "tracking_no"
+    },
+    {
+      "header": "Status",
+      "column": "status"
+    },
+    {
+      "header": "Order Date",
+      "column": "order_date"
+    },
+    {
+      "header": "Ship Date",
+      "column": "ship_date"
+    },
+    {
+      "header": "Delivery Qty",
+      "column": "delivery_qty"
+    },
+    {
+      "header": "Picked QTY",
+      "column": "picked_qty"
+    },
+    {
+      "header": "Weight",
+      "column": "weight"
+    },
+    {
+      "header": "L",
+      "column": "l"
+    },
+    {
+      "header": "B",
+      "column": "b"
+    },
+    {
+      "header": "H",
+      "column": "h"
+    },
+    {
+      "header": "Pigeon Hole",
+      "column": "pigeon_hole"
+    },
+    {
+      "header": "No of Boxes",
+      "column": "no_of_boxes"
+    },
+    {
+      "header": "LrNo",
+      "column": "lrno"
+    },
+    {
+      "header": "Transporter",
+      "column": "transporter"
+    },
+    {
+      "header": "Pod",
+      "column": "pod"
+    },
+    {
+      "header": "Vehicle No",
+      "column": "vehicle_no"
+    },
+    {
+      "header": "Site Location",
+      "column": "site_location"
+    },
+    {
+      "header": "Order Serving Location",
+      "column": "order_serving_location"
+    },
+    {
+      "header": "Customer Name",
+      "column": "customer_name"
+    },
+    {
+      "header": "Customer Address",
+      "column": "customer_address"
+    },
+    {
+      "header": "Customer PinCode",
+      "column": "customer_pincode"
+    },
+    {
+      "header": "Customer Phone",
+      "column": "customer_phone"
+    },
+    {
+      "header": "Customer Email",
+      "column": "customer_email"
+    },
+    {
+      "header": "Transporter Status",
+      "column": "transporter_status"
+    },
+    {
+      "header": "Transporter Remarks",
+      "column": "transporter_remarks"
+    },
+    {
+      "header": "Manifest No",
+      "column": "manifest_no"
+    },
+    {
+      "header": "Delivery Date",
+      "column": "delivery_date"
+    },
+    {
+      "header": "Ext Manifest No",
+      "column": "ext_manifest_no"
+    },
+    {
+      "header": "Pick Date",
+      "column": "pick_date"
+    },
+    {
+      "header": "Pack Date",
+      "column": "pack_date"
+    },
+    {
+      "header": "Sortation Date",
+      "column": "sortation_date"
+    },
+    {
+      "header": "Picklist No",
+      "column": "picklist_no"
+    },
+    {
+      "header": "SKU",
+      "column": "sku"
+    },
+    {
+      "header": "Customer",
+      "column": "customer"
+    },
+    {
+      "header": "UOMQty",
+      "column": "uomqty"
+    },
+    {
+      "header": "Transporter URL",
+      "column": "transporter_url"
+    },
+    {
+      "header": "ONHOLD",
+      "column": "onhold"
+    },
+    {
+      "header": "LPN",
+      "column": "lpn"
+    },
+    {
+      "header": "Ext Transporter Name",
+      "column": "ext_transporter_name"
+    },
+    {
+      "header": "Transporter Error Description",
+      "column": "transporter_error_description"
+    },
+    {
+      "header": "Ship By Date",
+      "column": "ship_by_date"
+    },
+    {
+      "header": "Invoice No",
+      "column": "invoice_no"
+    }
+  ],
+  "business_date": {
+    "header": "Order Date",
+    "format": "text_mdy_time"
+  },
+  "as_of_required": false
+}

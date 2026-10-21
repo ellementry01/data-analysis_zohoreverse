@@ -1,0 +1,261 @@
+{
+  "source_name": "ERP_DOMESTIC_RETURN",
+  "status": "verified",
+  "verified_against": "Domestic_Sale_Return_Current_FY.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 60,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "BILLNUM",
+      "column": "billnum"
+    },
+    {
+      "header": "BILLDATE",
+      "column": "billdate"
+    },
+    {
+      "header": "DOCREFNUM",
+      "column": "docrefnum"
+    },
+    {
+      "header": "DOCREFDATE",
+      "column": "docrefdate"
+    },
+    {
+      "header": "RTNFROMCUST",
+      "column": "rtnfromcust"
+    },
+    {
+      "header": "RTNFROMCUSTDT",
+      "column": "rtnfromcustdt"
+    },
+    {
+      "header": "CONTACTNAME",
+      "column": "contactname"
+    },
+    {
+      "header": "GSTN",
+      "column": "gstn"
+    },
+    {
+      "header": "DOCAMOUNT",
+      "column": "docamount"
+    },
+    {
+      "header": "DOCGROSSAMOUNT",
+      "column": "docgrossamount"
+    },
+    {
+      "header": "DOCOTHERCHARGETOTAL",
+      "column": "docotherchargetotal"
+    },
+    {
+      "header": "DESIGNERNAME",
+      "column": "designername"
+    },
+    {
+      "header": "PRODNUM",
+      "column": "prodnum"
+    },
+    {
+      "header": "PRODNAME",
+      "column": "prodname"
+    },
+    {
+      "header": "PRODHSNCODE",
+      "column": "prodhsncode"
+    },
+    {
+      "header": "UOMNAME",
+      "column": "uomname"
+    },
+    {
+      "header": "PRODCONTACTQTY",
+      "column": "prodcontactqty"
+    },
+    {
+      "header": "PRODCONTACTRATE",
+      "column": "prodcontactrate"
+    },
+    {
+      "header": "PRODDISCPERCENTAGE",
+      "column": "proddiscpercentage"
+    },
+    {
+      "header": "PRODDISC",
+      "column": "proddisc"
+    },
+    {
+      "header": "PRODDOCVALUE",
+      "column": "proddocvalue"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE",
+      "column": "otherchargepercentage"
+    },
+    {
+      "header": "IGSTAMOUNT",
+      "column": "igstamount"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE1",
+      "column": "otherchargepercentage1"
+    },
+    {
+      "header": "CGSTAMOUNT",
+      "column": "cgstamount"
+    },
+    {
+      "header": "OTHERCHARGEPERCENTAGE2",
+      "column": "otherchargepercentage2"
+    },
+    {
+      "header": "SGSTAMOUNT",
+      "column": "sgstamount"
+    },
+    {
+      "header": "PRODASSESSABLEVALUE",
+      "column": "prodassessablevalue"
+    },
+    {
+      "header": "ASSIGNTO",
+      "column": "assignto"
+    },
+    {
+      "header": "COUNTRYNAME",
+      "column": "countryname"
+    },
+    {
+      "header": "PRODGROUPNAME",
+      "column": "prodgroupname"
+    },
+    {
+      "header": "PRODBRANDNAME",
+      "column": "prodbrandname"
+    },
+    {
+      "header": "MONTHORDER",
+      "column": "monthorder"
+    },
+    {
+      "header": "MMONTHNAME",
+      "column": "mmonthname"
+    },
+    {
+      "header": "REASON",
+      "column": "reason"
+    },
+    {
+      "header": "CHANNELNAME",
+      "column": "channelname"
+    },
+    {
+      "header": "BILLCITY",
+      "column": "billcity"
+    },
+    {
+      "header": "BILLSTATE",
+      "column": "billstate"
+    },
+    {
+      "header": "BILLADDRESS",
+      "column": "billaddress"
+    },
+    {
+      "header": "BILLNOTES",
+      "column": "billnotes"
+    },
+    {
+      "header": "SHIPADDRESS",
+      "column": "shipaddress"
+    },
+    {
+      "header": "SHIPSTATE",
+      "column": "shipstate"
+    },
+    {
+      "header": "SHIPCITY",
+      "column": "shipcity"
+    },
+    {
+      "header": "LRNO",
+      "column": "lrno"
+    },
+    {
+      "header": "TRANSPORTERNAME",
+      "column": "transportername"
+    },
+    {
+      "header": "TRANSPORTERGSTN",
+      "column": "transportergstn"
+    },
+    {
+      "header": "TRANSPORTERADDRESS",
+      "column": "transporteraddress"
+    },
+    {
+      "header": "TRANSPORTERSTATECODE",
+      "column": "transporterstatecode"
+    },
+    {
+      "header": "TRANSPORTERPINCODE",
+      "column": "transporterpincode"
+    },
+    {
+      "header": "EMPLOYEECODE",
+      "column": "employeecode"
+    },
+    {
+      "header": "EMPLOYEENAME",
+      "column": "employeename"
+    },
+    {
+      "header": "LOCATION",
+      "column": "location"
+    },
+    {
+      "header": "CUSTOMERCODE",
+      "column": "customercode"
+    },
+    {
+      "header": "REPRESENTATIVEMOBILENUMBER",
+      "column": "representativemobilenumber"
+    },
+    {
+      "header": "AWBNO",
+      "column": "awbno"
+    },
+    {
+      "header": "E-way Bill No",
+      "column": "e_way_bill_no"
+    },
+    {
+      "header": "E-way Bill Generation Date",
+      "column": "e_way_bill_generation_date"
+    },
+    {
+      "header": "DOCIRN",
+      "column": "docirn"
+    },
+    {
+      "header": "DOCACKNO",
+      "column": "docackno"
+    },
+    {
+      "header": "DOCACKDATE",
+      "column": "docackdate"
+    }
+  ],
+  "business_date": {
+    "header": "BILLDATE",
+    "format": "excel_datetime"
+  },
+  "as_of_required": false
+}

@@ -1,0 +1,99 @@
+{
+  "source_name": "INSTAMART_SALES",
+  "status": "verified",
+  "verified_against": "Instamart_sep_sales_data.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sales Report"
+  },
+  "other_sheets": "ignore",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 19,
+  "unnamed_columns": [
+    {
+      "position": 0,
+      "rule": "row_counter"
+    }
+  ],
+  "columns": [
+    {
+      "header": "BRAND",
+      "column": "brand"
+    },
+    {
+      "header": "ORDERED_DATE",
+      "column": "ordered_date"
+    },
+    {
+      "header": "CITY",
+      "column": "city"
+    },
+    {
+      "header": "AREA_NAME",
+      "column": "area_name"
+    },
+    {
+      "header": "STORE_ID",
+      "column": "store_id"
+    },
+    {
+      "header": "L1_CATEGORY",
+      "column": "l1_category"
+    },
+    {
+      "header": "L2_CATEGORY",
+      "column": "l2_category"
+    },
+    {
+      "header": "L3_CATEGORY",
+      "column": "l3_category"
+    },
+    {
+      "header": "PRODUCT_NAME",
+      "column": "product_name"
+    },
+    {
+      "header": "VARIANT",
+      "column": "variant"
+    },
+    {
+      "header": "ITEM_CODE",
+      "column": "item_code"
+    },
+    {
+      "header": "Elle SKU",
+      "column": "elle_sku"
+    },
+    {
+      "header": "COMBO",
+      "column": "combo"
+    },
+    {
+      "header": "COMBO_ITEM_CODE",
+      "column": "combo_item_code"
+    },
+    {
+      "header": "COMBO_UNITS_SOLD",
+      "column": "combo_units_sold"
+    },
+    {
+      "header": "BASE_MRP",
+      "column": "base_mrp"
+    },
+    {
+      "header": "UNITS_SOLD",
+      "column": "units_sold"
+    },
+    {
+      "header": "GMV",
+      "column": "gmv"
+    }
+  ],
+  "business_date": {
+    "header": "ORDERED_DATE",
+    "format": "excel_datetime"
+  },
+  "as_of_required": false,
+  "ignored_sheets_note": "Brand Metrics = city-level marketing data, not loaded in this phase"
+}
