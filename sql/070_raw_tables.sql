@@ -458,6 +458,7 @@ CREATE TABLE raw.erp_purchase_order (
     createdbyuser                            TEXT,
     partnername                              TEXT,
     openpurchaseorders                       TEXT,
+    document_remark                          TEXT,
     PRIMARY KEY (batch_id, source_row_number)
 );
 COMMENT ON TABLE raw.erp_purchase_order IS 'As received from ERP_PURCHASE_ORDER. Contract: loader/contracts/ERP_PURCHASE_ORDER.json';
@@ -498,6 +499,7 @@ COMMENT ON COLUMN raw.erp_purchase_order.diffsuprateporate IS 'Source header: DI
 COMMENT ON COLUMN raw.erp_purchase_order.createdbyuser IS 'Source header: CREATEDBYUSER';
 COMMENT ON COLUMN raw.erp_purchase_order.partnername IS 'Source header: PARTNERNAME';
 COMMENT ON COLUMN raw.erp_purchase_order.openpurchaseorders IS 'Source header: OPENPURCHASEORDERS';
+COMMENT ON COLUMN raw.erp_purchase_order.document_remark IS 'Source header: Document Remark';
 
 -- ERP_RETAIL_RETURN
 CREATE TABLE raw.erp_retail_return (

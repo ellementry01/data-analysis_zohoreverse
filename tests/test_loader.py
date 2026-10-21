@@ -90,6 +90,30 @@ def transfer_file(tmp_path, name="t.xlsx", mutate=None, rows=3, **kw):
     return make_xlsx(tmp_path / name, headers, data, **kw)
 
 
+def po_file(tmp_path, name="po.xlsx", remark="Purchase", drop=()):
+    headers = [x["header"] for x in load_contract("ERP_PURCHASE_ORDER")["columns"] if x["header"] not in drop]
+    r = [None] * len(headers)
+    r[headers.index("PO No.")] = "TEST/PO/1"
+    r[headers.index("PO Open Date")] = dt.datetime(2026, 4, 2)
+    r[headers.index("SKU No.")] = "GSTEA2724"
+    if "Document Remark" in headers:
+        r[headers.index("Document Remark")] = remark
+    return make_xlsx(tmp_path / name, headers, [r])
+
+
+def test_po_contract_carries_document_remark(tmp_path):
+    sheet, p = parse(read_workbook(po_file(tmp_path)), load_contract("ERP_PURCHASE_ORDER"))
+    assert "document_remark" in p.columns
+    rec = p.records[0]                                                       # (source_row_number, *values)
+    assert rec[1 + p.columns.index("document_remark")] == "Purchase"         # stored exactly as exported
+
+
+def test_po_export_without_document_remark_is_rejected(tmp_path):
+    # the 37-column layout from before Oct 2026 no longer matches the contract: re-export rather than load blind
+    with pytest.raises(ContractError, match="missing"):
+        parse(read_workbook(po_file(tmp_path, drop=("Document Remark",))), load_contract("ERP_PURCHASE_ORDER"))
+
+
 def test_valid_synthetic_file_parses(tmp_path):
     sheet, p = parse(read_workbook(transfer_file(tmp_path)), load_contract("ERP_STOCK_TRANSFER_OUT"))
     assert p.rows_read == 3 and (p.period_start, p.period_end) == (dt.date(2026, 4, 1), dt.date(2026, 4, 3))
@@ -324,4 +348,4 @@ def test_policy_refusals(tmp_path, db):
 def test_state_export_cannot_contain_future_dates(db):
     from loader.load import load_file
     with pytest.raises(ContractError, match="after --as-of"):
-        load_file("ERP_PURCHASE_ORDER", SAMPLES / "Pending_Purchase_Order_26-27_12_09.xlsx", as_of=dt.date(2026, 9, 12), conn=db)
+        load_file("ERP_PURCHASE_ORDER", SAMPLES / "Pending_Purchase_Order_26-27_12_09_v2.xlsx", as_of=dt.date(2026, 9, 12), conn=db)

@@ -183,6 +183,7 @@ core.fact_purchase_order_line	purchase_amount	Line value (INR)
 core.fact_purchase_order_line	po_status	Standardised PO status
 core.fact_purchase_order_line	po_status_raw	PO status exactly as in the ERP
 core.fact_purchase_order_line	as_of_date	Date of the export this state comes from
+core.fact_purchase_order_line	document_type	PURCHASE or RETURN as the export's Document Remark states it, UNKNOWN when absent; separates purchases from return-inwards once rule BR-031 is confirmed
 core.fact_shipment	shipment_id	Surrogate key of the shipment
 core.fact_shipment	outbound_delivery_number	Warehouse outbound delivery number
 core.fact_shipment	invoice_number	ERP invoice shipped (joins fact_sales_line.bill_number)

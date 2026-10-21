@@ -24,6 +24,7 @@ sql/090_insight.sql           agent outputs: runs, forecasts, recommendations (+
 sql/095_column_definitions.sql (historical) first column definitions
 sql/100_staging_infra.sql     transform run log, parsing helpers, unclassified movement types
 sql/105_goods_receipt_grain.sql receipts as the PO report states them (one row per PO line + receipt numbers)
+sql/110_po_document_type.sql  schema 2.3: PO 'Document Remark' (Purchase / Return) -> document_type + confirmation switch
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)
@@ -133,6 +134,15 @@ The seed loader refuses a CSV that drops one.
 **Safety switch:** `meta.pipeline_setting.partner_list_complete` stays `false` until the business
 confirms the partner list holds every B2B, franchise, SIS, quick-commerce, group and factory name.
 While false, unlisted names stay UNCLASSIFIED instead of being classified by elimination.
+
+**PO document type (2.3):** the Pending PO export's `Document Remark` says Purchase or Return on every
+line. It is stored (`core.fact_purchase_order_line.document_type`, shown in `v_open_purchase_orders` and
+`v_supplier_lead_time`) but decides nothing until the business confirms rule BR-031 and
+`meta.pipeline_setting.po_document_remark_confirmed` is set to `true`. Then Return lines are treated as
+return-inwards (BR-013): left out of open POs and lead times, and placed in the ledger as RETURN_INWARD.
+PO exports are per financial year: per PO number the latest export holding it is current, so loading
+FY 25-26 and FY 26-27 keeps both. Exports without the column (37 columns) are refused: re-export them.
+Existing database: apply `sql/110_po_document_type.sql`, then the regenerated `sql/990_column_definitions.sql`.
 
 ### Adding a column to core or insight
 Add its definition to `seeds/column_definitions.tsv`, then regenerate `sql/095_column_definitions.sql`

@@ -28,6 +28,6 @@ sql = ["-- =====================================================================
        "-- 990_column_definitions.sql  |  GENERATED from seeds/column_definitions.tsv. Always the LAST file: re-applies every definition.",
        "-- Business definition of every core and insight column (feeds meta.column_dictionary).",
        "-- =============================================================================", ""] + out + ["",
-       "INSERT INTO meta.schema_version (version, migration_file, description) VALUES ('2.2','990_column_definitions.sql','Column definitions (re-applied)') ON CONFLICT (migration_file) DO UPDATE SET applied_at = CURRENT_TIMESTAMP;", ""]
-Path(os.environ.get("OUT_SQL", HERE.parent / "sql" / "990_column_definitions.sql")).write_text("\n".join(sql), encoding="utf-8")
+       "INSERT INTO meta.schema_version (version, migration_file, description) VALUES ('2.3','990_column_definitions.sql','Column definitions (re-applied)') ON CONFLICT (migration_file) DO UPDATE SET applied_at = CURRENT_TIMESTAMP;", ""]
+Path(os.environ.get("OUT_SQL", HERE.parent / "sql" / "990_column_definitions.sql")).write_text("\n".join(sql), encoding="utf-8", newline="\n")
 print(f"{len(out)} column definitions written")

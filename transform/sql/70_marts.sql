@@ -78,31 +78,37 @@ WHERE o.movement_direction = 'OUT'
   AND NOT EXISTS (SELECT 1 FROM core.fact_stock_transfer_line i WHERE i.movement_direction = 'IN'
                   AND i.linked_outward_document = o.document_number AND i.product_key = o.product_key);
 
--- Open purchase orders, as of the PO export
+-- Open purchase orders, as of the PO export. document_type = the export's Document Remark; once BR-031 is
+-- confirmed (po_document_remark_confirmed) return-inward documents are not purchases and are left out (BR-013).
 CREATE OR REPLACE VIEW mart.v_open_purchase_orders AS
 SELECT po.po_number, d.calendar_date AS po_date, dd.calendar_date AS due_date, po.as_of_date,
        po.as_of_date - d.calendar_date AS days_open,
        CASE WHEN dd.calendar_date < po.as_of_date THEN po.as_of_date - dd.calendar_date END AS days_overdue,
        pt.partner_name AS supplier, pt.partner_type AS supplier_type, p.sku_code, p.product_name, p.lifecycle_status,
-       po.order_qty, po.received_qty, po.pending_qty, po.purchase_price, po.po_status
+       po.order_qty, po.received_qty, po.pending_qty, po.purchase_price, po.po_status, po.document_type
 FROM core.fact_purchase_order_line po
 JOIN core.dim_date d ON d.date_key = po.po_date_key
 LEFT JOIN core.dim_date dd ON dd.date_key = po.due_date_key
 JOIN core.dim_partner pt ON pt.partner_key = po.partner_key
 JOIN core.dim_product p ON p.product_key = po.product_key
-WHERE po.po_status IN ('OPEN','IN_PROGRESS','OVERDUE') AND coalesce(po.pending_qty, 0) > 0;
+WHERE po.po_status IN ('OPEN','IN_PROGRESS','OVERDUE') AND coalesce(po.pending_qty, 0) > 0
+  AND NOT (po.document_type = 'RETURN' AND EXISTS (SELECT 1 FROM meta.pipeline_setting
+           WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true'));
 
 -- Supplier lead time: PO date to the receipt date the report gives. Part-delivered lines are flagged approximate (G-027).
+-- Return-inward documents have no supplier lead time: left out once BR-031 is confirmed, as above.
 CREATE OR REPLACE VIEW mart.v_supplier_lead_time AS
 SELECT pt.partner_name AS supplier, pt.partner_type AS supplier_type, po.po_number, p.sku_code, p.product_name,
        d.calendar_date AS po_date, g2.calendar_date AS receipt_date, g2.calendar_date - d.calendar_date AS lead_time_days,
-       g.receipt_count, (g.receipt_count > 1) AS is_approximate, g.received_qty, po.order_qty
+       g.receipt_count, (g.receipt_count > 1) AS is_approximate, g.received_qty, po.order_qty, po.document_type
 FROM core.fact_goods_receipt_line g
 JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
 JOIN core.dim_date d ON d.date_key = po.po_date_key
 JOIN core.dim_date g2 ON g2.date_key = g.grn_date_key
 JOIN core.dim_partner pt ON pt.partner_key = g.partner_key
-JOIN core.dim_product p ON p.product_key = g.product_key;
+JOIN core.dim_product p ON p.product_key = g.product_key
+WHERE NOT (po.document_type = 'RETURN' AND EXISTS (SELECT 1 FROM meta.pipeline_setting
+           WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true'));
 
 -- Days of cover: sellable stock now / average units sold from that location per day over the last 30 days of the period
 CREATE OR REPLACE VIEW mart.v_days_of_cover AS

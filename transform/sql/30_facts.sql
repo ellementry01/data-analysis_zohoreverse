@@ -157,11 +157,11 @@ WHERE s.document_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_
 -- --------------------------------------------------------------------- purchase orders and goods receipts
 INSERT INTO core.fact_purchase_order_line (po_number, source_sku_code, line_occurrence, po_date_key, due_date_key, partner_key,
     product_key, order_qty, received_qty, returned_to_supplier_qty, pending_qty, purchase_price, purchase_amount, po_status,
-    po_status_raw, as_of_date, batch_id, source_row_number)
+    po_status_raw, as_of_date, document_type, batch_id, source_row_number)
 SELECT s.po_number, s.source_sku_code, s.line_occurrence, stg.date_key(s.po_date), stg.date_key(s.due_date),
        coalesce(pt.partner_key, -1), coalesce(p.product_key, -1), s.order_qty, s.received_qty, s.returned_qty, s.pending_qty,
        s.purchase_price, s.purchase_amount, coalesce(st.standard_value, 'UNMAPPED'), coalesce(s.po_status_raw, ''), s.as_of_date,
-       s.batch_id, s.source_row_number
+       s.document_type, s.batch_id, s.source_row_number
 FROM stg.purchase_order s
 LEFT JOIN core.dim_partner pt ON pt.partner_name = s.contact_name AND pt.partner_role = 'SUPPLIER'
 LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code

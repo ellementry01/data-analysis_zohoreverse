@@ -3,7 +3,7 @@ G-001,Daily stock history,STOCK_POSITION,fact_inventory_snapshot before the firs
 G-002,"Stock adjustments, write-offs, production receipts",STOCK_LEDGER,"fact_stock_movement types PRODUCTION_RECEIPT, ADJUSTMENT_IN/OUT, WRITE_OFF",Stock,ERP stock journal or adjustment register export,ERP_TEAM,HIGH,OPEN,,
 G-003,Full WMS dispatch export,FULFILMENT,"fact_shipment, bridge_shipment_sku",Operations,"Export for the whole period, as CSV",BUSINESS,HIGH,OPEN,,
 G-004,"Franchise, SIS and quick-commerce billing names",CONSIGNMENT,ref.partner_list; partner consignment locations,"Stock, Finance",List from the business,BUSINESS,HIGH,OPEN,,
-G-005,Factory list,PURCHASING,ref.partner_list suppliers; lead times,Stock,List from the business,BUSINESS,HIGH,OPEN,,
+G-005,Factory list,PURCHASING,ref.partner_list suppliers; lead times,Stock,"List from the business. The purchase / return split itself is now in the PO Document Remark (BR-031, proposed); the list is still needed to name and group suppliers",BUSINESS,HIGH,OPEN,,
 G-006,Domestic return date definition,RETURNS,fact_return_line.return_date_key,"Stock, Finance",Decision (proposal approved as BR-023),BUSINESS,HIGH,CLOSED,2026-10-01,Proposal approved with the design: rule BR-023
 G-007,Amazon FBA inventory and inbound shipment reports,STOCK_POSITION,FBA stock truth; unreceived transfers,Stock,Seller Central exports,BUSINESS,MEDIUM,OPEN,,
 G-008,Franchise and SIS sell-out,PARTNER_SELLOUT,fact_partner_sellout for franchise / SIS; consignment stock decrease,Stock,Partners' sales reports,BUSINESS,MEDIUM,OPEN,,

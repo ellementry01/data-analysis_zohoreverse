@@ -120,6 +120,18 @@ INSERT INTO dq SELECT 'po_lines_with_several_receipts', 'core.fact_goods_receipt
        format('%s receipts listed with one date and one total quantity; lead time approximate (gap G-027)', coalesce(sum(receipt_count), 0))
 FROM core.fact_goods_receipt_line WHERE receipt_count > 1;
 
+-- PO Document Remark (BR-031, proposed): lines the export does not mark Purchase / Return, and lines whose remark
+-- contradicts the counterparty's classification. Both must be explained before the rule is confirmed.
+INSERT INTO dq SELECT 'po_document_type_unknown', 'core.fact_purchase_order_line', 'WARN', count(*),
+       format('%s PO line(s) without a Purchase / Return remark (exports before the column existed, or an unexpected value)', count(*))
+FROM core.fact_purchase_order_line WHERE document_type = 'UNKNOWN';
+
+INSERT INTO dq SELECT 'po_remark_contradicts_partner_type', 'core.fact_purchase_order_line', 'WARN', count(*),
+       coalesce(string_agg(DISTINCT pt.partner_name || ' (' || pt.partner_type || ', remark ' || po.document_type || ')', '; '), '-')
+FROM core.fact_purchase_order_line po JOIN core.dim_partner pt USING (partner_key)
+WHERE (po.document_type = 'PURCHASE' AND pt.partner_type = 'RETURN_SOURCE')
+   OR (po.document_type = 'RETURN' AND pt.partner_type = 'FACTORY_SUPPLIER');
+
 -- ============================================================ WARN: products and stock
 INSERT INTO dq SELECT 'trading_sku_not_in_master', 'core.dim_product', 'WARN', count(*), string_agg(sku_code, ', ' ORDER BY sku_code)
 FROM core.dim_product WHERE lifecycle_status = 'NOT_IN_MASTER';
@@ -140,7 +152,11 @@ INSERT INTO dq SELECT 'ledger_not_placed', what, 'WARN', n, why FROM (
       JOIN core.dim_product p USING (product_key) WHERE p.item_type NOT IN ('CHARGE','SERVICE') AND (s.location_key = -1 OR s.product_key = -1)
     UNION ALL SELECT 'goods receipts', count(*), 'receiving location not in the PO export (G-025) or supplier not classified (factory list, G-005)'
       FROM core.fact_goods_receipt_line g JOIN core.dim_partner pt USING (partner_key)
-     WHERE g.receiving_location_key = -1 OR pt.partner_type NOT IN ('FACTORY_SUPPLIER','RETURN_SOURCE')
+      LEFT JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
+     WHERE g.receiving_location_key = -1
+        OR NOT (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE')
+                OR (po.document_type IN ('PURCHASE','RETURN') AND EXISTS (SELECT 1 FROM meta.pipeline_setting
+                    WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true')))
     UNION ALL SELECT 'platform sell-out', count(*), 'the platform export does not say which of its locations the units left'
       FROM core.fact_partner_sellout WHERE location_key = -1
     UNION ALL SELECT 'consignment lines', count(*), 'sale-or-return partner has no consignment location in ref.partner_list'

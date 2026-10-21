@@ -118,3 +118,82 @@ def test_every_dq_error_check_passed_and_coverage_written():
     assert q("SELECT count(*) FROM mart.v_data_quality_latest WHERE severity = 'ERROR' AND outcome = 'FAIL'")[0][0] == 0
     assert q("SELECT count(*) FROM mart.v_data_quality_latest WHERE severity = 'ERROR'")[0][0] >= 6
     assert q("SELECT count(DISTINCT period_month) FROM meta.process_coverage")[0][0] == 18      # Apr 2025 .. Sep 2026
+
+
+# ------------------------------------------------------------------ purchase orders (schema 2.3)
+def _po_xlsx(path, rows):
+    """rows: (po_number, open_date, sku, order_qty, pending_qty, status, document_remark)"""
+    import datetime as dt
+    from openpyxl import Workbook
+    from loader.validate import load_contract
+    headers = [c["header"] for c in load_contract("ERP_PURCHASE_ORDER")["columns"]]
+    wb = Workbook(); ws = wb.active; ws.title = "Sheet1"; ws.append(headers)
+    for po, d, sku, qty, pending, status, remark in rows:
+        r = [None] * len(headers)
+        for h, v in [("PO No.", po), ("PO Open Date", dt.datetime.fromisoformat(d)), ("SKU No.", sku), ("Order Qty", qty),
+                     ("PO Pending Qty", pending), ("STATUS", status), ("CONTACTNAME", "Pytest Factory"), ("Document Remark", remark)]:
+            r[headers.index(h)] = v
+        ws.append(r)
+    wb.save(path)
+    return path
+
+
+@pytest.fixture()
+def po_exports(tmp_path):
+    """Loads synthetic PO exports; afterwards retires them, rebuilds, and removes every trace."""
+    import datetime as dt
+    from loader.load import load_file
+    with psycopg.connect(dbname=DB) as c:
+        start = c.execute("SELECT coalesce(max(batch_id), 0) FROM meta.load_batch").fetchone()[0]
+
+    def load(name, rows, as_of):
+        with psycopg.connect(dbname=DB) as c:
+            return load_file("ERP_PURCHASE_ORDER", _po_xlsx(tmp_path / name, rows), as_of=dt.date.fromisoformat(as_of),
+                             loaded_by="pytest", conn=c)
+    yield load
+    setting("po_document_remark_confirmed", "false")
+    with psycopg.connect(dbname=DB) as c:
+        c.execute("UPDATE meta.load_batch SET status = 'SUPERSEDED' WHERE batch_id > %s", (start,))
+    assert run().returncode == 0                       # facts no longer point at the test batches
+    with psycopg.connect(dbname=DB) as c:
+        c.execute("DELETE FROM raw.erp_purchase_order WHERE batch_id > %s", (start,))
+        c.execute("DELETE FROM meta.dq_check_result WHERE batch_id > %s", (start,))
+        c.execute("DELETE FROM meta.load_batch WHERE batch_id > %s", (start,))
+
+
+def po_lines(prefix="PYTEST/"):
+    return {(po, sku): (qty, doc) for po, sku, qty, doc in q(
+        "SELECT po_number, source_sku_code, order_qty::INT, document_type FROM core.fact_purchase_order_line "
+        "WHERE po_number LIKE %s", prefix + "%")}
+
+
+def test_po_exports_of_different_years_coexist_and_a_reexport_replaces(po_exports):
+    real_before = q("SELECT count(*) FROM core.fact_purchase_order_line WHERE po_number NOT LIKE %s", "PYTEST/%")[0][0]
+    po_exports("fy2526.xlsx", [("PYTEST/2526/1", "2025-05-10", "GSTEA2724", 10, 10, "In Progress", "Purchase"),
+                               ("PYTEST/2526/2", "2025-06-01", "GSTEA2724", 4, 4, "In Progress", "Return")], "2026-03-31")
+    po_exports("fy2627.xlsx", [("PYTEST/2627/1", "2026-05-02", "GSTEA2724", 7, 7, "In Progress", "Purchase")], "2026-05-31")
+    assert run().returncode == 0
+    lines = po_lines()
+    # before 2.3 only the newest export was read and the FY 25-26 lines vanished
+    assert lines == {("PYTEST/2526/1", "GSTEA2724"): (10, "PURCHASE"), ("PYTEST/2526/2", "GSTEA2724"): (4, "RETURN"),
+                     ("PYTEST/2627/1", "GSTEA2724"): (7, "PURCHASE")}
+    # an earlier year's re-export replaces only its own POs, and wins over the older state of them
+    po_exports("fy2526_again.xlsx", [("PYTEST/2526/1", "2025-05-10", "GSTEA2724", 12, 0, "Received", "Purchase")], "2026-04-15")
+    assert run().returncode == 0
+    lines = po_lines()
+    assert lines[("PYTEST/2526/1", "GSTEA2724")] == (12, "PURCHASE")
+    assert ("PYTEST/2526/2", "GSTEA2724") in lines and ("PYTEST/2627/1", "GSTEA2724") in lines
+    assert q("SELECT count(*) FROM core.fact_purchase_order_line WHERE po_number NOT LIKE %s", "PYTEST/%")[0][0] == real_before
+
+
+def test_po_document_remark_decides_nothing_until_confirmed(po_exports):
+    po_exports("remark.xlsx", [("PYTEST/R/1", "2026-04-03", "GSTEA2724", 5, 5, "In Progress", "Purchase"),
+                               ("PYTEST/R/2", "2026-04-03", "GSTEA2724", 3, 3, "In Progress", "Return")], "2026-04-30")
+    assert run().returncode == 0
+    open_pos = lambda: dict(q("SELECT po_number, document_type FROM mart.v_open_purchase_orders WHERE po_number LIKE %s", "PYTEST/R/%"))
+    assert open_pos() == {"PYTEST/R/1": "PURCHASE", "PYTEST/R/2": "RETURN"}       # BR-031 proposed: shown, not applied
+    assert q("SELECT outcome FROM mart.v_data_quality_latest WHERE check_name = 'po_document_type_unknown'")[0][0] in ("PASS", "FAIL")
+    setting("po_document_remark_confirmed", "true")
+    assert run().returncode == 0
+    assert open_pos() == {"PYTEST/R/1": "PURCHASE"}                                # confirmed: a return-inward is not a purchase
+    assert q("SELECT count(*) FROM core.fact_purchase_order_line WHERE po_number = 'PYTEST/R/2'")[0][0] == 1   # still recorded in core

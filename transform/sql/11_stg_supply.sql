@@ -31,12 +31,19 @@ SELECT s.batch_id, s.source_row_number, btrim(s.docnum) AS document_number,
        s.docopendate AS document_date_raw
 FROM src s WHERE s.batch_id = s.latest_batch;
 
--- PO report is a state snapshot: only the latest export (by as-of date) is current.
+-- PO report is a state snapshot, exported once per financial year. Per PO number, the latest export
+-- holding it (by as-of date, then batch) is current: exports of different years coexist and a re-export
+-- replaces the earlier state of the same POs. (Before 2.3 only the single latest export was read, which
+-- silently dropped every PO of an earlier year's file.)
+-- document_type is the export's Document Remark as stated; it decides nothing until BR-031 is confirmed.
 DROP TABLE IF EXISTS stg.purchase_order;
 CREATE TABLE stg.purchase_order AS
-WITH b AS (SELECT batch_id, as_of_date FROM meta.load_batch
-           WHERE source_name = 'ERP_PURCHASE_ORDER' AND status = 'LOADED' ORDER BY as_of_date DESC, batch_id DESC LIMIT 1)
-SELECT r.batch_id, r.source_row_number, b.as_of_date,
+WITH b AS (SELECT batch_id, as_of_date FROM meta.load_batch WHERE source_name = 'ERP_PURCHASE_ORDER' AND status = 'LOADED'),
+r AS (
+    SELECT x.*, b.as_of_date,
+           first_value(x.batch_id) OVER (PARTITION BY btrim(x.po_no) ORDER BY b.as_of_date DESC, x.batch_id DESC) AS current_batch
+    FROM raw.erp_purchase_order x JOIN b ON b.batch_id = x.batch_id)
+SELECT r.batch_id, r.source_row_number, r.as_of_date,
        btrim(r.po_no) AS po_number, r.sku_no AS source_sku_code, stg.sku(r.sku_no) AS sku_code,
        row_number() OVER (PARTITION BY btrim(r.po_no), stg.sku(r.sku_no) ORDER BY r.source_row_number) AS line_occurrence,
        stg.ts(r.po_open_date)::DATE AS po_date, stg.ts(r.po_due_date)::DATE AS due_date,
@@ -48,8 +55,11 @@ SELECT r.batch_id, r.source_row_number, b.as_of_date,
        stg.num(r.purchase_amount) AS purchase_amount, stg.num(r.returned_value) AS returned_value,
        btrim(r.status) AS po_status_raw, nullif(btrim(r.currencycode), '') AS currency_code,
        nullif(btrim(r.grnnum), '') AS grn_number, stg.ts(r.grndocopendate)::DATE AS grn_date,
-       r.po_open_date AS po_date_raw
-FROM raw.erp_purchase_order r JOIN b ON b.batch_id = r.batch_id;
+       r.po_open_date AS po_date_raw,
+       CASE upper(btrim(r.document_remark)) WHEN 'PURCHASE' THEN 'PURCHASE' WHEN 'RETURN' THEN 'RETURN' ELSE 'UNKNOWN' END
+           AS document_type,
+       r.document_remark AS document_remark_raw
+FROM r WHERE r.batch_id = r.current_batch;
 
 DROP TABLE IF EXISTS stg.blinkit_sales;
 CREATE TABLE stg.blinkit_sales AS

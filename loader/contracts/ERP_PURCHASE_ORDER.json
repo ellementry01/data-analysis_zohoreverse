@@ -1,7 +1,7 @@
 {
   "source_name": "ERP_PURCHASE_ORDER",
   "status": "verified",
-  "verified_against": "Pending_Purchase_Order_26-27_12_09.xlsx",
+  "verified_against": "Pending_Purchase_Order_26-27_12_09_v2.xlsx",
   "layout": "TABLE",
   "sheet": {
     "name": "Sheet1"
@@ -9,7 +9,7 @@
   "other_sheets": "must_be_empty",
   "header_row": 1,
   "column_match": "exact_set",
-  "expected_width": 37,
+  "expected_width": 38,
   "unnamed_columns": [],
   "columns": [
     {
@@ -159,6 +159,10 @@
     {
       "header": "OPENPURCHASEORDERS",
       "column": "openpurchaseorders"
+    },
+    {
+      "header": "Document Remark",
+      "column": "document_remark"
     }
   ],
   "business_date": {

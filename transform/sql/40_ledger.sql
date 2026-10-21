@@ -97,16 +97,24 @@ FROM core.fact_stock_transfer_line t JOIN stock_product sp ON sp.product_key = t
 WHERE t.movement_direction = 'IN' AND t.to_location_key <> -1;
 
 -- goods receipts: purchase from a factory, or return-inward from another party (BR-013).
--- Placed only once the receiving location and the counterparty type are known.
+-- Placed only once the receiving location and the purchase / return nature are known: from the PO line's
+-- document type once BR-031 is confirmed (po_document_remark_confirmed), otherwise from the partner type.
 INSERT INTO core.fact_stock_movement (movement_date_key, location_key, product_key, movement_type_key, quantity,
     counterparty_location_key, partner_key, source_table, source_line_id)
 SELECT g.grn_date_key, g.receiving_location_key, g.product_key,
-       (SELECT movement_type_key FROM mt WHERE movement_code = CASE pt.partner_type WHEN 'FACTORY_SUPPLIER' THEN 'GOODS_RECEIPT' ELSE 'RETURN_INWARD' END),
+       (SELECT movement_type_key FROM mt WHERE movement_code = CASE
+            WHEN sw.confirmed AND po.document_type = 'PURCHASE' THEN 'GOODS_RECEIPT'
+            WHEN sw.confirmed AND po.document_type = 'RETURN' THEN 'RETURN_INWARD'
+            WHEN pt.partner_type = 'FACTORY_SUPPLIER' THEN 'GOODS_RECEIPT' ELSE 'RETURN_INWARD' END),
        g.received_qty, NULL, g.partner_key, 'fact_goods_receipt_line', g.receipt_line_id
 FROM core.fact_goods_receipt_line g
 JOIN stock_product sp ON sp.product_key = g.product_key
 JOIN core.dim_partner pt ON pt.partner_key = g.partner_key
-WHERE g.receiving_location_key <> -1 AND pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE');
+LEFT JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
+CROSS JOIN (SELECT coalesce(bool_or(setting_value = 'true'), FALSE) AS confirmed FROM meta.pipeline_setting
+            WHERE setting_key = 'po_document_remark_confirmed') sw
+WHERE g.receiving_location_key <> -1
+  AND (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE') OR (sw.confirmed AND po.document_type IN ('PURCHASE','RETURN')));
 
 -- partner sell-through leaves the partner location (demand, not revenue: BR-024)
 INSERT INTO core.fact_stock_movement (movement_date_key, location_key, product_key, movement_type_key, quantity,

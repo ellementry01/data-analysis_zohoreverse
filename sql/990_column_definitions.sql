@@ -217,6 +217,7 @@ COMMENT ON COLUMN core.fact_purchase_order_line.as_of_date IS 'Date of the expor
 COMMENT ON COLUMN core.fact_purchase_order_line.batch_id IS 'Load batch the row came from (meta.load_batch): traces the row to the exact source file';
 COMMENT ON COLUMN core.fact_purchase_order_line.source_row_number IS 'Row number in the source file (Excel row, header = 1)';
 COMMENT ON COLUMN core.fact_purchase_order_line.loaded_at IS 'When the row was written to the warehouse';
+COMMENT ON COLUMN core.fact_purchase_order_line.document_type IS 'PURCHASE or RETURN as the export''s Document Remark states it, UNKNOWN when absent; separates purchases from return-inwards once rule BR-031 is confirmed';
 COMMENT ON COLUMN core.fact_return_line.return_line_id IS 'Surrogate key of the return line';
 COMMENT ON COLUMN core.fact_return_line.source_name IS 'Registered source the row came from (meta.source_registry)';
 COMMENT ON COLUMN core.fact_return_line.return_number IS 'Return / credit-note number';
@@ -389,4 +390,4 @@ COMMENT ON COLUMN insight.recommendation.decided_at IS 'When it was decided';
 COMMENT ON COLUMN insight.recommendation.decision_note IS 'Why it was accepted or rejected';
 COMMENT ON COLUMN insight.recommendation.created_at IS 'When the row was created';
 
-INSERT INTO meta.schema_version (version, migration_file, description) VALUES ('2.2','990_column_definitions.sql','Column definitions (re-applied)') ON CONFLICT (migration_file) DO UPDATE SET applied_at = CURRENT_TIMESTAMP;
+INSERT INTO meta.schema_version (version, migration_file, description) VALUES ('2.3','990_column_definitions.sql','Column definitions (re-applied)') ON CONFLICT (migration_file) DO UPDATE SET applied_at = CURRENT_TIMESTAMP;

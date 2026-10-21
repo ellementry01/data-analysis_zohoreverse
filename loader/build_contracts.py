@@ -60,7 +60,7 @@ SPEC = {
                                {"header": "DOCOPENDATE", "format": "excel_datetime"}, False, {}),
     "ERP_STOCK_TRANSFER_IN":  ("Stock_Transfer_Inward_01-04-2026_to_15-09-2026.xlsx", {"name": "Sheet1"}, "must_be_empty",
                                {"header": "DOCOPENDATE", "format": "excel_datetime"}, False, {}),
-    "ERP_PURCHASE_ORDER":     ("Pending_Purchase_Order_26-27_12_09.xlsx", {"name": "Sheet1"}, "must_be_empty",
+    "ERP_PURCHASE_ORDER":     ("Pending_Purchase_Order_26-27_12_09_v2.xlsx", {"name": "Sheet1"}, "must_be_empty",
                                {"header": "PO Open Date", "format": "excel_datetime"}, True, {}),
     "BLINKIT_SALES":          ("BLINKIT_SALES_DATA_SEP_26.xlsx", {"name": "Sheet1"}, "must_be_empty",
                                {"header": "Order Date", "format": "text_ymd"}, False, {}),
@@ -148,7 +148,7 @@ def build(sample_dir: Path) -> None:
 
 def write(contract: dict) -> None:
     path = CONTRACTS / f"{contract['source_name']}.json"
-    path.write_text(json.dumps(contract, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(contract, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     n = len(contract.get("columns", []))
     print(f"  {contract['source_name']:24s} {contract['status']:8s} {n:3d} columns -> {path.name}")
 

@@ -51,7 +51,7 @@ def main() -> None:
              ""]
     for c in load_contracts():
         parts.append(ddl_for(c))
-    OUT.write_text("\n".join(parts), encoding="utf-8")
+    OUT.write_text("\n".join(parts), encoding="utf-8", newline="\n")   # LF on Windows too
     print(f"wrote {OUT} ({len(load_contracts())} raw tables)")
 
 
