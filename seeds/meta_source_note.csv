@@ -45,7 +45,7 @@ PRODUCT_MASTER,1,CONTENT,,Only Sheet1 is data; the other sheets are working shee
 PRODUCT_MASTER,2,TRAP,,After the Unit column Sheet1 carries a stale copy of the stock report; never used as stock,BR-015,,ACTIVE
 PRODUCT_MASTER,3,EXPORT_PROCESS,,"Updated whenever something changes; carries no date, so the export date is given at load",BR-030,,ACTIVE
 WMS_DISPATCH,1,COLUMN_MEANING,Site Location,"The sales channel (Nykaa Fashion, Shopify, Amazon_SC_Easyship...); 'Customer' is a placeholder (999999)",,,ACTIVE
-WMS_DISPATCH,2,TRAP,Order Date,Dates are month/day (4/14/2025),BR-026,,ACTIVE
+WMS_DISPATCH,2,TRAP,Order Date,"Dates were month/day text (4/14/2025) in the pasted sample; the full export has real Excel date-times, read as such",BR-026,Full export Oct 2026,ACTIVE
 WMS_DISPATCH,3,TRAP,Ext Manifest No,Long numbers exported in scientific notation lose digits; export as CSV,,Gap G-003,ACTIVE
 WMS_DISPATCH,4,CONTENT,SKU,One cell can hold several SKUs with one combined quantity,,,ACTIVE
 WMS_DISPATCH,5,CONTENT,,"B2C orders only, all from the Bagru warehouse",BR-017,,ACTIVE

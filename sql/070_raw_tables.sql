@@ -951,7 +951,7 @@ COMMENT ON COLUMN raw.product_master.prod_name IS 'Source header: Prod Name';
 COMMENT ON COLUMN raw.product_master.prod_type IS 'Source header: Prod Type';
 COMMENT ON COLUMN raw.product_master.unit IS 'Source header: Unit';
 
--- WMS_DISPATCH  -- DRAFT contract: verify on first real file
+-- WMS_DISPATCH
 CREATE TABLE raw.wms_dispatch (
     batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
     source_row_number  INTEGER NOT NULL,

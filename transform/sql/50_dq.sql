@@ -31,6 +31,10 @@ FROM (SELECT coalesce((SELECT sum(on_hand_qty) FROM stg.inventory_snapshot WHERE
                          AND snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)), 0) a,
              coalesce((SELECT sum(on_hand_qty) FROM core.fact_inventory_snapshot WHERE source_name = 'ERP_INVENTORY_SNAPSHOT'), 0) b) x;
 
+INSERT INTO dq SELECT 'shipment_rows_reconcile', 'core.fact_shipment', 'ERROR', abs(a - b), format('staged in-period deliveries %s, fact rows %s', a, b)
+FROM (SELECT (SELECT count(*) FROM stg.wms_dispatch WHERE order_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) a,
+             (SELECT count(*) FROM core.fact_shipment) b) x;
+
 INSERT INTO dq SELECT 'ledger_sign_matches_type', 'core.fact_stock_movement', 'ERROR', count(*), 'movements whose sign contradicts their movement type'
 FROM core.fact_stock_movement m JOIN core.dim_movement_type t USING (movement_type_key) WHERE sign(m.quantity) <> t.stock_effect;
 
@@ -62,6 +66,24 @@ INSERT INTO dq SELECT 'unknown_location', f, 'WARN', n, d FROM (
 INSERT INTO dq SELECT 'unknown_channel', 'core.fact_sales_line', 'WARN', count(*),
        'lines by source: ' || coalesce(string_agg(DISTINCT source_name, ', '), '-') || ' (domestic lines take the channel from the partner type)'
 FROM core.fact_sales_line WHERE channel_key = -1;
+
+-- ============================================================ WARN: shipments (WMS dispatch)
+INSERT INTO dq SELECT 'shipment_unknown_channel', 'core.fact_shipment', 'WARN', count(*),
+       'Site Location values not in ref.channel_alias and invoice not matched: ' || coalesce(string_agg(DISTINCT s.site_location, ', '), '-')
+FROM core.fact_shipment f JOIN stg.wms_dispatch s ON s.batch_id = f.batch_id AND s.source_row_number = f.source_row_number
+WHERE f.channel_key = -1;
+
+INSERT INTO dq SELECT 'shipment_status_unmapped', 'core.fact_shipment', 'WARN', count(*),
+       'statuses not in ref.code_mapping SHIPMENT_STATUS: ' || coalesce(string_agg(DISTINCT shipment_status_raw, ', '), '-')
+FROM core.fact_shipment WHERE shipment_status = 'UNMAPPED';
+
+INSERT INTO dq SELECT 'shipment_without_invoice_match', 'core.fact_shipment', 'WARN', count(*),
+       'deliveries whose Invoice No matches no loaded sales invoice (invoice outside the loaded period, or not exported)'
+FROM core.fact_shipment f WHERE NOT EXISTS (SELECT 1 FROM core.fact_sales_line s WHERE s.bill_number = f.invoice_number);
+
+INSERT INTO dq SELECT 'shipment_sku_unallocated', 'core.bridge_shipment_sku', 'WARN', count(*),
+       'SKUs in multi-SKU dispatch cells whose own quantity is not known (no single matching invoice line); left empty, never split'
+FROM core.bridge_shipment_sku WHERE quantity_source = 'UNALLOCATED';
 
 -- ============================================================ WARN: partner classification
 INSERT INTO dq SELECT 'unclassified_partners', 'core.dim_partner', 'WARN', count(DISTINCT p.partner_key),

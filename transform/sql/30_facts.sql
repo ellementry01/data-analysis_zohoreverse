@@ -231,3 +231,54 @@ LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
 WHERE s.snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)
   AND s.on_hand_qty IS NOT NULL
   AND (s.on_hand_qty <> 0 OR coalesce(s.in_transit_qty, 0) <> 0 OR coalesce(s.incoming_qty, 0) <> 0);
+
+-- --------------------------------------------------------------------- shipments (WMS dispatch, BR-017)
+-- One row per outbound delivery. Channel from Site Location (ref.channel_alias), falling back to the channel of the
+-- invoice it ships; order from that invoice. Status and payment type standardised through ref.code_mapping.
+-- Everything ships from Bagru (Order Serving Location 'Warehouse' -> BAGRU_WH). Nothing unknown is guessed: -1.
+CREATE TEMP TABLE lk_invoice ON COMMIT DROP AS
+SELECT bill_number, min(order_key) FILTER (WHERE order_key <> -1) AS order_key, min(channel_key) AS channel_key
+FROM core.fact_sales_line GROUP BY bill_number;
+
+INSERT INTO core.fact_shipment (outbound_delivery_number, order_key, invoice_number, channel_key, fulfilment_location_key, courier_key,
+    payment_type, tracking_number, shipment_status, shipment_status_raw, transporter_status, transporter_remarks, is_rto, is_on_hold,
+    order_datetime, pick_datetime, pack_datetime, ship_datetime, delivery_datetime, ship_by_datetime, order_date_key, ship_date_key,
+    delivery_date_key, delivery_qty, box_count, weight_kg, destination_pincode, batch_id, source_row_number)
+SELECT s.outbound_delivery_number, coalesce(inv.order_key, -1), s.invoice_number,
+       coalesce(ch.channel_key, inv.channel_key, -1), coalesce(l.location_key, -1), coalesce(cr.courier_key, -1),
+       CASE pay.standard_value WHEN 'PREPAID' THEN 'PREPAID' WHEN 'COD' THEN 'COD' ELSE 'OTHER' END,
+       left(s.tracking_number, 60), coalesce(st.standard_value, 'UNMAPPED'), left(coalesce(s.status_raw, ''), 60),
+       left(s.transporter_status, 60), s.transporter_remarks,
+       coalesce(st.standard_value IN ('RTO_DELIVERED','RTO_INITIATED'), FALSE), coalesce(s.is_on_hold, FALSE),
+       s.order_datetime, s.pick_datetime, s.pack_datetime, s.ship_datetime, s.delivery_datetime, s.ship_by_datetime,
+       stg.date_key(s.order_date), stg.date_key(s.ship_datetime::DATE), stg.date_key(s.delivery_datetime::DATE),
+       CASE WHEN s.delivery_qty >= 0 THEN s.delivery_qty END, CASE WHEN s.box_count >= 0 THEN s.box_count END,
+       CASE WHEN s.weight_kg >= 0 THEN s.weight_kg END, left(s.destination_pincode, 10), s.batch_id, s.source_row_number
+FROM stg.wms_dispatch s
+LEFT JOIN lk_chan ch ON ch.source_name = 'WMS_DISPATCH' AND ch.source_field = 'Site Location' AND ch.source_value = s.site_location
+LEFT JOIN lk_invoice inv ON inv.bill_number = s.invoice_number
+LEFT JOIN lk_loc l ON l.source_name = 'WMS_DISPATCH' AND l.source_field = 'Order Serving Location' AND l.source_value = s.serving_location
+LEFT JOIN core.dim_courier cr ON cr.courier_name = s.courier_name
+LEFT JOIN ref.code_mapping st ON st.domain = 'SHIPMENT_STATUS' AND st.source_name = 'WMS_DISPATCH' AND st.source_value = s.status_raw
+LEFT JOIN ref.code_mapping pay ON pay.domain = 'PAYMENT_TYPE' AND pay.source_name = 'WMS_DISPATCH' AND pay.source_value = s.order_type_raw
+WHERE s.order_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);
+
+-- SKUs per shipment. A cell can list several SKUs with ONE combined quantity: a single-SKU row keeps the row quantity;
+-- for several SKUs the quantity comes from the invoice line of that SKU when exactly one exists; otherwise UNALLOCATED.
+INSERT INTO core.bridge_shipment_sku (shipment_id, source_sku_code, product_key, quantity, quantity_source)
+WITH skus AS (
+    SELECT f.shipment_id, f.invoice_number, f.delivery_qty, btrim(u.sku) AS source_sku_code,
+           count(*) OVER (PARTITION BY f.shipment_id) AS n_skus
+    FROM core.fact_shipment f
+    JOIN stg.wms_dispatch s ON s.batch_id = f.batch_id AND s.source_row_number = f.source_row_number
+    CROSS JOIN LATERAL (SELECT DISTINCT btrim(x) AS sku FROM unnest(string_to_array(s.sku_cell, ',')) x WHERE btrim(x) <> '') u),
+inv AS (
+    SELECT bill_number, source_sku_code, sum(quantity) AS qty, count(*) AS n
+    FROM core.fact_sales_line GROUP BY bill_number, source_sku_code)
+SELECT k.shipment_id, k.source_sku_code, coalesce(p.product_key, -1),
+       CASE WHEN k.n_skus = 1 AND k.delivery_qty > 0 THEN k.delivery_qty WHEN k.n_skus > 1 AND i.n = 1 AND i.qty > 0 THEN i.qty END,
+       CASE WHEN k.n_skus = 1 AND k.delivery_qty > 0 THEN 'SINGLE_SKU_ROW' WHEN k.n_skus > 1 AND i.n = 1 AND i.qty > 0 THEN 'INVOICE_LINE'
+            ELSE 'UNALLOCATED' END
+FROM skus k
+LEFT JOIN core.dim_product p ON p.sku_code = stg.sku(k.source_sku_code)
+LEFT JOIN inv i ON i.bill_number = k.invoice_number AND stg.sku(i.source_sku_code) = stg.sku(k.source_sku_code);

@@ -114,6 +114,19 @@ def test_po_export_without_document_remark_is_rejected(tmp_path):
         parse(read_workbook(po_file(tmp_path, drop=("Document Remark",))), load_contract("ERP_PURCHASE_ORDER"))
 
 
+def test_xlsm_is_read_like_xlsx(tmp_path):
+    # the WMS dispatch report arrives as .xlsm: read as cell values only (macros are never run)
+    f = transfer_file(tmp_path, "t.xlsx")
+    m = tmp_path / "t.xlsm"; m.write_bytes(f.read_bytes())
+    assert read_workbook(m) == read_workbook(f)
+
+
+def test_wms_contract_is_verified_with_real_dates():
+    c = load_contract("WMS_DISPATCH")
+    assert c["status"] == "verified" and c["business_date"] == {"header": "Order Date", "format": "excel_datetime"}
+    assert parse_business_date("2025-04-01 00:14:00", "excel_datetime") == dt.date(2025, 4, 1)
+
+
 def test_valid_synthetic_file_parses(tmp_path):
     sheet, p = parse(read_workbook(transfer_file(tmp_path)), load_contract("ERP_STOCK_TRANSFER_OUT"))
     assert p.rows_read == 3 and (p.period_start, p.period_end) == (dt.date(2026, 4, 1), dt.date(2026, 4, 3))

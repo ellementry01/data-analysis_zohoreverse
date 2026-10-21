@@ -16,3 +16,17 @@ ITEM_TYPE,PRODUCT_MASTER,GIFTING,CHARGE,true,Gifting Charges Receipt,BR-014
 ITEM_TYPE,PRODUCT_MASTER,PACKING,CHARGE,false,'Branding Expenses' on 7 domestic lines; treated as a charge,BR-014
 ORDER_NUMBER_PLACEHOLDER,ERP_RETAIL_SALES,Ellementry Store,NONE,false,Own-store bills carry this text instead of an order number,
 PLATFORM_PARTNER,BLINKIT_SALES,*,KIRANAKART TECHNOLOGIES PVT LTD,true,Blinkit's legal entity,BR-012
+SHIPMENT_STATUS,WMS_DISPATCH,delivered,DELIVERED,false,Full dispatch export Oct 2026,
+SHIPMENT_STATUS,WMS_DISPATCH,Shipped,SHIPPED,false,Shipped; not yet delivered in the export,
+SHIPMENT_STATUS,WMS_DISPATCH,RTO Delivered,RTO_DELIVERED,false,Returned to origin and received back,
+SHIPMENT_STATUS,WMS_DISPATCH,isRTOInitiated,RTO_INITIATED,false,Return to origin started,
+SHIPMENT_STATUS,WMS_DISPATCH,Shipped & Cancelled,CANCELLED,false,Cancelled after shipping,
+SHIPMENT_STATUS,WMS_DISPATCH,Intransit,IN_TRANSIT,false,,
+SHIPMENT_STATUS,WMS_DISPATCH,Out Of Delivery,OUT_FOR_DELIVERY,false,,
+SHIPMENT_STATUS,WMS_DISPATCH,Shipment attempted,DELIVERY_ATTEMPTED,false,,
+SHIPMENT_STATUS,WMS_DISPATCH,LostInTransit,LOST,false,,
+SHIPMENT_STATUS,WMS_DISPATCH,open,OPEN,false,Not yet picked,
+SHIPMENT_STATUS,WMS_DISPATCH,Picked,PICKED,false,,
+SHIPMENT_STATUS,WMS_DISPATCH,Pack in process,PACKING,false,,
+PAYMENT_TYPE,WMS_DISPATCH,Prepaid,PREPAID,false,Order Type,
+PAYMENT_TYPE,WMS_DISPATCH,COD,COD,false,Order Type,

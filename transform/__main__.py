@@ -29,7 +29,7 @@ SQL_DIR = Path(os.environ.get("DW_TRANSFORM_SQL_DIR", Path(__file__).parent / "s
 CORE_TABLES = ["dim_product", "dim_location", "dim_channel", "dim_partner", "dim_order", "dim_courier",
                "fact_sales_line", "fact_return_line", "bridge_return_goods_receipt", "fact_stock_transfer_line",
                "fact_purchase_order_line", "fact_goods_receipt_line", "bridge_goods_receipt_grn", "fact_partner_sellout",
-               "fact_inventory_snapshot", "fact_stock_movement"]
+               "fact_inventory_snapshot", "fact_stock_movement", "fact_shipment", "bridge_shipment_sku"]
 
 
 class QualityGateFailed(Exception):

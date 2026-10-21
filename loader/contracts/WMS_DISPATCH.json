@@ -1,8 +1,7 @@
 {
   "source_name": "WMS_DISPATCH",
-  "status": "draft",
-  "verified_against": null,
-  "draft_note": "Built from the column list pasted in chat (Apr 2025 rows). No real file seen yet.",
+  "status": "verified",
+  "verified_against": "Dispatch order report 1 Apr.2025 to 15 Sep.2026.xlsm",
   "layout": "TABLE",
   "sheet": {
     "index": 0
@@ -200,7 +199,7 @@
   ],
   "business_date": {
     "header": "Order Date",
-    "format": "text_mdy_time"
+    "format": "excel_datetime"
   },
   "as_of_required": false
 }

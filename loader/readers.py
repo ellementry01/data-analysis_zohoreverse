@@ -111,13 +111,13 @@ def _read_csv(path: Path) -> dict[str, list[list[str | None]]]:
 
 def read_workbook(path: Path) -> dict[str, list[list[str | None]]]:
     suffix = path.suffix.lower()
-    if suffix == ".xlsx":
+    if suffix in (".xlsx", ".xlsm"):     # .xlsm: same format; cell values only, macros are never run
         return _read_xlsx(path)
     if suffix == ".xls":
         return _read_xls(path)
     if suffix == ".csv":
         return _read_csv(path)
-    raise ReaderError(f"unsupported file type '{suffix}' (expected .xlsx, .xls or .csv)")
+    raise ReaderError(f"unsupported file type '{suffix}' (expected .xlsx, .xlsm, .xls or .csv)")
 
 
 def is_empty_row(row) -> bool:

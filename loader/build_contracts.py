@@ -129,21 +129,21 @@ def build(sample_dir: Path) -> None:
                         ("(location block header)", "location_header"), ("(location quantity)", "qty"),
                         ("(location Active MRP)", "active_mrp")]]})
 
-    # WMS dispatch: no file received yet. Contract drafted from the column list
-    # the business pasted; the loader refuses to load a DRAFT contract without
-    # --accept-draft, and the first real file must be checked against it.
+    # WMS dispatch: first drafted from the column list the business pasted, then verified (Oct 2026)
+    # against the full export 'Dispatch order report 1 Apr.2025 to 15 Sep.2026.xlsm': every one of the
+    # 46 columns matched, and its dates are real Excel date-times, not the M/D/YYYY text of the pasted rows.
     wms_headers = ("Order No|Extern Order No|Outbound Delivery No|Order Type|Tracking No|Status|Order Date|Ship Date|Delivery Qty|"
                    "Picked QTY|Weight|L|B|H|Pigeon Hole|No of Boxes|LrNo|Transporter|Pod|Vehicle No|Site Location|"
                    "Order Serving Location|Customer Name|Customer Address|Customer PinCode|Customer Phone|Customer Email|"
                    "Transporter Status|Transporter Remarks|Manifest No|Delivery Date|Ext Manifest No|Pick Date|Pack Date|"
                    "Sortation Date|Picklist No|SKU|Customer|UOMQty|Transporter URL|ONHOLD|LPN|Ext Transporter Name|"
                    "Transporter Error Description|Ship By Date|Invoice No").split("|")
-    write({"source_name": "WMS_DISPATCH", "status": "draft", "verified_against": None,
-           "draft_note": "Built from the column list pasted in chat (Apr 2025 rows). No real file seen yet.",
+    write({"source_name": "WMS_DISPATCH", "status": "verified",
+           "verified_against": "Dispatch order report 1 Apr.2025 to 15 Sep.2026.xlsm",
            "layout": "TABLE", "sheet": {"index": 0}, "other_sheets": "must_be_empty", "header_row": 1,
            "column_match": "exact_set", "expected_width": len(wms_headers), "unnamed_columns": [],
            "columns": table_columns(wms_headers),
-           "business_date": {"header": "Order Date", "format": "text_mdy_time"}, "as_of_required": False})
+           "business_date": {"header": "Order Date", "format": "excel_datetime"}, "as_of_required": False})
 
 
 def write(contract: dict) -> None:

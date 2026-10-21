@@ -188,3 +188,6 @@ ON CONFLICT (channel_key, external_order_number) DO UPDATE
 INSERT INTO core.dim_courier (courier_name)
 SELECT DISTINCT courier_name FROM stg.retail_sales WHERE courier_name IS NOT NULL
 ON CONFLICT (courier_name) DO NOTHING;
+INSERT INTO core.dim_courier (courier_name)
+SELECT DISTINCT left(courier_name, 100) FROM stg.wms_dispatch WHERE courier_name IS NOT NULL   -- WMS transporter as written
+ON CONFLICT (courier_name) DO NOTHING;

@@ -187,6 +187,11 @@ CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Lucknow"
 UNRESOLVED.append(("ERP_RETAIL_RETURN","CONTACTNAME","Ellementry International","FY25-26 retail returns","Which channel is 'Ellementry International' (international website? export?)"))
 for v,c in [("Shopify","WEBSITE"),("Nykaa Fashion","NYKAA_FASHION"),("Amazon_SC_Easyship","AMAZON_SELF_SHIP"),("Myntra","MYNTRA"),("Tata Cliq Mall","TATA_CLIQ_MALL")]:
     CA.append(("WMS_DISPATCH","Site Location",v,c,10,False,"From the pasted dispatch sample; full list to check on the real export"))
+# Seen on the full dispatch export (Apr 2025 - 15 Sep 2026, received Oct 2026). Names match the channel master one to one.
+for v,c in [("Tata Cliq","TATA_CLIQ"),("Tata Cliq Mall - Furniture","TATA_CLIQ_MALL_FURNITURE"),("Pepperfry","PEPPERFRY"),("Nykaa","NYKAA"),
+            ("FNP E Retail","FNP"),("FlipkartV3_MultiWH","FLIPKART"),("Amazon Flex","AMAZON_SELLER_FLEX")]:
+    CA.append(("WMS_DISPATCH","Site Location",v,c,10,False,"Seen on the full dispatch export (Oct 2026); to confirm with the business"))
+UNRESOLVED.append(("WMS_DISPATCH","Site Location","Ellementry International","4 dispatches Apr 2025 - Sep 2026","Which channel is 'Ellementry International'? Left Unknown until answered"))
 CA.append(("BLINKIT_SALES","(whole source)","*","BLINKIT",100,True,"Every row of the Blinkit sales file is Blinkit"))
 CA.append(("INSTAMART_SALES","(whole source)","*","INSTAMART",100,True,"Every row of the Instamart sales file is Instamart"))
 PTC = [("B2B_CUSTOMER","B2B",True),("FRANCHISE_PARTNER","FRANCHISE",True),("SIS_PARTNER","SIS",True),("GROUP_EXPORT","EXPORT_VIA_DILEEP",True),
@@ -195,7 +200,7 @@ PTC = [("B2B_CUSTOMER","B2B",True),("FRANCHISE_PARTNER","FRANCHISE",True),("SIS_
 # ---------------------------------------------------------------- write CSV seeds
 def w(name, header, rows):
     with open(os.path.join(OUT,name),"w",newline="",encoding="utf-8") as f:
-        cw=csv.writer(f); cw.writerow(header)
+        cw=csv.writer(f, lineterminator="\n"); cw.writerow(header)
         for r in rows: cw.writerow(["" if x is None else x for x in r])
 b = lambda x: "true" if x else "false"
 def loc_rule(code):

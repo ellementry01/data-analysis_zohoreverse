@@ -197,3 +197,51 @@ def test_po_document_remark_decides_nothing_until_confirmed(po_exports):
     assert run().returncode == 0
     assert open_pos() == {"PYTEST/R/1": "PURCHASE"}                                # confirmed: a return-inward is not a purchase
     assert q("SELECT count(*) FROM core.fact_purchase_order_line WHERE po_number = 'PYTEST/R/2'")[0][0] == 1   # still recorded in core
+
+
+# ------------------------------------------------------------------ shipments (WMS dispatch, schema 2.3)
+def _has_dispatch():
+    return q("SELECT count(*) FROM raw.wms_dispatch")[0][0] > 0
+
+
+def test_shipments_reconcile_to_the_dispatch_export():
+    if not _has_dispatch():
+        pytest.skip("no WMS dispatch file loaded")
+    staged = q("SELECT count(*) FROM stg.wms_dispatch WHERE order_date BETWEEN %s::DATE AND %s::DATE",
+               *[q("SELECT setting_value FROM meta.pipeline_setting WHERE setting_key = %s", k)[0][0]
+                 for k in ("prototype_period_start", "prototype_period_end")])[0][0]
+    assert q("SELECT count(*) FROM core.fact_shipment")[0][0] == staged > 0
+    assert q("SELECT count(*) FROM mart.v_fulfilment")[0][0] == staged                       # no row lost in the joins
+    rto = q("SELECT count(*) FROM stg.wms_dispatch WHERE status_raw IN ('RTO Delivered', 'isRTOInitiated')")[0][0]
+    assert q("SELECT count(*) FROM core.fact_shipment WHERE is_rto")[0][0] == rto
+    assert q("SELECT count(*) FROM core.fact_shipment f JOIN core.dim_location l ON l.location_key = f.fulfilment_location_key "
+             "WHERE l.location_code <> 'BAGRU_WH'")[0][0] == 0                                  # BR-017
+
+
+def test_shipment_sku_quantities_are_never_guessed():
+    if not _has_dispatch():
+        pytest.skip("no WMS dispatch file loaded")
+    # single-SKU deliveries carry the row quantity; several SKUs in one cell are never split evenly
+    assert q("SELECT count(*) FROM core.bridge_shipment_sku b JOIN core.fact_shipment f USING (shipment_id) "
+             "WHERE b.quantity_source = 'SINGLE_SKU_ROW' AND b.quantity <> f.delivery_qty")[0][0] == 0
+    assert q("SELECT count(*) FROM (SELECT shipment_id FROM core.bridge_shipment_sku WHERE quantity_source = 'SINGLE_SKU_ROW' "
+             "GROUP BY 1 HAVING count(*) > 1) x")[0][0] == 0
+    assert q("SELECT count(*) FROM core.bridge_shipment_sku b JOIN core.fact_shipment f USING (shipment_id) "
+             "WHERE b.quantity_source = 'INVOICE_LINE' AND NOT EXISTS (SELECT 1 FROM core.fact_sales_line s "
+             "WHERE s.bill_number = f.invoice_number)")[0][0] == 0
+
+
+def test_dispatch_personal_data_stays_in_raw():
+    for schema, table in [("stg", "wms_dispatch"), ("core", "fact_shipment"), ("mart", "v_fulfilment")]:
+        cols = {c for (c,) in q("SELECT column_name FROM information_schema.columns WHERE table_schema = %s AND table_name = %s",
+                                schema, table)}
+        assert cols and not cols & {"customer_name", "customer_address", "customer_phone", "customer_email"}, table
+
+
+def test_executive_views_exist_and_follow_the_revenue_rules():
+    for v in ("v_sales_orders_daily", "v_partner_sellout_daily", "v_fulfilment", "v_stock_position_daily", "v_return_to_sale"):
+        q(f"SELECT * FROM mart.{v} LIMIT 1")
+    # invoices per day reconcile with the invoice side of v_net_sales_daily (same scope, BR-001)
+    a = q("SELECT round(sum(invoiced_sales), 2) FROM mart.v_sales_orders_daily")[0][0]
+    b = q("SELECT round(sum(gross_sales), 2) FROM mart.v_net_sales_daily")[0][0]
+    assert a == b

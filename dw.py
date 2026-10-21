@@ -7,6 +7,7 @@ Runs warehouse commands with the admin login from .env (ADMIN_DATABASE_URL), wit
     python dw.py build <new_database>                           # fresh schema build (build_db.sh)
     python dw.py psql [-c "SQL"] [-f file.sql]                  # psql on the warehouse
     python dw.py backup [file]                                  # pg_dump --format=custom, then verified
+    DW_DATABASE=dw_test python dw.py pytest [-q ...]            # test suites, never against ellementry_dw
 
 Set DW_DATABASE to point any command at another database (e.g. a trial copy).
 """
@@ -51,6 +52,11 @@ def main(argv: list[str]) -> int:
         args = [sys.executable, "-m", "loader.seeds", rest[0] if rest else db]
     elif cmd == "build":
         args = ["bash", "build_db.sh", rest[0]]
+    elif cmd == "pytest":                    # tests against a DISPOSABLE database: set DW_DATABASE to it
+        if db == "ellementry_dw":
+            sys.exit("refusing to run tests against ellementry_dw: set DW_DATABASE to a disposable copy")
+        env.update(DW_TEST_DATABASE=db, DW_TRANSFORM_DB=db)
+        args = [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", *rest]
     elif cmd == "psql":
         args = [str(PG_BIN / "psql"), "-v", "ON_ERROR_STOP=1", *rest]
     elif cmd == "backup":

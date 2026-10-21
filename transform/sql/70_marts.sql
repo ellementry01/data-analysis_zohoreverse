@@ -167,3 +167,87 @@ CREATE OR REPLACE VIEW mart.v_data_quality_latest AS
 SELECT q.check_name, q.target_table, q.severity, q.outcome, q.failed_row_count, q.details, r.finished_at
 FROM meta.dq_check_result q JOIN meta.transform_run r ON r.transform_run_id = q.transform_run_id
 WHERE r.transform_run_id = (SELECT max(transform_run_id) FROM meta.transform_run WHERE status = 'SUCCEEDED');
+
+-- =============================================================================
+-- 2.3 views for executive dashboards and reports
+-- =============================================================================
+
+-- Bills and orders per day: the "how many / average bill" side of sales (invoice values excl. GST, BR-001).
+-- Same scope as v_net_sales_daily (internal employee stock excluded); bills = distinct invoice numbers.
+CREATE OR REPLACE VIEW mart.v_sales_orders_daily AS
+SELECT d.calendar_date, d.fiscal_year_label, d.fiscal_month, d.month_start_date, d.week_start_date,
+       c.channel_code, c.channel_name, c.sub_channel_name, c.channel_group, l.location_code, l.location_name,
+       pt.partner_type, pt.is_related_party, pt.is_sale_or_return,
+       count(DISTINCT s.bill_number) AS bills,
+       count(DISTINCT s.order_key) FILTER (WHERE s.order_key <> -1) AS orders,
+       sum(s.quantity) FILTER (WHERE p.item_type = 'TRADING') AS units_sold,
+       sum(coalesce(s.net_sales_amount, 0)) AS invoiced_sales
+FROM core.fact_sales_line s
+JOIN core.dim_date d ON d.date_key = s.bill_date_key
+JOIN core.dim_channel c ON c.channel_key = s.channel_key
+JOIN core.dim_location l ON l.location_key = s.location_key
+JOIN core.dim_partner pt ON pt.partner_key = s.partner_key
+JOIN core.dim_product p ON p.product_key = s.product_key
+WHERE NOT pt.is_internal
+GROUP BY d.calendar_date, d.fiscal_year_label, d.fiscal_month, d.month_start_date, d.week_start_date, c.channel_code, c.channel_name,
+         c.sub_channel_name, c.channel_group, l.location_code, l.location_name, pt.partner_type, pt.is_related_party, pt.is_sale_or_return;
+
+-- Quick-commerce consumer sell-out (Blinkit, Instamart): demand, never revenue and never added to invoices (BR-024).
+CREATE OR REPLACE VIEW mart.v_partner_sellout_daily AS
+SELECT d.calendar_date, d.month_start_date, so.source_name, c.channel_name AS platform, so.city, l.location_name AS platform_location,
+       p.sku_code, p.product_name, p.category, p.lifecycle_status,
+       sum(so.units_sold) AS units_sold, sum(so.order_count) AS orders, sum(so.mrp_value) AS mrp_value, sum(so.selling_value) AS selling_value
+FROM core.fact_partner_sellout so
+JOIN core.dim_date d ON d.date_key = so.order_date_key
+JOIN core.dim_channel c ON c.channel_key = so.channel_key
+JOIN core.dim_location l ON l.location_key = so.location_key
+JOIN core.dim_product p ON p.product_key = so.product_key
+GROUP BY d.calendar_date, d.month_start_date, so.source_name, c.channel_name, so.city, l.location_name, p.sku_code, p.product_name,
+         p.category, p.lifecycle_status;
+
+-- Order fulfilment from Bagru (WMS dispatch, BR-017): one row per outbound delivery. Durations in hours / days;
+-- shipped_late = shipped after the marketplace's ship-by time (or not shipped and past it at the period end).
+CREATE OR REPLACE VIEW mart.v_fulfilment AS
+SELECT f.outbound_delivery_number, f.invoice_number, d.calendar_date AS order_date, d.month_start_date, d.week_start_date,
+       c.channel_code, c.channel_name, c.sub_channel_name, cr.courier_name, f.payment_type, f.shipment_status, f.is_rto, f.is_on_hold,
+       f.delivery_qty, f.box_count, f.destination_pincode,
+       round(extract(epoch FROM f.ship_datetime - f.order_datetime) / 3600, 1) AS order_to_ship_hours,
+       round(extract(epoch FROM f.delivery_datetime - f.ship_datetime) / 86400, 1) AS ship_to_deliver_days,
+       CASE WHEN f.ship_by_datetime IS NULL THEN NULL
+            WHEN f.ship_datetime IS NOT NULL THEN f.ship_datetime > f.ship_by_datetime
+            ELSE (SELECT period_end FROM meta.transform_run WHERE status = 'SUCCEEDED' ORDER BY transform_run_id DESC LIMIT 1) > f.ship_by_datetime::DATE
+       END AS shipped_late,
+       f.shipment_status = 'DELIVERED' AS is_delivered
+FROM core.fact_shipment f
+JOIN core.dim_date d ON d.date_key = f.order_date_key
+JOIN core.dim_channel c ON c.channel_key = f.channel_key
+JOIN core.dim_courier cr ON cr.courier_key = f.courier_key;
+
+-- Stock on every saved snapshot day, each location from its own system of record (BR-025). History exists only from
+-- the first saved day (BR-021, G-001): one row per day x location x SKU that was reported.
+CREATE OR REPLACE VIEW mart.v_stock_position_daily AS
+SELECT d.calendar_date AS snapshot_date, d.month_start_date, l.location_code, l.location_name, l.location_type, l.is_sellable_stock,
+       p.sku_code, p.product_name, p.item_type, p.lifecycle_status, p.category, p.current_mrp,
+       sum(s.on_hand_qty) AS on_hand_qty, sum(coalesce(s.sellable_qty, s.on_hand_qty)) AS sellable_qty, s.source_name
+FROM core.fact_inventory_snapshot s
+JOIN core.dim_location l ON l.location_key = s.location_key
+JOIN core.dim_product p ON p.product_key = s.product_key
+JOIN core.dim_date d ON d.date_key = s.snapshot_date_key
+WHERE NOT l.is_unknown_member AND l.inventory_system_of_record = CASE s.source_name WHEN 'ERP_INVENTORY_SNAPSHOT' THEN 'ERP'
+          WHEN 'BLINKIT_INVENTORY' THEN 'BLINKIT' WHEN 'INSTAMART_INVENTORY' THEN 'INSTAMART' END
+GROUP BY d.calendar_date, d.month_start_date, l.location_code, l.location_name, l.location_type, l.is_sellable_stock, p.sku_code,
+         p.product_name, p.item_type, p.lifecycle_status, p.category, p.current_mrp, s.source_name;
+
+-- Returns with the sale they reverse (where the original invoice is loaded): how long after the sale goods come back.
+CREATE OR REPLACE VIEW mart.v_return_to_sale AS
+SELECT r.source_name, r.return_number, d.calendar_date AS return_date, d.month_start_date, c.channel_name, c.sub_channel_name,
+       p.sku_code, p.product_name, p.category, r.quantity AS units_returned, coalesce(r.net_return_amount, 0) AS returns_value,
+       sd.calendar_date AS sale_date, d.calendar_date - sd.calendar_date AS days_from_sale
+FROM core.fact_return_line r
+JOIN core.dim_date d ON d.date_key = r.return_date_key
+JOIN core.dim_channel c ON c.channel_key = r.channel_key
+JOIN core.dim_product p ON p.product_key = r.product_key
+JOIN core.dim_partner pt ON pt.partner_key = r.partner_key
+LEFT JOIN core.fact_sales_line s ON s.sales_line_id = r.original_sales_line_id
+LEFT JOIN core.dim_date sd ON sd.date_key = s.bill_date_key
+WHERE NOT pt.is_internal;

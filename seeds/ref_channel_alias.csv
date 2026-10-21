@@ -67,5 +67,12 @@ WMS_DISPATCH,Site Location,Nykaa Fashion,NYKAA_FASHION,10,false,From the pasted 
 WMS_DISPATCH,Site Location,Amazon_SC_Easyship,AMAZON_SELF_SHIP,10,false,From the pasted dispatch sample; full list to check on the real export,
 WMS_DISPATCH,Site Location,Myntra,MYNTRA,10,false,From the pasted dispatch sample; full list to check on the real export,
 WMS_DISPATCH,Site Location,Tata Cliq Mall,TATA_CLIQ_MALL,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Tata Cliq,TATA_CLIQ,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Tata Cliq Mall - Furniture,TATA_CLIQ_MALL_FURNITURE,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Pepperfry,PEPPERFRY,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Nykaa,NYKAA,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,FNP E Retail,FNP,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,FlipkartV3_MultiWH,FLIPKART,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Amazon Flex,AMAZON_SELLER_FLEX,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
 BLINKIT_SALES,(whole source),*,BLINKIT,100,true,Every row of the Blinkit sales file is Blinkit,BR-018
 INSTAMART_SALES,(whole source),*,INSTAMART,100,true,Every row of the Instamart sales file is Instamart,
