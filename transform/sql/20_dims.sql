@@ -95,6 +95,9 @@ SELECT sku_code, prio, product_name, product_type, category, sub_category, produ
     UNION ALL SELECT sku_code, 8, product_name, NULL, NULL, NULL, NULL, NULL, NULL, NULL, unit_mrp, order_date FROM stg.instamart_sales
     UNION ALL SELECT sku_code, 8, product_name, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, snapshot_date FROM stg.inventory_snapshot
     WHERE source_name <> 'ERP_INVENTORY_SNAPSHOT'
+    -- ERP item master last: it only fills what no transaction or master source above holds (mainly category)
+    UNION ALL SELECT sku_code, 9, product_name, product_type, category, sub_category, NULL, hsn_code, uom, ean_code, mrp, as_of_date
+    FROM stg.item_master
 ) x WHERE sku_code IS NOT NULL AND sku_code <> '';
 
 CREATE TEMP TABLE product_attr ON COMMIT DROP AS
@@ -108,8 +111,9 @@ WITH pick AS (
       (array_agg(hsn_code       ORDER BY prio, seen_date DESC NULLS LAST) FILTER (WHERE hsn_code IS NOT NULL))[1] AS hsn_code,
       (array_agg(uom            ORDER BY prio) FILTER (WHERE uom IS NOT NULL))[1] AS uom,
       (array_agg(ean_code       ORDER BY seen_date DESC NULLS LAST) FILTER (WHERE ean_code IS NOT NULL))[1] AS ean_code,
-      min(seen_date) AS first_seen_date
-    FROM product_src GROUP BY sku_code),
+      min(seen_date) FILTER (WHERE prio < 9) AS first_seen_date
+    FROM product_src GROUP BY sku_code
+    HAVING min(prio) < 9),            -- an item only in the ERP item master (never traded, stocked or ordered) is not added
 erp_mrp AS (   -- current MRP: latest ERP stock report (largest non-zero across locations) ...
     SELECT sku_code, max(unit_mrp) AS m FROM stg.inventory_snapshot
     WHERE source_name = 'ERP_INVENTORY_SNAPSHOT' AND unit_mrp > 0
@@ -118,8 +122,8 @@ erp_mrp AS (   -- current MRP: latest ERP stock report (largest non-zero across 
 inv_mrp AS (   -- ... else the latest invoice MRP
     SELECT DISTINCT ON (sku_code) sku_code, unit_mrp AS m FROM stg.retail_sales
     WHERE unit_mrp > 0 ORDER BY sku_code, bill_date DESC NULLS LAST, source_row_number DESC),
-mrp AS (SELECT p.sku_code, coalesce(e.m, i.m) AS current_mrp FROM pick p
-        LEFT JOIN erp_mrp e USING (sku_code) LEFT JOIN inv_mrp i USING (sku_code))
+mrp AS (SELECT p.sku_code, coalesce(e.m, i.m, im.mrp) AS current_mrp FROM pick p     -- ... else the ERP item master
+        LEFT JOIN erp_mrp e USING (sku_code) LEFT JOIN inv_mrp i USING (sku_code) LEFT JOIN stg.item_master im USING (sku_code))
 SELECT p.*, m.current_mrp,
        coalesce(ov.standard_value, tn.standard_value, 'UNKNOWN') AS item_type,
        CASE WHEN coalesce(ov.standard_value, tn.standard_value) = 'TRADING' THEN
@@ -191,3 +195,10 @@ ON CONFLICT (courier_name) DO NOTHING;
 INSERT INTO core.dim_courier (courier_name)
 SELECT DISTINCT left(courier_name, 100) FROM stg.wms_dispatch WHERE courier_name IS NOT NULL   -- WMS transporter as written
 ON CONFLICT (courier_name) DO NOTHING;
+-- courier company behind each spelling (ref.code_mapping COURIER); never NULL, so dashboards can group on it
+UPDATE core.dim_courier c SET courier_group = coalesce(m.standard_value, CASE WHEN c.is_unknown_member THEN 'Not recorded' ELSE 'Other (unmapped)' END)
+FROM core.dim_courier c2
+LEFT JOIN (SELECT DISTINCT ON (source_value) source_value, standard_value FROM ref.code_mapping WHERE domain = 'COURIER'
+           ORDER BY source_value, source_name) m ON m.source_value = c2.courier_name
+WHERE c2.courier_key = c.courier_key
+  AND c.courier_group IS DISTINCT FROM coalesce(m.standard_value, CASE WHEN c.is_unknown_member THEN 'Not recorded' ELSE 'Other (unmapped)' END);

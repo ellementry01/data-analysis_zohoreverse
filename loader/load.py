@@ -55,7 +55,8 @@ def connect() -> psycopg.Connection:
 
 
 def load_file(source: str, path: Path, *, as_of: dt.date | None = None, loaded_by: str | None = None,
-              dry_run: bool = False, accept_draft: bool = False, conn: psycopg.Connection | None = None) -> Outcome:
+              dry_run: bool = False, accept_draft: bool = False, conn: psycopg.Connection | None = None,
+              as_of_assumed: bool = False) -> Outcome:
     path = Path(path)
     if not path.is_file():
         raise LoadRefused(f"file not found: {path}")
@@ -68,6 +69,8 @@ def load_file(source: str, path: Path, *, as_of: dt.date | None = None, loaded_b
                           "(the date the export represents)")
     if not contract["as_of_required"] and as_of is not None:
         raise LoadRefused(f"{source} is transactional; its period comes from the data. Do not pass --as-of.")
+    if as_of_assumed and as_of is None:
+        raise LoadRefused("--as-of-assumed needs --as-of")
 
     digest = sha256_of(path)
     who = loaded_by or getpass.getuser()
@@ -104,7 +107,7 @@ def load_file(source: str, path: Path, *, as_of: dt.date | None = None, loaded_b
         if existing:
             raise AlreadyLoaded(*existing)
         try:
-            outcome.batch_id = _load(conn, contract, parsed, path, digest, as_of, who)
+            outcome.batch_id = _load(conn, contract, parsed, path, digest, as_of, who, as_of_assumed)
             conn.commit()
         except psycopg.errors.UniqueViolation:
             conn.rollback()                    # another loader registered the same file first
@@ -138,14 +141,15 @@ def _live_batch(conn, source, digest):
     return row
 
 
-def _load(conn, contract, parsed, path, digest, as_of, who) -> int:
+def _load(conn, contract, parsed, path, digest, as_of, who, as_of_assumed=False) -> int:
     source = contract["source_name"]
     table = f"raw.{source.lower()}"
     pivot = contract["layout"] == "STOCK_PIVOT"
     batch_id = conn.execute(
         "INSERT INTO meta.load_batch (source_name, file_name, file_sha256, period_start, period_end, as_of_date, "
-        "rows_read, status, loaded_by) VALUES (%s,%s,%s,%s,%s,%s,%s,'STARTED',%s) RETURNING batch_id",
-        (source, path.name, digest, parsed.period_start, parsed.period_end, as_of, parsed.rows_read, who)).fetchone()[0]
+        "as_of_is_assumed, rows_read, status, loaded_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'STARTED',%s) RETURNING batch_id",
+        (source, path.name, digest, parsed.period_start, parsed.period_end, as_of, as_of_assumed, parsed.rows_read,
+         who)).fetchone()[0]
 
     lineage = ["batch_id", "source_row_number"] + (["source_col_number"] if pivot else [])
     cols = ", ".join(lineage + parsed.columns)

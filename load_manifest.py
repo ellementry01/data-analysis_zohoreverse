@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ORDER = ["PRODUCT_MASTER", "ERP_RETAIL_SALES", "ERP_DOMESTIC_SALES", "ERP_RETAIL_RETURN", "ERP_DOMESTIC_RETURN",
+ORDER = ["PRODUCT_MASTER", "ERP_ITEM_MASTER", "ERP_RETAIL_SALES", "ERP_DOMESTIC_SALES", "ERP_RETAIL_RETURN", "ERP_DOMESTIC_RETURN",
          "ERP_STOCK_TRANSFER_OUT", "ERP_STOCK_TRANSFER_IN", "ERP_PURCHASE_ORDER", "ERP_INVENTORY_SNAPSHOT",
          "BLINKIT_INVENTORY", "INSTAMART_INVENTORY", "WMS_DISPATCH", "BLINKIT_SALES", "INSTAMART_SALES"]
 
@@ -36,6 +36,8 @@ def main(argv=None) -> int:
                "--loaded-by", a.loaded_by]
         if r["as_of"]:
             cmd += ["--as-of", r["as_of"]]
+            if "as-of assumed" in (r.get("note") or "").lower():
+                cmd += ["--as-of-assumed"]
         if a.dry_run:
             cmd += ["--dry-run"]
         p = subprocess.run(cmd, capture_output=True, text=True)

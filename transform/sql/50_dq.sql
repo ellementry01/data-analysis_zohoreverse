@@ -77,6 +77,14 @@ INSERT INTO dq SELECT 'shipment_status_unmapped', 'core.fact_shipment', 'WARN', 
        'statuses not in ref.code_mapping SHIPMENT_STATUS: ' || coalesce(string_agg(DISTINCT shipment_status_raw, ', '), '-')
 FROM core.fact_shipment WHERE shipment_status = 'UNMAPPED';
 
+INSERT INTO dq SELECT 'courier_unmapped', 'core.dim_courier', 'WARN', count(*),
+       'courier names not in ref.code_mapping COURIER: ' || coalesce(string_agg(courier_name, ', ' ORDER BY courier_name), '-')
+FROM core.dim_courier WHERE courier_group = 'Other (unmapped)';
+
+INSERT INTO dq SELECT 'shipment_weight_suspect', 'core.fact_shipment', 'WARN', count(*),
+       'weight over 100 kg per delivery (likely grams typed as kg); left out of weight figures. Max: ' || coalesce(max(weight_kg)::TEXT, '-')
+FROM core.fact_shipment WHERE weight_kg > 100;
+
 INSERT INTO dq SELECT 'shipment_without_invoice_match', 'core.fact_shipment', 'WARN', count(*),
        'deliveries whose Invoice No matches no loaded sales invoice (invoice outside the loaded period, or not exported)'
 FROM core.fact_shipment f WHERE NOT EXISTS (SELECT 1 FROM core.fact_sales_line s WHERE s.bill_number = f.invoice_number);

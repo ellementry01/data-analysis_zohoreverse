@@ -114,3 +114,18 @@ SELECT 'INSTAMART_INVENTORY', r.batch_id, b.as_of_date, btrim(r.facilityname), r
        stg.num(r.warehouseqtyavailable), stg.num(r.warehouseqtyavailable), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
        r.skudescription, NULL, NULL, NULL, r.warehouseqtyavailable
 FROM raw.instamart_inventory r JOIN b ON b.batch_id = r.batch_id;
+
+-- ERP item master (Product Master List): latest loaded export only. Fills product attributes no better source holds.
+DROP TABLE IF EXISTS stg.item_master;
+CREATE TABLE stg.item_master AS
+SELECT DISTINCT ON (stg.sku(r.sku_no)) r.batch_id, r.source_row_number, b.as_of_date, r.sku_no AS source_sku_code, stg.sku(r.sku_no) AS sku_code,
+       nullif(btrim(r.prodname), '') AS product_name, nullif(btrim(r.prodtypename), '') AS product_type,
+       nullif(btrim(r.category), '') AS category, nullif(btrim(r.subcategory), '') AS sub_category,
+       nullif(btrim(r.prodhsncode), '') AS hsn_code, nullif(btrim(r.uomname), '') AS uom, nullif(btrim(r.ean13), '') AS ean_code,
+       nullif(stg.num(r.mrp), 0) AS mrp, stg.num(r.cost) AS cost, nullif(btrim(r.active_inactive), '') AS active_status
+FROM raw.erp_item_master r
+JOIN meta.load_batch b ON b.batch_id = r.batch_id
+WHERE b.batch_id = (SELECT batch_id FROM meta.load_batch WHERE source_name = 'ERP_ITEM_MASTER' AND status = 'LOADED'
+                    ORDER BY as_of_date DESC, batch_id DESC LIMIT 1)
+  AND nullif(btrim(r.sku_no), '') IS NOT NULL
+ORDER BY stg.sku(r.sku_no), r.source_row_number;

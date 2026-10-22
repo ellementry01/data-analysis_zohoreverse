@@ -1,0 +1,282 @@
+{
+  "source_name": "ERP_ITEM_MASTER",
+  "status": "verified",
+  "verified_against": "Product_Master_List_13-10-2026_11_51.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 66,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "SKU No",
+      "column": "sku_no"
+    },
+    {
+      "header": "sdfvb",
+      "column": "sdfvb"
+    },
+    {
+      "header": "PRODNAME",
+      "column": "prodname"
+    },
+    {
+      "header": "PRODDESC",
+      "column": "proddesc"
+    },
+    {
+      "header": "UOMNAME",
+      "column": "uomname"
+    },
+    {
+      "header": "PRODTYPENAME",
+      "column": "prodtypename"
+    },
+    {
+      "header": "CATEGORY",
+      "column": "category"
+    },
+    {
+      "header": "SUBCATEGORY",
+      "column": "subcategory"
+    },
+    {
+      "header": "PRODGROUPNAME",
+      "column": "prodgroupname"
+    },
+    {
+      "header": "PRODBACKOFFICECODE",
+      "column": "prodbackofficecode"
+    },
+    {
+      "header": "PRODBRANDNAME",
+      "column": "prodbrandname"
+    },
+    {
+      "header": "PRODCLASSNAME",
+      "column": "prodclassname"
+    },
+    {
+      "header": "PRODDIMTYPENAME",
+      "column": "proddimtypename"
+    },
+    {
+      "header": "PRODDIMLENGTH",
+      "column": "proddimlength"
+    },
+    {
+      "header": "PRODDIMWIDTH",
+      "column": "proddimwidth"
+    },
+    {
+      "header": "PRODDIMHEIGHT",
+      "column": "proddimheight"
+    },
+    {
+      "header": "LENGTHUOM",
+      "column": "lengthuom"
+    },
+    {
+      "header": "PRODDIMVOLUME",
+      "column": "proddimvolume"
+    },
+    {
+      "header": "PRODDIMNETWEIGHT",
+      "column": "proddimnetweight"
+    },
+    {
+      "header": "WEIGHTUOM",
+      "column": "weightuom"
+    },
+    {
+      "header": "PRODDIMGROSSWEIGHT",
+      "column": "proddimgrossweight"
+    },
+    {
+      "header": "PRODPROPERTYNAME1",
+      "column": "prodpropertyname1"
+    },
+    {
+      "header": "PRODPROPERTYNAME2",
+      "column": "prodpropertyname2"
+    },
+    {
+      "header": "PRODPROPERTYNAME3",
+      "column": "prodpropertyname3"
+    },
+    {
+      "header": "PRODPROPERTYNAME4",
+      "column": "prodpropertyname4"
+    },
+    {
+      "header": "PRODPROPERTYNAME5",
+      "column": "prodpropertyname5"
+    },
+    {
+      "header": "PRODPROPERTYNAME6",
+      "column": "prodpropertyname6"
+    },
+    {
+      "header": "INNERPRODDIMTYPENAME",
+      "column": "innerproddimtypename"
+    },
+    {
+      "header": "INNERPRODDIMLENGTH",
+      "column": "innerproddimlength"
+    },
+    {
+      "header": "INNERPRODDIMWIDTH",
+      "column": "innerproddimwidth"
+    },
+    {
+      "header": "INNERPRODDIMHEIGHT",
+      "column": "innerproddimheight"
+    },
+    {
+      "header": "INNERLENGTHUOM",
+      "column": "innerlengthuom"
+    },
+    {
+      "header": "INNERPRODDIMVOLUME",
+      "column": "innerproddimvolume"
+    },
+    {
+      "header": "INNERPRODDIMNETWEIGHT",
+      "column": "innerproddimnetweight"
+    },
+    {
+      "header": "INNERWEIGHTUOM",
+      "column": "innerweightuom"
+    },
+    {
+      "header": "INNERPRODDIMGROSSWEIGHT",
+      "column": "innerproddimgrossweight"
+    },
+    {
+      "header": "SACCODE",
+      "column": "saccode"
+    },
+    {
+      "header": "PRODBARCODENUM",
+      "column": "prodbarcodenum"
+    },
+    {
+      "header": "SIZE",
+      "column": "size"
+    },
+    {
+      "header": "PRODFITNAME",
+      "column": "prodfitname"
+    },
+    {
+      "header": "PRODCOLORNAME",
+      "column": "prodcolorname"
+    },
+    {
+      "header": "PRODCONDITIONNAME",
+      "column": "prodconditionname"
+    },
+    {
+      "header": "PRODHSNCODE",
+      "column": "prodhsncode"
+    },
+    {
+      "header": "MRP",
+      "column": "mrp"
+    },
+    {
+      "header": "RETAILPRICE",
+      "column": "retailprice"
+    },
+    {
+      "header": "COST",
+      "column": "cost"
+    },
+    {
+      "header": "GENERALPURCHASE",
+      "column": "generalpurchase"
+    },
+    {
+      "header": "CGSTPERC",
+      "column": "cgstperc"
+    },
+    {
+      "header": "SGSTPERC",
+      "column": "sgstperc"
+    },
+    {
+      "header": "IGSTPERC",
+      "column": "igstperc"
+    },
+    {
+      "header": "PRODUCTUDF1",
+      "column": "productudf1"
+    },
+    {
+      "header": "PRODUCTUDF2",
+      "column": "productudf2"
+    },
+    {
+      "header": "PRODUCTUDF3",
+      "column": "productudf3"
+    },
+    {
+      "header": "PRODUCTUDF4",
+      "column": "productudf4"
+    },
+    {
+      "header": "PRODUCTUDF5",
+      "column": "productudf5"
+    },
+    {
+      "header": "PRODUCTUDF6",
+      "column": "productudf6"
+    },
+    {
+      "header": "PRODUCTUDF7",
+      "column": "productudf7"
+    },
+    {
+      "header": "PRODUCTUDF8",
+      "column": "productudf8"
+    },
+    {
+      "header": "CREATEDON",
+      "column": "createdon"
+    },
+    {
+      "header": "CREATEDBY",
+      "column": "createdby"
+    },
+    {
+      "header": "LASTUPDATEDON",
+      "column": "lastupdatedon"
+    },
+    {
+      "header": "PRODUCTIMGFILENAME",
+      "column": "productimgfilename"
+    },
+    {
+      "header": "UPDATEDBY",
+      "column": "updatedby"
+    },
+    {
+      "header": "EAN13",
+      "column": "ean13"
+    },
+    {
+      "header": "PRODHSNWISETAXAPPLICABLE",
+      "column": "prodhsnwisetaxapplicable"
+    },
+    {
+      "header": "ACTIVE/INACTIVE",
+      "column": "active_inactive"
+    }
+  ],
+  "business_date": null,
+  "as_of_required": true
+}

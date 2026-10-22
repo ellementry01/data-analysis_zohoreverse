@@ -32,6 +32,8 @@ def main(argv=None) -> int:
     ld = sub.add_parser("load", help="check a file against its contract and load it")
     ld.add_argument("source"); ld.add_argument("file", type=Path)
     ld.add_argument("--as-of", type=_date, help="snapshot / state / master exports: the date the export represents")
+    ld.add_argument("--as-of-assumed", action="store_true",
+                    help="the as-of date is an assumption, not the known export date (dashboards flag it)")
     ld.add_argument("--loaded-by", help="who is loading (defaults to your OS user name)")
     ld.add_argument("--dry-run", action="store_true", help="check only; touch nothing in the database")
     ld.add_argument("--accept-draft", action="store_true", help="allow a DRAFT contract (first real file only)")
@@ -60,7 +62,8 @@ def main(argv=None) -> int:
         return 0
 
     try:
-        o = load_file(a.source, a.file, as_of=a.as_of, loaded_by=a.loaded_by, dry_run=a.dry_run, accept_draft=a.accept_draft)
+        o = load_file(a.source, a.file, as_of=a.as_of, loaded_by=a.loaded_by, dry_run=a.dry_run, accept_draft=a.accept_draft,
+                      as_of_assumed=a.as_of_assumed)
     except ContractError as e:
         print(f"REJECTED  {a.source}  {a.file.name}\n  {e}", file=sys.stderr); return 1
     except LoadRefused as e:

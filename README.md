@@ -1,7 +1,8 @@
-# Ellementry Data Warehouse — v2.3
+# Ellementry Data Warehouse — v2.4
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
-Status: v2.3 = v2.2 (business-first model, loaders, full transform) plus purchase-order document type, shipments from
+Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
+loaders, full transform) plus purchase-order document type, shipments from
 the WMS dispatch export, platform sell-out from the monthly Blinkit / Instamart workbooks, and mart views for executive
 dashboards. Loaded and reconciled on the full 1.5-year exports (Apr 2025 - Sep 2026). It feeds Ellementry Analytics
 (`../lumen`), which reads the `mart` views through the read-only `ellementry_metrics` role.
@@ -28,6 +29,21 @@ Mart views added in 2.3 for dashboards: `v_sales_orders_daily` (bills, orders, a
 (order-to-ship, delivery, SLA, RTO), `v_partner_sellout_daily` (quick-commerce demand, never revenue),
 `v_stock_position_daily` (every saved stock day), `v_return_to_sale` (days from sale to return).
 
+2.4 (`sql/120_supply_dashboard_fixes.sql`), all additive:
+- **ERP item master** (`ERP_ITEM_MASTER`, the "Product Master List" export) is a source. It only fills product
+  attributes no better source holds: it gave a category to 2,218 products that had none, and an MRP to 2 trading SKUs.
+- **`v_stock_position_latest`** gains `category_label` (never blank), `mrp_status` and `stock_value_mrp`
+  (NULL, not 0, when no source holds an MRP).
+- **`v_days_of_cover`** counts transfers out as well as sales, so Bagru's cover is no longer overstated.
+- **`v_fulfilment`** gains `courier_group` (ref.code_mapping COURIER: 39 WMS spellings, about 10 companies),
+  `is_delivery_tracked` and `is_rto_tracked` (per channel, from the data), and drops weights over 100 kg.
+- **`v_transfer_in_transit`** gains `destination_group` (Amazon FBA vs own locations), `transit_status` and `receipt_note`.
+- **`v_open_purchase_orders`** gains `as_of_is_assumed`, `has_due_date`, `due_status`. New **`v_purchase_order_lines`**:
+  every PO line with `is_open`, `is_over_received`, `over_received_qty`.
+- **`meta.load_batch.as_of_is_assumed`**, set by `loader load --as-of-assumed` (load_manifest passes it when the
+  manifest note says the as-of date is assumed).
+- New WARN checks: `courier_unmapped`, `shipment_weight_suspect`.
+
 ## Layout
 
 ```
@@ -49,6 +65,7 @@ sql/095_column_definitions.sql (historical) first column definitions
 sql/100_staging_infra.sql     transform run log, parsing helpers, unclassified movement types
 sql/105_goods_receipt_grain.sql receipts as the PO report states them (one row per PO line + receipt numbers)
 sql/110_po_document_type.sql  schema 2.3: PO 'Document Remark' (Purchase / Return) -> document_type + confirmation switch
+sql/120_supply_dashboard_fixes.sql schema 2.4: ERP item master source, as-of-assumed flag, courier groups
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)
