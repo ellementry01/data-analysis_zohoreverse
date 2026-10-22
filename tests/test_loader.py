@@ -343,15 +343,20 @@ def test_failed_file_can_be_retried(tmp_path, db, monkeypatch):
 
 
 @needs_db
-def test_policy_refusals(tmp_path, db):
+def test_policy_refusals(tmp_path, db, monkeypatch):
+    import loader.load as ld
     from loader.load import LoadRefused, load_file
     f = transfer_file(tmp_path)
     with pytest.raises(LoadRefused, match="Do not pass --as-of"):
         load_file("ERP_STOCK_TRANSFER_OUT", f, as_of=dt.date(2026, 9, 15), conn=db)
     with pytest.raises(LoadRefused, match="--as-of YYYY-MM-DD is required"):
         load_file("BLINKIT_INVENTORY", f, conn=db)
+    # every contract is verified since 2.3 (WMS dispatch was the last draft): test the rule on a draft copy
+    draft = dict(load_contract("ERP_STOCK_TRANSFER_OUT"), status="draft", draft_note="test")
+    monkeypatch.setattr(ld, "load_contract", lambda source: draft)
     with pytest.raises(LoadRefused, match="DRAFT"):
-        load_file("WMS_DISPATCH", f, conn=db)
+        load_file("ERP_STOCK_TRANSFER_OUT", f, conn=db)
+    monkeypatch.undo()
     with pytest.raises(ContractError, match="no contract"):
         load_file("NOT_A_SOURCE", f, conn=db)
 

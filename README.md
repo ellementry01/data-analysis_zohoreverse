@@ -1,8 +1,32 @@
-# Ellementry Data Warehouse — v2.2 (Stock AI + Operations AI prototype)
+# Ellementry Data Warehouse — v2.3
 
-Target: PostgreSQL 16 (local), portable to a cloud warehouse later.
-Status: v2.2 = business-first model, raw loaders, and the full transform (raw -> stg -> core -> ledger ->
-quality gate -> coverage -> marts) built and verified on all sample files. Next: dashboards for Stock and Operations AI.
+Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
+Status: v2.3 = v2.2 (business-first model, loaders, full transform) plus purchase-order document type, shipments from
+the WMS dispatch export, platform sell-out from the monthly Blinkit / Instamart workbooks, and mart views for executive
+dashboards. Loaded and reconciled on the full 1.5-year exports (Apr 2025 - Sep 2026). It feeds Ellementry Analytics
+(`../lumen`), which reads the `mart` views through the read-only `ellementry_metrics` role.
+
+## Day-to-day commands (Windows, from this folder)
+
+The admin login lives in `.env` (git-ignored) as `ADMIN_DATABASE_URL`; `dw.py` reads it and never prints it.
+`DW_DATABASE=<name>` points any command at another database (e.g. a trial copy).
+
+```bash
+python dw.py backup                                   # pg_dump to ../../ellementry_backups, verified
+python load_manifest.py ../exports                    # load every new file listed in ../exports/MANIFEST.tsv
+python dw.py transform run                            # rebuild stg -> core -> marts (all or nothing)
+python reconcile.py ../exports                        # totals from the files vs the warehouse
+python -m loader.normalise_platform_sales <workbook> BLINKIT_SALES|INSTAMART_SALES ../exports/sellout --log ../exports/sellout/NORMALISE_LOG.tsv
+DW_DATABASE=dw_test python dw.py pytest -q            # tests, never against ellementry_dw
+```
+
+Exports live in `../exports` (outside git: they hold customer data), one canonical copy per source and period,
+listed in `MANIFEST.tsv` with sha256, rows, period and as-of date. A new export: copy it there, add its manifest line,
+then `load_manifest.py` (already loaded files are skipped by the loader), `transform run`, `reconcile.py`.
+
+Mart views added in 2.3 for dashboards: `v_sales_orders_daily` (bills, orders, average bill), `v_fulfilment`
+(order-to-ship, delivery, SLA, RTO), `v_partner_sellout_daily` (quick-commerce demand, never revenue),
+`v_stock_position_daily` (every saved stock day), `v_return_to_sale` (days from sale to return).
 
 ## Layout
 
