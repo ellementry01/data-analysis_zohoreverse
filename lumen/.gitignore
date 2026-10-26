@@ -1,0 +1,23 @@
+backend/.env
+backend/.venv/
+backend/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+frontend/node_modules
+frontend/dist/
+sample_data/*.xlsx
+sample_data/*.csv
+sample_data/ground_truth.json
+.env
+# secrets: every .env file except the committed examples
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+# build output and caches
+frontend/build/
+*.tsbuildinfo
+.vite/
+# uploaded user data
+backend/data/

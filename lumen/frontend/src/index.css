@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { @apply bg-slate-50 text-slate-800 antialiased; font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+
+.react-grid-item.react-grid-placeholder { background: #3b6fe0 !important; opacity: 0.12 !important; border-radius: 8px; }
+.react-grid-item > .react-resizable-handle::after { border-color: #94a3b8 !important; }
+.drag-handle { cursor: move; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .print-full { margin: 0 !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
+}
+
+.prose-answer p { margin: 0 0 .4rem; }
+code, pre { font-family: "Cascadia Code", Consolas, monospace; }
