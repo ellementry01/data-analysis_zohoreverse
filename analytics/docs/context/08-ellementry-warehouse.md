@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.4**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.5**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -134,7 +134,8 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
 - **Partner list (G-004):** 25,743 domestic lines, ₹11.5 Cr, are unclassified, so their channel is unknown. Top names: Shoppers Stop, RLS Enterprise.
 - **Rule BR-031 (PROPOSED):** the PO `Document Remark` (Purchase/Return) separates purchases from return-inwards. The switch `po_document_remark_confirmed` stays false until the business confirms.
 - **PO export dates (D-094):** the FY25-26 as-of date is assumed.
-- **Dispatch invoice series:** `M25-…`, `M26-…`, `M44-…` and `JPR256…` (20,353 shipments) match no ERP invoice. Fulfilment metrics are unaffected; the order link and splitting quantities across multi-SKU cells are.
+- **Dispatch invoice series (resolved in 2.5):** `M25-`/`M26-`/`M44-` are the marketplaces' own invoice numbers. Shipments now link to ERP bills through the Extern Order No (the marketplace order ID, = ERP ORDER_NUMBER), with the AWB as fallback.
+- **Retail bill numbers restart each financial year** (e.g. `IN-1`): staging keeps the newest file's bill per number, so 2,086 FY 25-26 retail lines (1,911 bills, about ₹29 lakh incl. GST) are currently dropped. Not yet fixed.
 - **Unmapped names:** "Ellementry International" (channel), and the Mumbai PPOB / Delhi retail contacts (location known, channel unknown).
 - **Daily stock saving (G-001):** must start, or trends are impossible.
 - **Partner opening stock (G-028), receiving location on goods receipts (G-025), return reasons (G-009).**

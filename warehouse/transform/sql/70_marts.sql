@@ -243,6 +243,7 @@ GROUP BY d.calendar_date, d.month_start_date, so.source_name, c.channel_name, so
 --   is_rto_tracked: the channel records RTO on at least 1% of its deliveries. Marketplace returns-to-origin are handled
 --   by the marketplace and never reach the WMS, so their RTO shows as zero: read rates on tracked channels only.
 -- courier_group: the courier company behind the WMS spelling. weight_kg: NULL above 100 kg per delivery (data entry).
+-- 2.5 sales_bill_number / sales_link_method: the ERP bill this delivery ships, found by INVOICE, ORDER or AWB (or NONE).
 CREATE OR REPLACE VIEW mart.v_fulfilment AS
 WITH tracking AS (
     SELECT channel_key,
@@ -263,7 +264,8 @@ SELECT f.outbound_delivery_number, f.invoice_number, d.calendar_date AS order_da
        cr.courier_group,
        coalesce(tr.is_delivery_tracked, FALSE) AS is_delivery_tracked,
        coalesce(tr.is_rto_tracked, FALSE) AS is_rto_tracked,
-       CASE WHEN f.weight_kg <= 100 THEN f.weight_kg END AS weight_kg
+       CASE WHEN f.weight_kg <= 100 THEN f.weight_kg END AS weight_kg,
+       f.sales_bill_number, f.sales_link_method
 FROM core.fact_shipment f
 JOIN core.dim_date d ON d.date_key = f.order_date_key
 JOIN core.dim_channel c ON c.channel_key = f.channel_key

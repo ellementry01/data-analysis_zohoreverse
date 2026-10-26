@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.4
+# Ellementry Data Warehouse — v2.5
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -44,6 +44,12 @@ Mart views added in 2.3 for dashboards: `v_sales_orders_daily` (bills, orders, a
   manifest note says the as-of date is assumed).
 - New WARN checks: `courier_unmapped`, `shipment_weight_suspect`.
 
+2.5 (`sql/130_shipment_sales_link.sql`): WMS shipments are linked to ERP bills by Invoice No, else **Extern Order No**
+(= the bill's ORDER_NUMBER / DOCREFNUM, the marketplace order ID), else Tracking No = the bill's AWB. The WMS Invoice
+No of marketplace orders (`M26-…`, `M44-…`) is the marketplace's own invoice, so on its own it linked only 55% of
+deliveries. `fact_shipment.sales_bill_number` / `sales_link_method` record the link; multi-SKU quantities are taken
+from all bills of the order.
+
 ## Layout
 
 ```
@@ -66,6 +72,7 @@ sql/100_staging_infra.sql     transform run log, parsing helpers, unclassified m
 sql/105_goods_receipt_grain.sql receipts as the PO report states them (one row per PO line + receipt numbers)
 sql/110_po_document_type.sql  schema 2.3: PO 'Document Remark' (Purchase / Return) -> document_type + confirmation switch
 sql/120_supply_dashboard_fixes.sql schema 2.4: ERP item master source, as-of-assumed flag, courier groups
+sql/130_shipment_sales_link.sql schema 2.5: shipments linked to ERP bills by invoice, order number or AWB
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

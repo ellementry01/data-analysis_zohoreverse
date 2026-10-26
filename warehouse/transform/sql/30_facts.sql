@@ -236,14 +236,49 @@ WHERE s.snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_
 -- One row per outbound delivery. Channel from Site Location (ref.channel_alias), falling back to the channel of the
 -- invoice it ships; order from that invoice. Status and payment type standardised through ref.code_mapping.
 -- Everything ships from Bagru (Order Serving Location 'Warehouse' -> BAGRU_WH). Nothing unknown is guessed: -1.
+-- 2.5: the WMS Invoice No is the marketplace's own invoice for most marketplace orders (M26-, M44-...), not the ERP
+-- bill. A shipment is linked to its ERP bill(s) by, in order: Invoice No = bill number; Extern Order No = the order
+-- number on the bill (retail ORDER_NUMBER / DOCREFNUM, domestic DOCREFNUM); Tracking No = the bill's AWB.
 CREATE TEMP TABLE lk_invoice ON COMMIT DROP AS
 SELECT bill_number, min(order_key) FILTER (WHERE order_key <> -1) AS order_key, min(channel_key) AS channel_key
 FROM core.fact_sales_line GROUP BY bill_number;
 
+CREATE TEMP TABLE lk_bill_ref ON COMMIT DROP AS          -- reference (order number or AWB) -> loaded bill
+SELECT DISTINCT 'ORDER' AS ref_type, x.ref, x.bill_number FROM (
+    SELECT order_number AS ref, bill_number FROM stg.retail_sales
+    UNION ALL SELECT order_reference, bill_number FROM stg.domestic_sales) x
+JOIN lk_invoice i USING (bill_number) WHERE x.ref IS NOT NULL
+UNION
+SELECT DISTINCT 'AWB', x.ref, x.bill_number FROM (
+    SELECT awb AS ref, bill_number FROM stg.retail_sales UNION ALL SELECT awb, bill_number FROM stg.domestic_sales) x
+JOIN lk_invoice i USING (bill_number) WHERE x.ref IS NOT NULL;
+CREATE INDEX ON lk_bill_ref (ref_type, ref);
+
+CREATE TEMP TABLE lk_shipment_bill ON COMMIT DROP AS      -- every ERP bill of each dispatch row, by the first key that links
+WITH s AS (SELECT batch_id, source_row_number, invoice_number, external_order_number, tracking_number FROM stg.wms_dispatch),
+by_inv AS (SELECT s.batch_id, s.source_row_number, s.invoice_number AS bill_number, 'INVOICE' AS method
+           FROM s JOIN lk_invoice i ON i.bill_number = s.invoice_number),
+by_ord AS (SELECT s.batch_id, s.source_row_number, r.bill_number, 'ORDER' AS method
+           FROM s JOIN lk_bill_ref r ON r.ref_type = 'ORDER' AND r.ref = s.external_order_number
+           WHERE NOT EXISTS (SELECT 1 FROM by_inv b WHERE b.batch_id = s.batch_id AND b.source_row_number = s.source_row_number)),
+by_awb AS (SELECT s.batch_id, s.source_row_number, r.bill_number, 'AWB' AS method
+           FROM s JOIN lk_bill_ref r ON r.ref_type = 'AWB' AND r.ref = s.tracking_number
+           WHERE NOT EXISTS (SELECT 1 FROM by_inv b WHERE b.batch_id = s.batch_id AND b.source_row_number = s.source_row_number)
+             AND NOT EXISTS (SELECT 1 FROM by_ord o WHERE o.batch_id = s.batch_id AND o.source_row_number = s.source_row_number))
+SELECT * FROM by_inv UNION ALL SELECT * FROM by_ord UNION ALL SELECT * FROM by_awb;
+CREATE INDEX ON lk_shipment_bill (batch_id, source_row_number);
+
+CREATE TEMP TABLE lk_shipment_link ON COMMIT DROP AS      -- one row per dispatch row: first bill, its order and channel
+SELECT DISTINCT ON (b.batch_id, b.source_row_number) b.batch_id, b.source_row_number, b.bill_number, b.method,
+       i.order_key, i.channel_key
+FROM lk_shipment_bill b JOIN lk_invoice i USING (bill_number)
+ORDER BY b.batch_id, b.source_row_number, i.order_key IS NULL, b.bill_number;
+
 INSERT INTO core.fact_shipment (outbound_delivery_number, order_key, invoice_number, channel_key, fulfilment_location_key, courier_key,
     payment_type, tracking_number, shipment_status, shipment_status_raw, transporter_status, transporter_remarks, is_rto, is_on_hold,
     order_datetime, pick_datetime, pack_datetime, ship_datetime, delivery_datetime, ship_by_datetime, order_date_key, ship_date_key,
-    delivery_date_key, delivery_qty, box_count, weight_kg, destination_pincode, batch_id, source_row_number)
+    delivery_date_key, delivery_qty, box_count, weight_kg, destination_pincode, batch_id, source_row_number,
+    sales_bill_number, sales_link_method)
 SELECT s.outbound_delivery_number, coalesce(inv.order_key, -1), s.invoice_number,
        coalesce(ch.channel_key, inv.channel_key, -1), coalesce(l.location_key, -1), coalesce(cr.courier_key, -1),
        CASE pay.standard_value WHEN 'PREPAID' THEN 'PREPAID' WHEN 'COD' THEN 'COD' ELSE 'OTHER' END,
@@ -253,10 +288,11 @@ SELECT s.outbound_delivery_number, coalesce(inv.order_key, -1), s.invoice_number
        s.order_datetime, s.pick_datetime, s.pack_datetime, s.ship_datetime, s.delivery_datetime, s.ship_by_datetime,
        stg.date_key(s.order_date), stg.date_key(s.ship_datetime::DATE), stg.date_key(s.delivery_datetime::DATE),
        CASE WHEN s.delivery_qty >= 0 THEN s.delivery_qty END, CASE WHEN s.box_count >= 0 THEN s.box_count END,
-       CASE WHEN s.weight_kg >= 0 THEN s.weight_kg END, left(s.destination_pincode, 10), s.batch_id, s.source_row_number
+       CASE WHEN s.weight_kg >= 0 THEN s.weight_kg END, left(s.destination_pincode, 10), s.batch_id, s.source_row_number,
+       inv.bill_number, coalesce(inv.method, 'NONE')
 FROM stg.wms_dispatch s
 LEFT JOIN lk_chan ch ON ch.source_name = 'WMS_DISPATCH' AND ch.source_field = 'Site Location' AND ch.source_value = s.site_location
-LEFT JOIN lk_invoice inv ON inv.bill_number = s.invoice_number
+LEFT JOIN lk_shipment_link inv ON inv.batch_id = s.batch_id AND inv.source_row_number = s.source_row_number
 LEFT JOIN lk_loc l ON l.source_name = 'WMS_DISPATCH' AND l.source_field = 'Order Serving Location' AND l.source_value = s.serving_location
 LEFT JOIN core.dim_courier cr ON cr.courier_name = s.courier_name
 LEFT JOIN ref.code_mapping st ON st.domain = 'SHIPMENT_STATUS' AND st.source_name = 'WMS_DISPATCH' AND st.source_value = s.status_raw
@@ -264,21 +300,23 @@ LEFT JOIN ref.code_mapping pay ON pay.domain = 'PAYMENT_TYPE' AND pay.source_nam
 WHERE s.order_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);
 
 -- SKUs per shipment. A cell can list several SKUs with ONE combined quantity: a single-SKU row keeps the row quantity;
--- for several SKUs the quantity comes from the invoice line of that SKU when exactly one exists; otherwise UNALLOCATED.
+-- for several SKUs the quantity comes from the invoice line of that SKU when exactly one exists across the
+-- shipment's linked bills (2.5: by invoice, order number or AWB); otherwise UNALLOCATED.
 INSERT INTO core.bridge_shipment_sku (shipment_id, source_sku_code, product_key, quantity, quantity_source)
 WITH skus AS (
-    SELECT f.shipment_id, f.invoice_number, f.delivery_qty, btrim(u.sku) AS source_sku_code,
+    SELECT f.shipment_id, f.batch_id, f.source_row_number, f.delivery_qty, btrim(u.sku) AS source_sku_code,
            count(*) OVER (PARTITION BY f.shipment_id) AS n_skus
     FROM core.fact_shipment f
     JOIN stg.wms_dispatch s ON s.batch_id = f.batch_id AND s.source_row_number = f.source_row_number
     CROSS JOIN LATERAL (SELECT DISTINCT btrim(x) AS sku FROM unnest(string_to_array(s.sku_cell, ',')) x WHERE btrim(x) <> '') u),
 inv AS (
-    SELECT bill_number, source_sku_code, sum(quantity) AS qty, count(*) AS n
-    FROM core.fact_sales_line GROUP BY bill_number, source_sku_code)
+    SELECT b.batch_id, b.source_row_number, stg.sku(l.source_sku_code) AS sku, sum(l.quantity) AS qty, count(*) AS n
+    FROM lk_shipment_bill b JOIN core.fact_sales_line l ON l.bill_number = b.bill_number
+    GROUP BY b.batch_id, b.source_row_number, stg.sku(l.source_sku_code))
 SELECT k.shipment_id, k.source_sku_code, coalesce(p.product_key, -1),
        CASE WHEN k.n_skus = 1 AND k.delivery_qty > 0 THEN k.delivery_qty WHEN k.n_skus > 1 AND i.n = 1 AND i.qty > 0 THEN i.qty END,
        CASE WHEN k.n_skus = 1 AND k.delivery_qty > 0 THEN 'SINGLE_SKU_ROW' WHEN k.n_skus > 1 AND i.n = 1 AND i.qty > 0 THEN 'INVOICE_LINE'
             ELSE 'UNALLOCATED' END
 FROM skus k
 LEFT JOIN core.dim_product p ON p.sku_code = stg.sku(k.source_sku_code)
-LEFT JOIN inv i ON i.bill_number = k.invoice_number AND stg.sku(i.source_sku_code) = stg.sku(k.source_sku_code);
+LEFT JOIN inv i ON i.batch_id = k.batch_id AND i.source_row_number = k.source_row_number AND i.sku = stg.sku(k.source_sku_code);

@@ -86,8 +86,8 @@ INSERT INTO dq SELECT 'shipment_weight_suspect', 'core.fact_shipment', 'WARN', c
 FROM core.fact_shipment WHERE weight_kg > 100;
 
 INSERT INTO dq SELECT 'shipment_without_invoice_match', 'core.fact_shipment', 'WARN', count(*),
-       'deliveries whose Invoice No matches no loaded sales invoice (invoice outside the loaded period, or not exported)'
-FROM core.fact_shipment f WHERE NOT EXISTS (SELECT 1 FROM core.fact_sales_line s WHERE s.bill_number = f.invoice_number);
+       'deliveries linked to no loaded sales bill by Invoice No, Extern Order No or AWB (bill outside the loaded period, or not exported)'
+FROM core.fact_shipment f WHERE f.sales_link_method = 'NONE';
 
 INSERT INTO dq SELECT 'shipment_sku_unallocated', 'core.bridge_shipment_sku', 'WARN', count(*),
        'SKUs in multi-SKU dispatch cells whose own quantity is not known (no single matching invoice line); left empty, never split'

@@ -41,7 +41,8 @@ SELECT s.batch_id, s.source_row_number,
        nullif(btrim(s.prodfamilyname), '')               AS product_family,
        nullif(btrim(s.prodhsncode), '')                  AS hsn_code,
        nullif(btrim(s.uomname), '')                      AS uom,
-       s.billdate AS bill_date_raw, s.prodcontactqty AS quantity_raw
+       s.billdate AS bill_date_raw, s.prodcontactqty AS quantity_raw,
+       nullif(btrim(s.awb), '') AS awb                   -- courier AWB: links WMS shipments (2.5)
 FROM src s
 LEFT JOIN ref.code_mapping ph ON ph.domain = 'ORDER_NUMBER_PLACEHOLDER' AND ph.source_name = 'ERP_RETAIL_SALES'
                              AND ph.source_value = btrim(s.order_number)
@@ -65,7 +66,8 @@ SELECT s.batch_id, s.source_row_number,
        coalesce(stg.num(s.total_tax), coalesce(stg.num(s.igstamount), 0) + coalesce(stg.num(s.cgstamount), 0)
                 + coalesce(stg.num(s.sgstamount), 0)) AS tax_amount,
        s.prodname AS product_name, nullif(btrim(s.prodhsncode), '') AS hsn_code, nullif(btrim(s.uomname), '') AS uom,
-       s.billdatetime AS bill_date_raw, s.quantity AS quantity_raw
+       s.billdatetime AS bill_date_raw, s.quantity AS quantity_raw,
+       nullif(btrim(s.docrefnum), '') AS order_reference, nullif(btrim(s.awbno), '') AS awb   -- link WMS shipments (2.5)
 FROM src s WHERE s.batch_id = s.latest_batch;
 
 DROP TABLE IF EXISTS stg.retail_return;
