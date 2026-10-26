@@ -48,15 +48,18 @@ def main(exports: Path) -> int:
         checks.append(ok)
         print(f"{'OK  ' if ok else 'DIFF'} {name:58s} files {float(ours):>18,.2f}   warehouse {float(theirs):>18,.2f}")
 
-    # ---- sales: re-exports overlap by bill number; the latest file per bill wins, as in staging
+    # ---- sales: re-exports overlap by bill number; the latest file per bill wins, as in staging. A bill is its number
+    # within a financial year (the ERP restarts numbering every April), so the key includes the financial year.
     def lines(source, date_col, value_col, qty_col, key="BILLNUM"):
         frames = []
         for i, f in enumerate(files(exports, source)):
             d = pd.read_excel(f, sheet_name="Sheet1", dtype=str); d["_file"] = i; frames.append(d)
         d = pd.concat(frames, ignore_index=True)
-        d["_latest"] = d.groupby(d[key].str.strip())["_file"].transform("max")
+        d["_date"] = pd.to_datetime(d[date_col], errors="coerce")
+        d["_fy"] = (d["_date"] - pd.DateOffset(months=3)).dt.year.fillna(0)
+        d["_latest"] = d.groupby([d[key].str.strip(), d["_fy"]])["_file"].transform("max")
         d = d[d["_file"] == d["_latest"]]
-        d["_date"] = pd.to_datetime(d[date_col], errors="coerce"); d["_v"] = num(d[value_col]); d["_q"] = num(d[qty_col])
+        d["_v"] = num(d[value_col]); d["_q"] = num(d[qty_col])
         return d[inside(d["_date"]) & (d["_q"] > 0)]
 
     r = lines("ERP_RETAIL_SALES", "BILLDATE", "PRODDOCVALUE", "PRODCONTACTQTY")

@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.5
+# Ellementry Data Warehouse — v2.6
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -50,6 +50,12 @@ No of marketplace orders (`M26-…`, `M44-…`) is the marketplace's own invoice
 deliveries. `fact_shipment.sales_bill_number` / `sales_link_method` record the link; multi-SKU quantities are taken
 from all bills of the order.
 
+2.6 (`sql/140_bill_financial_year.sql`): a sales bill is its number **within a financial year**. The ERP restarts
+bill series every April, and staging used to keep only the newest file's bill per number, which silently dropped
+2,086 FY 25-26 retail lines (₹26.1 lakh excl. GST, Apr-Jul 2025). `fact_sales_line.bill_fy_start` is now part of
+the line's identity; returns link to the latest bill of that number dated on or before the return; `reconcile.py`
+uses the same key (it had the same blind spot, so its earlier 28/28 missed this).
+
 ## Layout
 
 ```
@@ -73,6 +79,7 @@ sql/105_goods_receipt_grain.sql receipts as the PO report states them (one row p
 sql/110_po_document_type.sql  schema 2.3: PO 'Document Remark' (Purchase / Return) -> document_type + confirmation switch
 sql/120_supply_dashboard_fixes.sql schema 2.4: ERP item master source, as-of-assumed flag, courier groups
 sql/130_shipment_sales_link.sql schema 2.5: shipments linked to ERP bills by invoice, order number or AWB
+sql/140_bill_financial_year.sql schema 2.6: bill identity includes the financial year
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

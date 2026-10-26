@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.5**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.6**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -43,7 +43,7 @@
 | Blinkit / Instamart sell-out | Jul 2025 / Apr 2025 – Sep 2026, normalised | 6,903 rows |
 
 **Reconciliation.** `reconcile.py` recomputes totals from the files with pandas. **28 of 28 checks agree to the paisa**, on both the trial and the live database. Examples:
-- Retail invoices excl. GST (in period): ₹13,61,90,938.06
+- Retail invoices excl. GST (in period): ₹13,88,05,395.06 (2.6; ₹13,61,90,938.06 before the financial-year fix)
 - Domestic invoices (Taxable): ₹12,16,24,694.18
 - Retail returns: ₹1,77,86,234.78
 - 1,950 RTO shipments
@@ -135,7 +135,7 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
 - **Rule BR-031 (PROPOSED):** the PO `Document Remark` (Purchase/Return) separates purchases from return-inwards. The switch `po_document_remark_confirmed` stays false until the business confirms.
 - **PO export dates (D-094):** the FY25-26 as-of date is assumed.
 - **Dispatch invoice series (resolved in 2.5):** `M25-`/`M26-`/`M44-` are the marketplaces' own invoice numbers. Shipments now link to ERP bills through the Extern Order No (the marketplace order ID, = ERP ORDER_NUMBER), with the AWB as fallback.
-- **Retail bill numbers restart each financial year** (e.g. `IN-1`): staging keeps the newest file's bill per number, so 2,086 FY 25-26 retail lines (1,911 bills, about ₹29 lakh incl. GST) are currently dropped. Not yet fixed.
+- **Retail bill numbers restart each financial year (fixed in 2.6):** the warehouse used to drop 2,086 FY 25-26 retail lines (₹26.1 lakh excl. GST, Apr-Jul 2025) whose numbers reappeared in FY 26-27. Retail sales Apr 2025 - Sep 2026 are now ₹13.92 Cr (was ₹13.66 Cr); 45,171 of 45,246 deliveries link to a bill.
 - **Unmapped names:** "Ellementry International" (channel), and the Mumbai PPOB / Delhi retail contacts (location known, channel unknown).
 - **Daily stock saving (G-001):** must start, or trends are impossible.
 - **Partner opening stock (G-028), receiving location on goods receipts (G-025), return reasons (G-009).**

@@ -7,14 +7,19 @@
 
 DROP TABLE IF EXISTS stg.retail_sales;
 CREATE TABLE stg.retail_sales AS
+-- A bill is its number WITHIN a financial year: the ERP restarts bill series every April (IN-1 exists in each FY).
+-- Re-exports overlap, so per bill number and financial year the latest file wins (2.6; before, per number only,
+-- which dropped FY 25-26 bills whose numbers came back in FY 26-27).
 WITH src AS (
-    SELECT r.*, max(r.batch_id) OVER (PARTITION BY btrim(r.billnum)) AS latest_batch
+    SELECT r.*, coalesce(extract(year FROM stg.ts(r.billdate)::DATE - INTERVAL '3 months')::INT, 0) AS bill_fy_start,
+           max(r.batch_id) OVER (PARTITION BY btrim(r.billnum), coalesce(extract(year FROM stg.ts(r.billdate)::DATE - INTERVAL '3 months')::INT, 0)) AS latest_batch
     FROM raw.erp_retail_sales r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
 SELECT s.batch_id, s.source_row_number,
        btrim(s.billnum)                                  AS bill_number,
+       s.bill_fy_start::SMALLINT                         AS bill_fy_start,
        s.prodnum                                         AS source_sku_code,
        stg.sku(s.prodnum)                           AS sku_code,
-       row_number() OVER (PARTITION BY s.batch_id, btrim(s.billnum), stg.sku(s.prodnum) ORDER BY s.source_row_number) AS line_occurrence,
+       row_number() OVER (PARTITION BY s.batch_id, btrim(s.billnum), s.bill_fy_start, stg.sku(s.prodnum) ORDER BY s.source_row_number) AS line_occurrence,
        stg.ts(s.billdate)                                AS bill_datetime,
        stg.ts(s.billdate)::DATE                          AS bill_date,
        CASE WHEN ph.source_value IS NULL THEN nullif(btrim(s.order_number), '') END AS order_number,
@@ -50,12 +55,13 @@ WHERE s.batch_id = s.latest_batch;
 
 DROP TABLE IF EXISTS stg.domestic_sales;
 CREATE TABLE stg.domestic_sales AS
-WITH src AS (
-    SELECT r.*, max(r.batch_id) OVER (PARTITION BY btrim(r.billnum)) AS latest_batch
+WITH src AS (                     -- bill = number within a financial year, as for retail
+    SELECT r.*, coalesce(extract(year FROM stg.ts(r.billdatetime)::DATE - INTERVAL '3 months')::INT, 0) AS bill_fy_start,
+           max(r.batch_id) OVER (PARTITION BY btrim(r.billnum), coalesce(extract(year FROM stg.ts(r.billdatetime)::DATE - INTERVAL '3 months')::INT, 0)) AS latest_batch
     FROM raw.erp_domestic_sales r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
 SELECT s.batch_id, s.source_row_number,
-       btrim(s.billnum) AS bill_number, s.prodnum AS source_sku_code, stg.sku(s.prodnum) AS sku_code,
-       row_number() OVER (PARTITION BY s.batch_id, btrim(s.billnum), stg.sku(s.prodnum) ORDER BY s.source_row_number) AS line_occurrence,
+       btrim(s.billnum) AS bill_number, s.bill_fy_start::SMALLINT AS bill_fy_start, s.prodnum AS source_sku_code, stg.sku(s.prodnum) AS sku_code,
+       row_number() OVER (PARTITION BY s.batch_id, btrim(s.billnum), s.bill_fy_start, stg.sku(s.prodnum) ORDER BY s.source_row_number) AS line_occurrence,
        stg.ts(s.billdatetime) AS bill_datetime, stg.ts(s.billdatetime)::DATE AS bill_date,
        btrim(s.channelname) AS location_value, btrim(s.contactname) AS contact_name,
        nullif(btrim(s.shippostalcode), '') AS ship_to_pincode, nullif(btrim(s.shipcity), '') AS ship_to_city,

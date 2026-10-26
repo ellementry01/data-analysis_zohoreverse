@@ -29,11 +29,11 @@ SELECT a.source_name, a.doc_prefix, d.location_key
 FROM ref.document_prefix_location a JOIN core.dim_location d ON d.location_code = a.location_code;
 
 -- --------------------------------------------------------------------- sales lines
-INSERT INTO core.fact_sales_line (source_name, bill_number, source_sku_code, line_occurrence, bill_date_key, bill_datetime,
+INSERT INTO core.fact_sales_line (source_name, bill_number, bill_fy_start, source_sku_code, line_occurrence, bill_date_key, bill_datetime,
     order_key, product_key, location_key, channel_key, partner_key, payment_mode_raw, ship_to_pincode, ship_to_city,
     ship_to_state_code, quantity, unit_rate, unit_mrp, gross_amount, discount_amount, net_sales_amount, net_amount_method,
     tax_amount, line_total_amount, unit_cost, batch_id, source_row_number)
-SELECT 'ERP_RETAIL_SALES', s.bill_number, s.source_sku_code, s.line_occurrence, stg.date_key(s.bill_date), s.bill_datetime,
+SELECT 'ERP_RETAIL_SALES', s.bill_number, s.bill_fy_start, s.source_sku_code, s.line_occurrence, stg.date_key(s.bill_date), s.bill_datetime,
        coalesce(o.order_key, -1), coalesce(p.product_key, -1), coalesce(l.location_key, -1), coalesce(c.channel_key, -1),
        coalesce(pt.partner_key, -1), s.payment_mode_raw, s.ship_to_pincode, s.ship_to_city, s.ship_to_state_code,
        s.quantity, s.unit_rate, s.unit_mrp, s.gross_amount, s.discount_amount, n.net, n.method,
@@ -50,11 +50,11 @@ LEFT JOIN core.dim_partner pt ON pt.partner_name = s.contact_name AND pt.partner
 LEFT JOIN core.dim_order o ON o.channel_key = coalesce(c.channel_key, -1) AND o.external_order_number = s.order_number
 WHERE s.bill_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx) AND s.quantity > 0;
 
-INSERT INTO core.fact_sales_line (source_name, bill_number, source_sku_code, line_occurrence, bill_date_key, bill_datetime,
+INSERT INTO core.fact_sales_line (source_name, bill_number, bill_fy_start, source_sku_code, line_occurrence, bill_date_key, bill_datetime,
     order_key, product_key, location_key, channel_key, partner_key, ship_to_pincode, ship_to_city,
     quantity, unit_rate, unit_mrp, gross_amount, discount_amount, net_sales_amount, net_amount_method,
     tax_amount, line_total_amount, batch_id, source_row_number)
-SELECT 'ERP_DOMESTIC_SALES', s.bill_number, s.source_sku_code, s.line_occurrence, stg.date_key(s.bill_date), s.bill_datetime,
+SELECT 'ERP_DOMESTIC_SALES', s.bill_number, s.bill_fy_start, s.source_sku_code, s.line_occurrence, stg.date_key(s.bill_date), s.bill_datetime,
        -1, coalesce(p.product_key, -1), coalesce(l.location_key, -1), coalesce(pt.default_channel_key, -1), coalesce(pt.partner_key, -1),
        s.ship_to_pincode, s.ship_to_city, s.quantity, s.unit_rate, s.unit_mrp, s.gross_amount, s.discount_amount, n.net, n.method,
        s.tax_amount, s.net_amount, s.batch_id, s.source_row_number
@@ -117,11 +117,15 @@ FROM stg.domestic_return_receipt r
 JOIN core.fact_return_line f ON f.source_name = 'ERP_DOMESTIC_RETURN' AND f.batch_id = r.batch_id AND f.source_row_number = r.source_row_number
 WHERE r.goods_receipt_date IS NOT NULL;
 
--- link each return to the invoice line it reverses (same bill, same product)
-UPDATE core.fact_return_line r SET original_sales_line_id = s.sales_line_id
-FROM (SELECT DISTINCT ON (bill_number, product_key) bill_number, product_key, sales_line_id
-      FROM core.fact_sales_line WHERE product_key <> -1 ORDER BY bill_number, product_key, line_occurrence) s
-WHERE s.bill_number = r.original_bill_number AND s.product_key = r.product_key;
+-- link each return to the invoice line it reverses (same bill, same product). Bill numbers restart every financial
+-- year, so the bill is the latest one of that number dated on or before the return.
+UPDATE core.fact_return_line r SET original_sales_line_id = m.sales_line_id
+FROM (SELECT DISTINCT ON (x.return_line_id) x.return_line_id, s.sales_line_id
+      FROM core.fact_return_line x
+      JOIN core.fact_sales_line s ON s.bill_number = x.original_bill_number AND s.product_key = x.product_key
+      WHERE s.product_key <> -1
+      ORDER BY x.return_line_id, (s.bill_date_key <= x.return_date_key) DESC, s.bill_date_key DESC, s.line_occurrence) m
+WHERE m.return_line_id = r.return_line_id;
 
 -- --------------------------------------------------------------------- stock transfers
 -- OUT: sender from the document prefix (until the ERP export carries a location), receiver from CONTACTNAME
@@ -240,28 +244,30 @@ WHERE s.snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_
 -- bill. A shipment is linked to its ERP bill(s) by, in order: Invoice No = bill number; Extern Order No = the order
 -- number on the bill (retail ORDER_NUMBER / DOCREFNUM, domestic DOCREFNUM); Tracking No = the bill's AWB.
 CREATE TEMP TABLE lk_invoice ON COMMIT DROP AS
-SELECT bill_number, min(order_key) FILTER (WHERE order_key <> -1) AS order_key, min(channel_key) AS channel_key
-FROM core.fact_sales_line GROUP BY bill_number;
+SELECT bill_number, bill_fy_start, min(order_key) FILTER (WHERE order_key <> -1) AS order_key, min(channel_key) AS channel_key
+FROM core.fact_sales_line GROUP BY bill_number, bill_fy_start;
 
 CREATE TEMP TABLE lk_bill_ref ON COMMIT DROP AS          -- reference (order number or AWB) -> loaded bill
-SELECT DISTINCT 'ORDER' AS ref_type, x.ref, x.bill_number FROM (
-    SELECT order_number AS ref, bill_number FROM stg.retail_sales
-    UNION ALL SELECT order_reference, bill_number FROM stg.domestic_sales) x
-JOIN lk_invoice i USING (bill_number) WHERE x.ref IS NOT NULL
+SELECT DISTINCT 'ORDER' AS ref_type, x.ref, x.bill_number, x.bill_fy_start FROM (
+    SELECT order_number AS ref, bill_number, bill_fy_start FROM stg.retail_sales
+    UNION ALL SELECT order_reference, bill_number, bill_fy_start FROM stg.domestic_sales) x
+JOIN lk_invoice i USING (bill_number, bill_fy_start) WHERE x.ref IS NOT NULL
 UNION
-SELECT DISTINCT 'AWB', x.ref, x.bill_number FROM (
-    SELECT awb AS ref, bill_number FROM stg.retail_sales UNION ALL SELECT awb, bill_number FROM stg.domestic_sales) x
-JOIN lk_invoice i USING (bill_number) WHERE x.ref IS NOT NULL;
+SELECT DISTINCT 'AWB', x.ref, x.bill_number, x.bill_fy_start FROM (
+    SELECT awb AS ref, bill_number, bill_fy_start FROM stg.retail_sales
+    UNION ALL SELECT awb, bill_number, bill_fy_start FROM stg.domestic_sales) x
+JOIN lk_invoice i USING (bill_number, bill_fy_start) WHERE x.ref IS NOT NULL;
 CREATE INDEX ON lk_bill_ref (ref_type, ref);
 
 CREATE TEMP TABLE lk_shipment_bill ON COMMIT DROP AS      -- every ERP bill of each dispatch row, by the first key that links
-WITH s AS (SELECT batch_id, source_row_number, invoice_number, external_order_number, tracking_number FROM stg.wms_dispatch),
-by_inv AS (SELECT s.batch_id, s.source_row_number, s.invoice_number AS bill_number, 'INVOICE' AS method
-           FROM s JOIN lk_invoice i ON i.bill_number = s.invoice_number),
-by_ord AS (SELECT s.batch_id, s.source_row_number, r.bill_number, 'ORDER' AS method
+WITH s AS (SELECT batch_id, source_row_number, invoice_number, external_order_number, tracking_number,
+                  extract(year FROM order_date - INTERVAL '3 months')::INT AS order_fy_start FROM stg.wms_dispatch),
+by_inv AS (SELECT s.batch_id, s.source_row_number, s.invoice_number AS bill_number, i.bill_fy_start, 'INVOICE' AS method
+           FROM s JOIN lk_invoice i ON i.bill_number = s.invoice_number AND i.bill_fy_start = s.order_fy_start),
+by_ord AS (SELECT s.batch_id, s.source_row_number, r.bill_number, r.bill_fy_start, 'ORDER' AS method
            FROM s JOIN lk_bill_ref r ON r.ref_type = 'ORDER' AND r.ref = s.external_order_number
            WHERE NOT EXISTS (SELECT 1 FROM by_inv b WHERE b.batch_id = s.batch_id AND b.source_row_number = s.source_row_number)),
-by_awb AS (SELECT s.batch_id, s.source_row_number, r.bill_number, 'AWB' AS method
+by_awb AS (SELECT s.batch_id, s.source_row_number, r.bill_number, r.bill_fy_start, 'AWB' AS method
            FROM s JOIN lk_bill_ref r ON r.ref_type = 'AWB' AND r.ref = s.tracking_number
            WHERE NOT EXISTS (SELECT 1 FROM by_inv b WHERE b.batch_id = s.batch_id AND b.source_row_number = s.source_row_number)
              AND NOT EXISTS (SELECT 1 FROM by_ord o WHERE o.batch_id = s.batch_id AND o.source_row_number = s.source_row_number))
@@ -271,7 +277,7 @@ CREATE INDEX ON lk_shipment_bill (batch_id, source_row_number);
 CREATE TEMP TABLE lk_shipment_link ON COMMIT DROP AS      -- one row per dispatch row: first bill, its order and channel
 SELECT DISTINCT ON (b.batch_id, b.source_row_number) b.batch_id, b.source_row_number, b.bill_number, b.method,
        i.order_key, i.channel_key
-FROM lk_shipment_bill b JOIN lk_invoice i USING (bill_number)
+FROM lk_shipment_bill b JOIN lk_invoice i USING (bill_number, bill_fy_start)
 ORDER BY b.batch_id, b.source_row_number, i.order_key IS NULL, b.bill_number;
 
 INSERT INTO core.fact_shipment (outbound_delivery_number, order_key, invoice_number, channel_key, fulfilment_location_key, courier_key,
@@ -311,7 +317,7 @@ WITH skus AS (
     CROSS JOIN LATERAL (SELECT DISTINCT btrim(x) AS sku FROM unnest(string_to_array(s.sku_cell, ',')) x WHERE btrim(x) <> '') u),
 inv AS (
     SELECT b.batch_id, b.source_row_number, stg.sku(l.source_sku_code) AS sku, sum(l.quantity) AS qty, count(*) AS n
-    FROM lk_shipment_bill b JOIN core.fact_sales_line l ON l.bill_number = b.bill_number
+    FROM lk_shipment_bill b JOIN core.fact_sales_line l ON l.bill_number = b.bill_number AND l.bill_fy_start = b.bill_fy_start
     GROUP BY b.batch_id, b.source_row_number, stg.sku(l.source_sku_code))
 SELECT k.shipment_id, k.source_sku_code, coalesce(p.product_key, -1),
        CASE WHEN k.n_skus = 1 AND k.delivery_qty > 0 THEN k.delivery_qty WHEN k.n_skus > 1 AND i.n = 1 AND i.qty > 0 THEN i.qty END,

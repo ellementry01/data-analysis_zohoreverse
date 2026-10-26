@@ -24,6 +24,8 @@
 | Items with no MRP in any source are left out of stock value and counted on their own tile, never valued at 0 silently | 14,474 trading units (mostly discontinued) have no MRP anywhere |
 | The ERP item master only fills gaps; it never overrides the Final Master, stock report or invoices | It is the least curated source, but it had a category for almost every product that lacked one |
 | Raw exports are kept twice: canonical copies listed in `MANIFEST.tsv`, and every distinct original as received in `exports/_originals/` (`ORIGINALS.tsv` holds their sha256) | The user asked for the original files to be kept; renamed canonical copies alone lose the received names and the superseded re-exports |
+| A sales bill is identified by its number and financial year (2.6) | The ERP restarts bill numbers every April; keying by number alone dropped FY 25-26 bills, and the reconciliation shared the same key so it could not see it. Lesson: a check must not reuse the logic it checks |
+| WMS shipments link to ERP bills by Extern Order No, then AWB (2.5) | The WMS Invoice No of marketplace orders is the marketplace's own invoice |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
 
 ## Gotchas
