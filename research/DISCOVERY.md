@@ -1,6 +1,6 @@
-# Lumen Analytics — Product Discovery (reference: Zoho Analytics public docs)
+# Ellementry Analytics — Product Discovery (reference: Zoho Analytics public docs)
 
-Lumen Analytics is an independent, local-first AI analytics app. This document records what we learned
+Ellementry Analytics is an independent, local-first AI analytics app. This document records what we learned
 from **public** Zoho Analytics marketing and help pages, written up in our own words, and turns it into
 implementation ideas of our own. We do not copy text, UI or branding. Quotes are limited to a few words.
 
@@ -10,7 +10,7 @@ implementation ideas of our own. We do not copy text, UI or branding. Quotes are
 |---|---|
 | **(A)** | Seen on public marketing or features pages captured with REA. This shows the feature is advertised, not how it behaves. |
 | **(B)** | Taken from the documentation: behaviour as the public help articles describe it. We have not checked it in the product. |
-| **(C)** | Our own implementation idea, inferred for Lumen. It is not a claim about Zoho. |
+| **(C)** | Our own implementation idea, inferred for Ellementry Analytics. It is not a claim about Zoho. |
 
 > **No live product observation was made.** We used no authenticated Zoho Analytics account or trial.
 > Nothing below is marked "confirmed in-product". Where the docs are vague, we say so.
@@ -506,7 +506,7 @@ implementation ideas of our own. We do not copy text, UI or branding. Quotes are
     Design the permission model early (`principal → role → permission on resource`, with an optional
     row-filter predicate per principal) and enforce it in the query compiler.
   - Export: CSV, XLSX and Parquet for data; PNG, SVG and PDF for charts and dashboards (headless
-    render); a portable `.lumen` workspace bundle. A "Static HTML snapshot" covers offline sharing.
+    render); a portable `.ellementry` workspace bundle. A "Static HTML snapshot" covers offline sharing.
 
 ## 16. Sync / refresh schedules
 

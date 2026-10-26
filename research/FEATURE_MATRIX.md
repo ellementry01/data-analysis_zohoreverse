@@ -1,4 +1,4 @@
-# Lumen Analytics — Feature Matrix
+# Ellementry Analytics — Feature Matrix
 
 The source for each row is `research/DISCOVERY.md`.
 
@@ -6,7 +6,7 @@ The source for each row is `research/DISCOVERY.md`.
 - **A**: seen on public marketing pages, the features page, or the help table of contents (REA capture).
 - **B**: behaviour described in a captured help article.
 
-No live product observation was made. How Lumen implements each feature is our own design.
+No live product observation was made. How Ellementry Analytics implements each feature is our own design.
 
 **Category:** Essential MVP / Advanced analytics / NL AI / Data engineering / Dashboard-reporting / Admin / Future
 **Complexity:** S (≤ 3 days) / M (1–2 weeks) / L (> 2 weeks), for one engineer.

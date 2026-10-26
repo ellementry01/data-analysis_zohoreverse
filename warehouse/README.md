@@ -5,7 +5,7 @@ Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below)
 loaders, full transform) plus purchase-order document type, shipments from
 the WMS dispatch export, platform sell-out from the monthly Blinkit / Instamart workbooks, and mart views for executive
 dashboards. Loaded and reconciled on the full 1.5-year exports (Apr 2025 - Sep 2026). It feeds Ellementry Analytics
-(`../lumen`), which reads the `mart` views through the read-only `ellementry_metrics` role.
+(`../ellementry`), which reads the `mart` views through the read-only `ellementry_metrics` role.
 
 ## Day-to-day commands (Windows, from this folder)
 
