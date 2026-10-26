@@ -1,0 +1,260 @@
+kind,source,field,value,status
+location,ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED3,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED4,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED5,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 DEPL Delhi,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 Delhi - GK Store,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - DED1,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi Q2,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi X3,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi X8,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Bagru Popup,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Essential - DFAL,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 FBA WH - Jaipur,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - C-Scheme,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - Mansarovar,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - Meeraki,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur Branch,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Offline - WH,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,08 Repair and Damage,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,09 DEPL - Lucknow,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,09 FBA WH - LKO1,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,19 FBA WH - CCX1,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,19 FBA WH - CCX2,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,24 CG Road - Ahmd,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,24 FBA WH - AMD2,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 Blinkit - Mumbai M10,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 Blinkit - Pune P2,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 DEPL Mumbai - PPOB,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - BOM5,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - ISK3,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - NAG1,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - Thane,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 Mumbai - Infiniti Malad,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,27 Mumbai - SIB Bandra,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,29 Bengaluru - Indiranagar,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,29 Bengaluru - VR Mall,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - BLX9 (Consolidate),MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - Bangalore 5,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - Bangalore 7,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,30 Goa - Anjuna,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,33 FBA WH - CJB1,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,33 FBA WH - MAA4,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,36 FBA WH - Hyderabad,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,36 HYD - Banjara Hills,MAPPED
+location,ERP_INVENTORY_SNAPSHOT,location column header,Head Office,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,24 FBA WH - AMD2,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,29 FBA WH - Bangalore 7,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - BOM5,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,06 FBA WH - DED4,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - Thane,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,36 FBA WH - Hyderabad,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,33 FBA WH - MAA4,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,33 FBA WH - CJB1,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,19 FBA WH - CCX1,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - Delhi X3,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur Branch,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,36 HYD - Banjara Hills,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur - C-Scheme,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,09 FBA WH - LKO1,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - Delhi Q2,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,19 FBA WH - CCX2,MAPPED
+location,ERP_RETAIL_SALES,CHANNELNAME,08 FBA WH - Jaipur,MAPPED
+location,ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur Branch,MAPPED
+location,ERP_DOMESTIC_SALES,CHANNELNAME,36 HYD - Banjara Hills,MAPPED
+location,ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur - C-Scheme,MAPPED
+location,ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur Branch,MAPPED
+location,ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur - C-Scheme,MAPPED
+location,ERP_DOMESTIC_RETURN,CHANNELNAME,36 HYD - Banjara Hills,MAPPED
+location,ERP_DOMESTIC_RETURN,CHANNELNAME,27 Blinkit - Pune P2,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Shopify_Customer,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Nykaa Fashion,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Amazon Website,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Myntra Customer,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall - Furniture,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Nykaa,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Amazon Seller Flex,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Pepperfry Customer,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,OPEN QUESTION
+location,ERP_RETAIL_RETURN,CONTACTNAME,Flipkart Website,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,OPEN QUESTION
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,FNP E Retail Marketplace,MAPPED
+location,ERP_RETAIL_RETURN,CONTACTNAME,Ellementry International,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,MAPPED
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OPEN QUESTION
+location,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd - DFAL,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OPEN QUESTION
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd - DFAL,MAPPED
+location,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,MAPPED
+location,BLINKIT_INVENTORY,Warehouse Facility Name,Pune P2 - Feeder,MAPPED
+location,BLINKIT_INVENTORY,Warehouse Facility Name,Mumbai M10 - Feeder,MAPPED
+location,BLINKIT_INVENTORY,Warehouse Facility Name,Farukhnagar - SR,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,HYD IM2,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,MUM IM3,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,DLHY GGNFC5,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,CHN ECOM,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,CHE AMB IM2,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,KOL IM2,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,BLR IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,AHM DELHIVERY,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,MUM FC22,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,HYD IM5,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,GOA IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,VIZ IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,HYD IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,DLHY GGNFC9,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,BLR IM4,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,CHD IM2,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,PUN DELHIVERY,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,NOI IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,GAU IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,CBE IM1 TEMP,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,JAI IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,KOC IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,BLR DHL,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,BLR ECOM2,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,PUNE IM2 TEMP,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,KOLKATA ECOM,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,MUM IM1,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,BLR IM3,MAPPED
+location,INSTAMART_INVENTORY,FacilityName,HYD IM4,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Amazon Website,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Myntra Customer,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Nykaa Fashion,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Shopify_Customer,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Pepperfry Customer,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Nykaa,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq Mall,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq Mall - Furniture,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Amazon Seller Flex,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd,MAPPED
+channel,ERP_RETAIL_SALES,CONTACTNAME,FNP E Retail Marketplace,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Shopify_Customer,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Nykaa Fashion,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Amazon Website,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Myntra Customer,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall - Furniture,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Nykaa,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Amazon Seller Flex,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Pepperfry Customer,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Flipkart Website,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,FNP E Retail Marketplace,MAPPED
+channel,ERP_RETAIL_RETURN,CONTACTNAME,Ellementry International,OPEN QUESTION
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,AMD/DC,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,BAG/DC,OPEN QUESTION
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,BOM/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBA/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBAHYD/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBAQ2/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBAX3/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBAX8/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,FBL7/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,HYD8/DC,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,IS/DF,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,ISU/CCX,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,ISU/CJB,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,ISU/CX2,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,ISU/D4,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,ISU/MAA,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,JPR/DC,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,JPR3/DC,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,LK/DC,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,M10/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,P2/STK,MAPPED
+transfer prefix,ERP_STOCK_TRANSFER_OUT,DOCNUM prefix,THA/IC,MAPPED

@@ -1,0 +1,26 @@
+table_schema,table_name,column_name,source_name,source_header,derivation
+core,fact_sales_line,net_sales_amount,ERP_RETAIL_SALES,PRODDOCVALUE,Taken as is; charge lines with blank PRODDOCVALUE = PRODASSESSABLEVALUE minus GST
+core,fact_sales_line,net_sales_amount,ERP_DOMESTIC_SALES,Taxable; Net Amount; Total Tax,"Taxable; where blank, Net Amount minus Total Tax (DERIVED)"
+core,fact_sales_line,channel_key,ERP_RETAIL_SALES,CONTACTNAME,Mapped through ref.channel_alias
+core,fact_sales_line,channel_key,ERP_DOMESTIC_SALES,CONTACTNAME,"Partner type -> ref.partner_type_channel, or the partner's own channel in ref.partner_list"
+core,fact_sales_line,location_key,ERP_RETAIL_SALES,CHANNELNAME,Mapped through ref.location_alias
+core,fact_sales_line,location_key,ERP_DOMESTIC_SALES,CHANNELNAME,Mapped through ref.location_alias
+core,fact_sales_line,partner_key,ERP_RETAIL_SALES,CONTACTNAME,"ref.partner_list, else the source's default rule"
+core,fact_sales_line,partner_key,ERP_DOMESTIC_SALES,CONTACTNAME,"ref.partner_list, else the default rule once partner_list_complete = true; UNCLASSIFIED until then"
+core,fact_return_line,return_date_key,ERP_RETAIL_RETURN,RETURNDATE,Return date
+core,fact_return_line,return_date_key,ERP_DOMESTIC_RETURN,BILLDATE,Credit-note date
+core,fact_return_line,first_receipt_date_key,ERP_DOMESTIC_RETURN,RTNFROMCUSTDT,Earliest of the ';'-separated receipt dates
+core,fact_return_line,last_receipt_date_key,ERP_DOMESTIC_RETURN,RTNFROMCUSTDT,Latest of the ';'-separated receipt dates
+core,bridge_return_goods_receipt,goods_receipt_number,ERP_DOMESTIC_RETURN,RTNFROMCUST,"Split on ';', paired by position with RTNFROMCUSTDT"
+core,bridge_return_goods_receipt,goods_receipt_date,ERP_DOMESTIC_RETURN,RTNFROMCUSTDT,"Split on ';', paired by position with RTNFROMCUST"
+core,fact_return_line,receiving_location_key,ERP_RETAIL_RETURN,CONTACTNAME,Mapped through ref.location_alias (online contacts -> Bagru)
+core,fact_stock_transfer_line,from_location_key,ERP_STOCK_TRANSFER_OUT,DOCNUM,Document prefix -> ref.document_prefix_location
+core,fact_stock_transfer_line,to_location_key,ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Mapped through ref.location_alias
+core,fact_stock_transfer_line,from_location_key,ERP_STOCK_TRANSFER_IN,CONTACTNAME,Mapped through ref.location_alias
+core,fact_stock_transfer_line,to_location_key,ERP_STOCK_TRANSFER_IN,REFDOCNUM1,Receiving location of the linked outward document
+core,fact_shipment,fulfilment_location_key,WMS_DISPATCH,Order Serving Location,'Warehouse' -> Bagru warehouse
+core,fact_shipment,channel_key,WMS_DISPATCH,Site Location,Mapped through ref.channel_alias
+core,dim_product,lifecycle_status,PRODUCT_MASTER,Status,Continued / Discontinued; trading SKUs absent from the master = NOT_IN_MASTER
+core,dim_product,item_type,ERP_INVENTORY_SNAPSHOT,Prod Type,Trading / Packaging / Accessory / Stores and Consumables
+core,fact_partner_sellout,units_sold,BLINKIT_SALES,Quantity; Order Status,Sum of quantity on DELIVERED orders
+core,fact_partner_sellout,units_sold,INSTAMART_SALES,UNITS_SOLD,Taken as is

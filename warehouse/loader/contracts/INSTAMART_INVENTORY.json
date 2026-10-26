@@ -1,0 +1,50 @@
+{
+  "source_name": "INSTAMART_INVENTORY",
+  "status": "verified",
+  "verified_against": "Instamart_inventory_26_sep_26.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "pattern": "^ItemInventory_\\d+$"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 8,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "FacilityName",
+      "column": "facilityname"
+    },
+    {
+      "header": "City",
+      "column": "city"
+    },
+    {
+      "header": "SkuCode",
+      "column": "skucode"
+    },
+    {
+      "header": "Elle SKU",
+      "column": "elle_sku"
+    },
+    {
+      "header": "SkuDescription",
+      "column": "skudescription"
+    },
+    {
+      "header": "L1",
+      "column": "l1"
+    },
+    {
+      "header": "L2",
+      "column": "l2"
+    },
+    {
+      "header": "WarehouseQtyAvailable",
+      "column": "warehouseqtyavailable"
+    }
+  ],
+  "business_date": null,
+  "as_of_required": true
+}

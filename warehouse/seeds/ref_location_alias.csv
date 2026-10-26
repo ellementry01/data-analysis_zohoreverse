@@ -1,0 +1,309 @@
+source_name,source_field,source_value,location_code,is_confirmed,notes,rule_id
+ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur Branch,BAGRU_WH,true,Exact ERP location name,BR-016
+ERP_INVENTORY_SNAPSHOT,location column header,08 Bagru Popup,POPUP_BAGRU,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - C-Scheme,STORE_JPR_CSCHEME,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,36 HYD - Banjara Hills,STORE_HYD_BANJARA,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - Meeraki,STORE_JPR_MEERAKI,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,07 Delhi - GK Store,STORE_DEL_GK,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,29 Bengaluru - Indiranagar,STORE_BLR_INDIRANAGAR,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,29 Bengaluru - VR Mall,STORE_BLR_VRMALL,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,27 Mumbai - Infiniti Malad,STORE_MUM_INFINITI,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,27 Mumbai - SIB Bandra,STORE_MUM_SIB_BANDRA,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,30 Goa - Anjuna,STORE_GOA_ANJUNA,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,24 CG Road - Ahmd,STORE_AMD_CGROAD,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,07 DEPL Delhi,DEPL_DELHI,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,09 DEPL - Lucknow,DEPL_LUCKNOW,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,27 DEPL Mumbai - PPOB,DEPL_MUMBAI_PPOB,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,08 Essential - DFAL,DFAL,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,Head Office,HEAD_OFFICE,false,Exact ERP location name,BR-016
+ERP_INVENTORY_SNAPSHOT,location column header,08 Repair and Damage,REPAIR_DAMAGE,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,08 Offline - WH,OFFLINE_WH,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,08 Jaipur - Mansarovar,STORE_JPR_MANSAROVAR,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - DED1,FBA_DED1,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - ISK3,FBA_ISK3,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - BLX9 (Consolidate),FBA_BLX9,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,08 FBA WH - Jaipur,FBA_JAIPUR,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - Thane,FBA_THANE,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - Bangalore 5,FBA_BLR5,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,29 FBA WH - Bangalore 7,FBA_BLR7,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - NAG1,FBA_NAG1,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,36 FBA WH - Hyderabad,FBA_HYD,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi X3,FBA_DEX3,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi Q2,FBA_PNQ2,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,07 FBA WH - Delhi X8,FBA_DEX8,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,27 FBA WH - BOM5,FBA_BOM5,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,24 FBA WH - AMD2,FBA_AMD2,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,09 FBA WH - LKO1,FBA_LKO1,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED5,FBA_DED5,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED3,FBA_DED3,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,06 FBA WH - DED4,FBA_DED4,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,19 FBA WH - CCX1,FBA_CCX1,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,19 FBA WH - CCX2,FBA_CCX2,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,33 FBA WH - CJB1,FBA_CJB1,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,33 FBA WH - MAA4,FBA_MAA4,false,Exact ERP location name,BR-019
+ERP_INVENTORY_SNAPSHOT,location column header,27 Blinkit - Pune P2,BLINKIT_PUNE_P2,false,Exact ERP location name,
+ERP_INVENTORY_SNAPSHOT,location column header,27 Blinkit - Mumbai M10,BLINKIT_MUM_M10,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,06 FBA WH - DED4,FBA_DED4,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - Delhi Q2,FBA_PNQ2,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - Delhi X3,FBA_DEX3,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,08 FBA WH - Jaipur,FBA_JAIPUR,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur - C-Scheme,STORE_JPR_CSCHEME,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur Branch,BAGRU_WH,true,Exact ERP location name,BR-016
+ERP_RETAIL_SALES,CHANNELNAME,09 FBA WH - LKO1,FBA_LKO1,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,19 FBA WH - CCX1,FBA_CCX1,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,19 FBA WH - CCX2,FBA_CCX2,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,24 FBA WH - AMD2,FBA_AMD2,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - BOM5,FBA_BOM5,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - Thane,FBA_THANE,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,29 FBA WH - Bangalore 7,FBA_BLR7,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,33 FBA WH - CJB1,FBA_CJB1,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,33 FBA WH - MAA4,FBA_MAA4,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,36 FBA WH - Hyderabad,FBA_HYD,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,36 HYD - Banjara Hills,STORE_HYD_BANJARA,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur - C-Scheme,STORE_JPR_CSCHEME,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur Branch,BAGRU_WH,true,Exact ERP location name,BR-016
+ERP_DOMESTIC_SALES,CHANNELNAME,36 HYD - Banjara Hills,STORE_HYD_BANJARA,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur - C-Scheme,STORE_JPR_CSCHEME,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur Branch,BAGRU_WH,true,Exact ERP location name,BR-016
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 Blinkit - Pune P2,BLINKIT_PUNE_P2,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,36 HYD - Banjara Hills,STORE_HYD_BANJARA,false,Exact ERP location name,
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,FBA_CCX1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,FBA_CJB1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,FBA_MAA4,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd,BAGRU_WH,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-016
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd - DFAL,DFAL,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,FBA_AMD2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,FBA_BOM5,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,FBA_BLR7,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,STORE_JPR_CSCHEME,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,FBA_DEX3,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,FBA_CCX2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,FBA_DED4,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,STORE_HYD_BANJARA,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,FBA_HYD,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,FBA_LKO1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,FBA_THANE,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,FBA_CCX1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,FBA_CJB1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,FBA_MAA4,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd,BAGRU_WH,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-016
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd - DFAL,DFAL,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,FBA_AMD2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,FBA_BOM5,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,FBA_BLR7,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,STORE_JPR_CSCHEME,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,FBA_DEX3,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,FBA_CCX2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,FBA_DED4,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,STORE_HYD_BANJARA,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,FBA_HYD,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,FBA_LKO1,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,FBA_THANE,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT_MUM_M10,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT_PUNE_P2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,FBA_DEX8,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,FBA_PNQ2,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,FBA_JAIPUR,false,"Retail Sales bills this contact at that ERP location, and/or its transfer document prefix points to it",BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Private Limited DED5 FBA,FBA_DED5,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 5 FBA,FBA_BLR5,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DED1,FBA_DED1,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED3,FBA_DED3,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,FBA_DEX8,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,FBA_PNQ2,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,FBA_JAIPUR,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Private Limited DED5 FBA,FBA_DED5,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 5 FBA,FBA_BLR5,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DED1,FBA_DED1,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED3,FBA_DED3,false,FY25-26 transfers: the FBA code in the name is a location in the master (same naming as mapped FBA contacts),BR-019
+ERP_RETAIL_RETURN,CONTACTNAME,Shopify_Customer,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Amazon Website,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Amazon Seller Flex,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Myntra Customer,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Nykaa,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Nykaa Fashion,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Pepperfry Customer,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall - Furniture,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,FNP E Retail Marketplace,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Flipkart Website,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Ellementry International,BAGRU_WH,false,Return numbers for these contacts all use the JPR prefix (Bagru warehouse),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,FBA_CCX1,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,FBA_CJB1,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,FBA_MAA4,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd,BAGRU_WH,false,Return received back at this location (business confirmed for FBA),BR-016
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,FBA_AMD2,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,FBA_BOM5,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,FBA_BLR7,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT_MUM_M10,false,Return received back at this location (business confirmed for FBA),
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT_PUNE_P2,false,Return received back at this location (business confirmed for FBA),
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,STORE_JPR_CSCHEME,false,Return received back at this location (business confirmed for FBA),
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,FBA_DEX3,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,FBA_DEX8,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,FBA_PNQ2,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,FBA_JAIPUR,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,FBA_CCX2,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,FBA_DED4,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,STORE_HYD_BANJARA,false,Return received back at this location (business confirmed for FBA),
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,FBA_HYD,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,FBA_LKO1,false,Return received back at this location (business confirmed for FBA),BR-009
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,FBA_THANE,false,Return received back at this location (business confirmed for FBA),BR-009
+BLINKIT_INVENTORY,Warehouse Facility Name,Pune P2 - Feeder,BLINKIT_PUNE_P2,false,Blinkit facility name; matches ERP Blinkit location code where one exists,
+BLINKIT_INVENTORY,Warehouse Facility Name,Mumbai M10 - Feeder,BLINKIT_MUM_M10,false,Blinkit facility name; matches ERP Blinkit location code where one exists,
+BLINKIT_INVENTORY,Warehouse Facility Name,Farukhnagar - SR,BLINKIT_FARUKHNAGAR_SR,false,Blinkit facility name; matches ERP Blinkit location code where one exists,
+INSTAMART_INVENTORY,FacilityName,HYD IM2,IM_HYD_IM2,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,MUM IM3,IM_MUM_IM3,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,DLHY GGNFC5,IM_DLHY_GGNFC5,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,CHN ECOM,IM_CHN_ECOM,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,CHE AMB IM2,IM_CHE_AMB_IM2,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,KOL IM2,IM_KOL_IM2,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,BLR IM1,IM_BLR_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,AHM DELHIVERY,IM_AHM_DELHIVERY,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,MUM FC22,IM_MUM_FC22,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,HYD IM5,IM_HYD_IM5,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,GOA IM1,IM_GOA_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,VIZ IM1,IM_VIZ_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,HYD IM1,IM_HYD_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,DLHY GGNFC9,IM_DLHY_GGNFC9,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,BLR IM4,IM_BLR_IM4,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,CHD IM2,IM_CHD_IM2,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,PUN DELHIVERY,IM_PUN_DELHIVERY,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,NOI IM1,IM_NOI_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,GAU IM1,IM_GAU_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,CBE IM1 TEMP,IM_CBE_IM1_TEMP,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,JAI IM1,IM_JAI_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,KOC IM1,IM_KOC_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,BLR DHL,IM_BLR_DHL,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,BLR ECOM2,IM_BLR_ECOM2,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,PUNE IM2 TEMP,IM_PUNE_IM2_TEMP,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,KOLKATA ECOM,IM_KOLKATA_ECOM,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,MUM IM1,IM_MUM_IM1,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,BLR IM3,IM_BLR_IM3,false,Instamart facility,
+INSTAMART_INVENTORY,FacilityName,HYD IM4,IM_HYD_IM4,false,Instamart facility,
+WMS_DISPATCH,Order Serving Location,Warehouse,BAGRU_WH,true,Business confirmed: all B2C dispatch is from Bagru,BR-017
+ERP_RETAIL_SALES,CHANNELNAME,08 Bagru Popup,POPUP_BAGRU,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur - Meeraki,STORE_JPR_MEERAKI,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,07 Delhi - GK Store,STORE_DEL_GK,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,29 Bengaluru - Indiranagar,STORE_BLR_INDIRANAGAR,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,29 Bengaluru - VR Mall,STORE_BLR_VRMALL,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,27 Mumbai - Infiniti Malad,STORE_MUM_INFINITI,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,27 Mumbai - SIB Bandra,STORE_MUM_SIB_BANDRA,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,30 Goa - Anjuna,STORE_GOA_ANJUNA,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,24 CG Road - Ahmd,STORE_AMD_CGROAD,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,07 DEPL Delhi,DEPL_DELHI,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,09 DEPL - Lucknow,DEPL_LUCKNOW,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,27 DEPL Mumbai - PPOB,DEPL_MUMBAI_PPOB,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,08 Essential - DFAL,DFAL,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,Head Office,HEAD_OFFICE,false,Exact ERP location name,BR-016
+ERP_RETAIL_SALES,CHANNELNAME,08 Repair and Damage,REPAIR_DAMAGE,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,08 Offline - WH,OFFLINE_WH,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,08 Jaipur - Mansarovar,STORE_JPR_MANSAROVAR,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - DED1,FBA_DED1,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - ISK3,FBA_ISK3,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,29 FBA WH - BLX9 (Consolidate),FBA_BLX9,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,29 FBA WH - Bangalore 5,FBA_BLR5,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,27 FBA WH - NAG1,FBA_NAG1,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,07 FBA WH - Delhi X8,FBA_DEX8,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,06 FBA WH - DED5,FBA_DED5,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,06 FBA WH - DED3,FBA_DED3,false,Exact ERP location name,BR-019
+ERP_RETAIL_SALES,CHANNELNAME,27 Blinkit - Pune P2,BLINKIT_PUNE_P2,false,Exact ERP location name,
+ERP_RETAIL_SALES,CHANNELNAME,27 Blinkit - Mumbai M10,BLINKIT_MUM_M10,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Bagru Popup,POPUP_BAGRU,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur - Meeraki,STORE_JPR_MEERAKI,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,07 Delhi - GK Store,STORE_DEL_GK,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,29 Bengaluru - Indiranagar,STORE_BLR_INDIRANAGAR,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,29 Bengaluru - VR Mall,STORE_BLR_VRMALL,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,27 Mumbai - Infiniti Malad,STORE_MUM_INFINITI,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,27 Mumbai - SIB Bandra,STORE_MUM_SIB_BANDRA,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,30 Goa - Anjuna,STORE_GOA_ANJUNA,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,24 CG Road - Ahmd,STORE_AMD_CGROAD,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,07 DEPL Delhi,DEPL_DELHI,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,09 DEPL - Lucknow,DEPL_LUCKNOW,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,27 DEPL Mumbai - PPOB,DEPL_MUMBAI_PPOB,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Essential - DFAL,DFAL,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,Head Office,HEAD_OFFICE,false,Exact ERP location name,BR-016
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Repair and Damage,REPAIR_DAMAGE,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Offline - WH,OFFLINE_WH,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,08 Jaipur - Mansarovar,STORE_JPR_MANSAROVAR,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,07 FBA WH - DED1,FBA_DED1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,27 FBA WH - ISK3,FBA_ISK3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,29 FBA WH - BLX9 (Consolidate),FBA_BLX9,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,08 FBA WH - Jaipur,FBA_JAIPUR,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,27 FBA WH - Thane,FBA_THANE,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,29 FBA WH - Bangalore 5,FBA_BLR5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,29 FBA WH - Bangalore 7,FBA_BLR7,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,27 FBA WH - NAG1,FBA_NAG1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,36 FBA WH - Hyderabad,FBA_HYD,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,07 FBA WH - Delhi X3,FBA_DEX3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,07 FBA WH - Delhi Q2,FBA_PNQ2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,07 FBA WH - Delhi X8,FBA_DEX8,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,27 FBA WH - BOM5,FBA_BOM5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,24 FBA WH - AMD2,FBA_AMD2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,09 FBA WH - LKO1,FBA_LKO1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,06 FBA WH - DED5,FBA_DED5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,06 FBA WH - DED3,FBA_DED3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,06 FBA WH - DED4,FBA_DED4,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,19 FBA WH - CCX1,FBA_CCX1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,19 FBA WH - CCX2,FBA_CCX2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,33 FBA WH - CJB1,FBA_CJB1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,33 FBA WH - MAA4,FBA_MAA4,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_SALES,CHANNELNAME,27 Blinkit - Pune P2,BLINKIT_PUNE_P2,false,Exact ERP location name,
+ERP_DOMESTIC_SALES,CHANNELNAME,27 Blinkit - Mumbai M10,BLINKIT_MUM_M10,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Bagru Popup,POPUP_BAGRU,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur - Meeraki,STORE_JPR_MEERAKI,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 Delhi - GK Store,STORE_DEL_GK,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,29 Bengaluru - Indiranagar,STORE_BLR_INDIRANAGAR,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,29 Bengaluru - VR Mall,STORE_BLR_VRMALL,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 Mumbai - Infiniti Malad,STORE_MUM_INFINITI,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 Mumbai - SIB Bandra,STORE_MUM_SIB_BANDRA,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,30 Goa - Anjuna,STORE_GOA_ANJUNA,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,24 CG Road - Ahmd,STORE_AMD_CGROAD,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 DEPL Delhi,DEPL_DELHI,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,09 DEPL - Lucknow,DEPL_LUCKNOW,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 DEPL Mumbai - PPOB,DEPL_MUMBAI_PPOB,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Essential - DFAL,DFAL,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,Head Office,HEAD_OFFICE,false,Exact ERP location name,BR-016
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Repair and Damage,REPAIR_DAMAGE,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Offline - WH,OFFLINE_WH,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 Jaipur - Mansarovar,STORE_JPR_MANSAROVAR,false,Exact ERP location name,
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 FBA WH - DED1,FBA_DED1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 FBA WH - ISK3,FBA_ISK3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,29 FBA WH - BLX9 (Consolidate),FBA_BLX9,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,08 FBA WH - Jaipur,FBA_JAIPUR,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 FBA WH - Thane,FBA_THANE,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,29 FBA WH - Bangalore 5,FBA_BLR5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,29 FBA WH - Bangalore 7,FBA_BLR7,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 FBA WH - NAG1,FBA_NAG1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,36 FBA WH - Hyderabad,FBA_HYD,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 FBA WH - Delhi X3,FBA_DEX3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 FBA WH - Delhi Q2,FBA_PNQ2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,07 FBA WH - Delhi X8,FBA_DEX8,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 FBA WH - BOM5,FBA_BOM5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,24 FBA WH - AMD2,FBA_AMD2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,09 FBA WH - LKO1,FBA_LKO1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,06 FBA WH - DED5,FBA_DED5,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,06 FBA WH - DED3,FBA_DED3,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,06 FBA WH - DED4,FBA_DED4,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,19 FBA WH - CCX1,FBA_CCX1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,19 FBA WH - CCX2,FBA_CCX2,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,33 FBA WH - CJB1,FBA_CJB1,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,33 FBA WH - MAA4,FBA_MAA4,false,Exact ERP location name,BR-019
+ERP_DOMESTIC_RETURN,CHANNELNAME,27 Blinkit - Mumbai M10,BLINKIT_MUM_M10,false,Exact ERP location name,
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,DEPL_LUCKNOW,false,"FY25-26 retail sales bill this contact only at this ERP location (1166 lines, 100%)",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,STORE_JPR_MEERAKI,false,"FY25-26 retail sales bill this contact only at this ERP location (300 lines, 100%)",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,POPUP_BAGRU,false,"FY25-26 retail sales bill this contact only at this ERP location (226 lines, 100%)",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Mumbai PPOB,DEPL_MUMBAI_PPOB,false,"FY25-26 retail sales bill this contact only at this ERP location (45 lines, 100%)",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi,DEPL_DELHI,false,"FY25-26 retail sales bill this contact only at this ERP location (32 lines, 100%)",
+ERP_STOCK_TRANSFER_OUT,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,STORE_AMD_CGROAD,false,"FY25-26 retail sales bill this contact only at this ERP location (11 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,DEPL_LUCKNOW,false,"FY25-26 retail sales bill this contact only at this ERP location (1166 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,STORE_JPR_MEERAKI,false,"FY25-26 retail sales bill this contact only at this ERP location (300 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,POPUP_BAGRU,false,"FY25-26 retail sales bill this contact only at this ERP location (226 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Mumbai PPOB,DEPL_MUMBAI_PPOB,false,"FY25-26 retail sales bill this contact only at this ERP location (45 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi,DEPL_DELHI,false,"FY25-26 retail sales bill this contact only at this ERP location (32 lines, 100%)",
+ERP_STOCK_TRANSFER_IN,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,STORE_AMD_CGROAD,false,"FY25-26 retail sales bill this contact only at this ERP location (11 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,DEPL_LUCKNOW,false,"FY25-26 retail sales bill this contact only at this ERP location (1166 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,STORE_JPR_MEERAKI,false,"FY25-26 retail sales bill this contact only at this ERP location (300 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,POPUP_BAGRU,false,"FY25-26 retail sales bill this contact only at this ERP location (226 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Mumbai PPOB,DEPL_MUMBAI_PPOB,false,"FY25-26 retail sales bill this contact only at this ERP location (45 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi,DEPL_DELHI,false,"FY25-26 retail sales bill this contact only at this ERP location (32 lines, 100%)",
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,STORE_AMD_CGROAD,false,"FY25-26 retail sales bill this contact only at this ERP location (11 lines, 100%)",

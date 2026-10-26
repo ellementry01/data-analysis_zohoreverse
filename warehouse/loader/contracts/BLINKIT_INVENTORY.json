@@ -1,0 +1,118 @@
+{
+  "source_name": "BLINKIT_INVENTORY",
+  "status": "verified",
+  "verified_against": "Blinkit_inventory_sep_26.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Stock On Hand"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 24,
+  "unnamed_columns": [
+    {
+      "position": 23,
+      "rule": "values_in",
+      "values": [
+        "--"
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "header": "Item ID",
+      "column": "item_id"
+    },
+    {
+      "header": "SKU",
+      "column": "sku"
+    },
+    {
+      "header": "Item Name",
+      "column": "item_name"
+    },
+    {
+      "header": "Brand Name",
+      "column": "brand_name"
+    },
+    {
+      "header": "UPC",
+      "column": "upc"
+    },
+    {
+      "header": "UoM",
+      "column": "uom"
+    },
+    {
+      "header": "Warehouse Facility ID",
+      "column": "warehouse_facility_id"
+    },
+    {
+      "header": "Warehouse Facility Name",
+      "column": "warehouse_facility_name"
+    },
+    {
+      "header": "Net scheduled inventory",
+      "column": "net_scheduled_inventory"
+    },
+    {
+      "header": "Incoming scheduled inventory",
+      "column": "incoming_scheduled_inventory"
+    },
+    {
+      "header": "Recalled inventory",
+      "column": "recalled_inventory"
+    },
+    {
+      "header": "Total sellable",
+      "column": "total_sellable"
+    },
+    {
+      "header": "Warehouse",
+      "column": "warehouse"
+    },
+    {
+      "header": "In-between",
+      "column": "in_between"
+    },
+    {
+      "header": "Darkstore",
+      "column": "darkstore"
+    },
+    {
+      "header": "Total unsellable",
+      "column": "total_unsellable"
+    },
+    {
+      "header": "Damaged",
+      "column": "damaged"
+    },
+    {
+      "header": "Lost",
+      "column": "lost"
+    },
+    {
+      "header": "Expired",
+      "column": "expired"
+    },
+    {
+      "header": "Near Expiry",
+      "column": "near_expiry"
+    },
+    {
+      "header": "Last 7 days",
+      "column": "last_7_days"
+    },
+    {
+      "header": "Last 15 days",
+      "column": "last_15_days"
+    },
+    {
+      "header": "Last 30 days",
+      "column": "last_30_days"
+    }
+  ],
+  "business_date": null,
+  "as_of_required": true
+}

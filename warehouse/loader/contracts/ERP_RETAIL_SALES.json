@@ -1,0 +1,321 @@
+{
+  "source_name": "ERP_RETAIL_SALES",
+  "status": "verified",
+  "verified_against": "Retail_Sales_01-04-2026_to_15-09-2026.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 75,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "CHANNELNAME",
+      "column": "channelname"
+    },
+    {
+      "header": "BILLNUM",
+      "column": "billnum"
+    },
+    {
+      "header": "BILLDATE",
+      "column": "billdate"
+    },
+    {
+      "header": "DOCCREATEDDATE",
+      "column": "doccreateddate"
+    },
+    {
+      "header": "DOCREFNUM",
+      "column": "docrefnum"
+    },
+    {
+      "header": "DOCREFDATE",
+      "column": "docrefdate"
+    },
+    {
+      "header": "ORDER NUMBER",
+      "column": "order_number"
+    },
+    {
+      "header": "ORDER DATE",
+      "column": "order_date"
+    },
+    {
+      "header": "CONTACTNAME",
+      "column": "contactname"
+    },
+    {
+      "header": "LOYALTYCONTACTNAME",
+      "column": "loyaltycontactname"
+    },
+    {
+      "header": "REPRESENTATIVE",
+      "column": "representative"
+    },
+    {
+      "header": "GENDER",
+      "column": "gender"
+    },
+    {
+      "header": "CONTACTAGEGROUPNAME",
+      "column": "contactagegroupname"
+    },
+    {
+      "header": "LoyaltyContactPhone",
+      "column": "loyaltycontactphone"
+    },
+    {
+      "header": "DOCDESTCONTACTADDRESSSTATECODE",
+      "column": "docdestcontactaddressstatecode"
+    },
+    {
+      "header": "MERCHANT",
+      "column": "merchant"
+    },
+    {
+      "header": "PAYMENTGETWAY",
+      "column": "paymentgetway"
+    },
+    {
+      "header": "AWB",
+      "column": "awb"
+    },
+    {
+      "header": "Payment mode/Account",
+      "column": "payment_mode_account"
+    },
+    {
+      "header": "COURIER",
+      "column": "courier"
+    },
+    {
+      "header": "GSTN",
+      "column": "gstn"
+    },
+    {
+      "header": "PRODNUM",
+      "column": "prodnum"
+    },
+    {
+      "header": "PRODNAME",
+      "column": "prodname"
+    },
+    {
+      "header": "PRODHSNCODE",
+      "column": "prodhsncode"
+    },
+    {
+      "header": "UOMNAME",
+      "column": "uomname"
+    },
+    {
+      "header": "PRODCONTACTQTY",
+      "column": "prodcontactqty"
+    },
+    {
+      "header": "PRODCONTACTRATE",
+      "column": "prodcontactrate"
+    },
+    {
+      "header": "MRP",
+      "column": "mrp"
+    },
+    {
+      "header": "PRODMRP",
+      "column": "prodmrp"
+    },
+    {
+      "header": "PRODBEFOREDISC",
+      "column": "prodbeforedisc"
+    },
+    {
+      "header": "SCHEMENAME",
+      "column": "schemename"
+    },
+    {
+      "header": "PRODDISCPERCENTAGE",
+      "column": "proddiscpercentage"
+    },
+    {
+      "header": "PRODDISC",
+      "column": "proddisc"
+    },
+    {
+      "header": "PRODFAMILYNAME",
+      "column": "prodfamilyname"
+    },
+    {
+      "header": "PRODCATEGORYNAME",
+      "column": "prodcategoryname"
+    },
+    {
+      "header": "PRODDOCVALUE",
+      "column": "proddocvalue"
+    },
+    {
+      "header": "SERVICECHARGE",
+      "column": "servicecharge"
+    },
+    {
+      "header": "PRODOTHERCHARGEAMOUNT",
+      "column": "prodotherchargeamount"
+    },
+    {
+      "header": "IGST Percentage",
+      "column": "igst_percentage"
+    },
+    {
+      "header": "IGST Amount",
+      "column": "igst_amount"
+    },
+    {
+      "header": "CGST Percentage",
+      "column": "cgst_percentage"
+    },
+    {
+      "header": "CGST Amount",
+      "column": "cgst_amount"
+    },
+    {
+      "header": "SGST Percentage",
+      "column": "sgst_percentage"
+    },
+    {
+      "header": "SGST Amount",
+      "column": "sgst_amount"
+    },
+    {
+      "header": "CESS Amount",
+      "column": "cess_amount"
+    },
+    {
+      "header": "PRODASSESSABLEVALUE",
+      "column": "prodassessablevalue"
+    },
+    {
+      "header": "Remarks",
+      "column": "remarks"
+    },
+    {
+      "header": "LOYALTYCONTACTBILLADDRESS",
+      "column": "loyaltycontactbilladdress"
+    },
+    {
+      "header": "Bill To City",
+      "column": "bill_to_city"
+    },
+    {
+      "header": "BILLING PINCODE",
+      "column": "billing_pincode"
+    },
+    {
+      "header": "Ship To Name",
+      "column": "ship_to_name"
+    },
+    {
+      "header": "SHIPADDREESS",
+      "column": "shipaddreess"
+    },
+    {
+      "header": "Ship To PhoneNo",
+      "column": "ship_to_phoneno"
+    },
+    {
+      "header": "Ship To Email",
+      "column": "ship_to_email"
+    },
+    {
+      "header": "Ship To City",
+      "column": "ship_to_city"
+    },
+    {
+      "header": "SHIPPING PINCODE",
+      "column": "shipping_pincode"
+    },
+    {
+      "header": "DOCAMOUNT",
+      "column": "docamount"
+    },
+    {
+      "header": "Cr.Number",
+      "column": "cr_number"
+    },
+    {
+      "header": "Cr.Amount",
+      "column": "cr_amount"
+    },
+    {
+      "header": "DOCSOURCENAME",
+      "column": "docsourcename"
+    },
+    {
+      "header": "CouponCode",
+      "column": "couponcode"
+    },
+    {
+      "header": "Packing Material Qty",
+      "column": "packing_material_qty"
+    },
+    {
+      "header": "Cost Rate",
+      "column": "cost_rate"
+    },
+    {
+      "header": "Notes",
+      "column": "notes"
+    },
+    {
+      "header": "Product Group",
+      "column": "product_group"
+    },
+    {
+      "header": "Start Time",
+      "column": "start_time"
+    },
+    {
+      "header": "End Time",
+      "column": "end_time"
+    },
+    {
+      "header": "RETAILORDERNUM",
+      "column": "retailordernum"
+    },
+    {
+      "header": "RETAILORDERDATE",
+      "column": "retailorderdate"
+    },
+    {
+      "header": "PRODSCHEMECODE",
+      "column": "prodschemecode"
+    },
+    {
+      "header": "DOCIRN",
+      "column": "docirn"
+    },
+    {
+      "header": "DOCACKNO",
+      "column": "docackno"
+    },
+    {
+      "header": "DOCACKDATE",
+      "column": "docackdate"
+    },
+    {
+      "header": "EWBNUM",
+      "column": "ewbnum"
+    },
+    {
+      "header": "EWBDATE",
+      "column": "ewbdate"
+    }
+  ],
+  "business_date": {
+    "header": "BILLDATE",
+    "format": "excel_datetime"
+  },
+  "as_of_required": false
+}

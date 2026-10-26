@@ -1,0 +1,87 @@
+source_name,source_field,source_value,channel_code,priority,is_confirmed,notes,rule_id
+ERP_RETAIL_SALES,CONTACTNAME,Shopify_Customer,WEBSITE,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Amazon Website,AMAZON_SELF_SHIP,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Amazon Seller Flex,AMAZON_SELLER_FLEX,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Myntra Customer,MYNTRA,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Nykaa,NYKAA,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Nykaa Fashion,NYKAA_FASHION,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Pepperfry Customer,PEPPERFRY,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq,TATA_CLIQ,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq Mall,TATA_CLIQ_MALL,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Tata Cliq Mall - Furniture,TATA_CLIQ_MALL_FURNITURE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,FNP E Retail Marketplace,FNP,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,OWN_STORE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,OWN_STORE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd,EXPORT_VIA_DILEEP,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-007
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Shopify_Customer,WEBSITE,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Amazon Website,AMAZON_SELF_SHIP,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Amazon Seller Flex,AMAZON_SELLER_FLEX,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Myntra Customer,MYNTRA,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Nykaa,NYKAA,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Nykaa Fashion,NYKAA_FASHION,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Pepperfry Customer,PEPPERFRY,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq,TATA_CLIQ,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall,TATA_CLIQ_MALL,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Tata Cliq Mall - Furniture,TATA_CLIQ_MALL_FURNITURE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,FNP E Retail Marketplace,FNP,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd C-Scheme,OWN_STORE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd HYD Store,OWN_STORE,10,false,Retail CONTACTNAME = channel (business confirmed rule),BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd,EXPORT_VIA_DILEEP,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-007
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CCX1 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited CJB1 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Private Limited MAA4 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Ahmedabad FBA AMD2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd BOM5 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bengaluru 7 FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX3,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA DEX8,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Delhi FBA PNQ2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA CCX2,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd FBA DED4,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Hyderabad FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow FBA LKO1,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Thane FBA,AMAZON_FBA,10,true,Retail CONTACTNAME = channel (business confirmed rule),BR-008
+ERP_RETAIL_RETURN,CONTACTNAME,Flipkart Website,FLIPKART,10,false,FY25-26 returns only,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Flipkart Website,FLIPKART,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,OWN_STORE,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,OWN_STORE,10,false,FY25-26 sales; same contact as the mapped FY25-26 returns,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Mumbai,BLINKIT,10,false,FY25-26 retail returns from a Blinkit location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Blinkit Pune,BLINKIT,10,false,FY25-26 retail returns from a Blinkit location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Jaipur Store,OWN_STORE,10,false,FY25-26 returns; store identity unresolved,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Lucknow,OWN_STORE,10,false,FY25-26 returns; location unresolved,BR-006
+WMS_DISPATCH,Site Location,Shopify,WEBSITE,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Nykaa Fashion,NYKAA_FASHION,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Amazon_SC_Easyship,AMAZON_SELF_SHIP,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Myntra,MYNTRA,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Tata Cliq Mall,TATA_CLIQ_MALL,10,false,From the pasted dispatch sample; full list to check on the real export,
+WMS_DISPATCH,Site Location,Tata Cliq,TATA_CLIQ,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Tata Cliq Mall - Furniture,TATA_CLIQ_MALL_FURNITURE,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Pepperfry,PEPPERFRY,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Nykaa,NYKAA,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,FNP E Retail,FNP,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,FlipkartV3_MultiWH,FLIPKART,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+WMS_DISPATCH,Site Location,Amazon Flex,AMAZON_SELLER_FLEX,10,false,Seen on the full dispatch export (Oct 2026); to confirm with the business,
+BLINKIT_SALES,(whole source),*,BLINKIT,100,true,Every row of the Blinkit sales file is Blinkit,BR-018
+INSTAMART_SALES,(whole source),*,INSTAMART,100,true,Every row of the Instamart sales file is Instamart,
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OWN_STORE,10,false,FY25-26 sales billed at an own store / popup location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd Bagru,OWN_STORE,10,false,FY25-26 returns at an own store / popup location,BR-006
+ERP_RETAIL_SALES,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,OWN_STORE,10,false,FY25-26 sales billed at an own store / popup location,BR-006
+ERP_RETAIL_RETURN,CONTACTNAME,Dileep Essentials Pvt Ltd CG Road Ahmedabad,OWN_STORE,10,false,FY25-26 returns at an own store / popup location,BR-006

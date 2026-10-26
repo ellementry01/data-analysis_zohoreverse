@@ -1,0 +1,19 @@
+# source	file	as_of (snapshot sources only)
+# NOTE: ERP_PURCHASE_ORDER as-of 2026-09-24 = latest date inside the file. Real export date still to be confirmed (issue log).
+# ERP_PURCHASE_ORDER _v2 = the same 26-27 export re-received in Oct 2026 with the 'Document Remark' column (contract 2.3).
+ERP_RETAIL_SALES	Retail_Sales_01-04-2026_to_15-09-2026.xlsx	
+ERP_DOMESTIC_SALES	Domestic_Sales_01-04-2026_to_15-09-2026.xlsx	
+ERP_RETAIL_RETURN	Retail_Sales_Return_Current_FY.xlsx	
+ERP_RETAIL_RETURN	Retail_Sales_Return_01-04-2025_to_31-03-2026.xlsx	
+ERP_DOMESTIC_RETURN	Domestic_Sale_Return_Current_FY.xlsx	
+ERP_DOMESTIC_RETURN	Domestic_Sale_Return_01-04-2025_to_31-03-2026.xlsx	
+ERP_STOCK_TRANSFER_OUT	Stock_Transfer_01-04-2026_to_15-09-2026.xlsx	
+ERP_STOCK_TRANSFER_IN	Stock_Transfer_Inward_01-04-2026_to_15-09-2026.xlsx	
+ERP_PURCHASE_ORDER	Pending_Purchase_Order_26-27_12_09_v2.xlsx	2026-09-24
+ERP_INVENTORY_SNAPSHOT	Inventory_report_15_Sept.xls	2026-09-15
+PRODUCT_MASTER	Ellementry_Final_Mastor_-_2026_september_updated.xlsx	2026-09-15
+BLINKIT_SALES	BLINKIT_SALES_DATA_SEP_26.xlsx	
+BLINKIT_INVENTORY	Blinkit_inventory_sep_26.xlsx	2026-09-26
+INSTAMART_SALES	Instamart_sep_sales_data.xlsx	
+INSTAMART_INVENTORY	Instamart_inventory_26_sep_26.xlsx	2026-09-26
+WMS_DISPATCH	Dispatch_order_report_1_Apr.2025_to_15_Sep.2026.xlsm	

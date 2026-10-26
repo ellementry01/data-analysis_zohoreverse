@@ -1,0 +1,25 @@
+process_code,process_name,domain,table_name,grain,dimensions,agents,build_phase,coverage,current_source
+ORDERS,Customer orders,SALES_DEMAND,core.fact_order_line (planned),"Order line, any channel","Date, Product, Channel, Location, Customer, Geography","Executive, Commerce, Stock",LATER,PARTIAL,Order numbers on ERP invoices; WMS orders
+SALES,Company sales (book of record),SALES_DEMAND,core.fact_sales_line,Invoice line,"Date, Product, Location, Channel, Partner, Order, Geography",All,NOW,HAVE,"ERP_RETAIL_SALES, ERP_DOMESTIC_SALES"
+RETURNS,"Returns, RTO and credit notes",SALES_DEMAND,core.fact_return_line,Return / credit-note line,"Date, Product, Location, Channel, Partner, Order, Return reason","Stock, Operations, Customer, Finance",NOW,PARTIAL,"ERP_RETAIL_RETURN, ERP_DOMESTIC_RETURN; RTO in WMS_DISPATCH"
+PARTNER_SELLOUT,Partner sell-through,SALES_DEMAND,core.fact_partner_sellout,Partner x day x store x SKU,"Date, Product, Channel, Partner, Location, Geography","Stock, Commerce",NOW,PARTIAL,"BLINKIT_SALES, INSTAMART_SALES"
+CONSIGNMENT,Stock at partners (consignment),SALES_DEMAND,mart view over core.fact_stock_movement,Partner location x SKU x day,"Date, Product, Partner, Location","Stock, Finance",NOW,PARTIAL,"Derived from sales, returns and sell-out of sale-or-return partners"
+PRICES,Prices and promotions,SALES_DEMAND,core.fact_price (planned),SKU x channel x period,"Date, Product, Channel","Commerce, Finance, Product",LATER,PARTIAL,MRP in stock report and master; discounts on invoices
+ADS,Ad performance,MARKETING,core.fact_ad_performance (planned),Campaign x day,"Date, Campaign, Channel, Product","Marketing, Executive",LATER,GAP,None
+TRAFFIC,Website and marketplace traffic,MARKETING,core.fact_traffic (planned),Channel x day (x product),"Date, Channel, Product","Commerce, Marketing",LATER,GAP,None
+LISTINGS,Listing health,MARKETING,core.fact_listing_status (planned),Listing x day,"Date, Product, Channel",Commerce,LATER,GAP,None
+PURCHASING,Purchasing,SUPPLY_CHAIN,core.fact_purchase_order_line,"PO line, latest state","Date, Product, Supplier","Stock, Operations, Finance",NOW,PARTIAL,ERP_PURCHASE_ORDER
+GOODS_RECEIPT,Goods receipt,SUPPLY_CHAIN,core.fact_goods_receipt_line,Receipt line,"Date, Product, Location, Supplier","Stock, Operations",NOW,PARTIAL,GRN fields in ERP_PURCHASE_ORDER
+PRODUCTION,Production at Dileep factories,SUPPLY_CHAIN,core.fact_production_order (planned),Production order line,"Date, Product, Supplier","Stock, Operations",LATER,GAP,None
+TRANSFERS,Stock transfers,SUPPLY_CHAIN,core.fact_stock_transfer_line,Transfer document line,"Date, Product, Location","Stock, Operations",NOW,HAVE,"ERP_STOCK_TRANSFER_OUT, ERP_STOCK_TRANSFER_IN"
+STOCK_LEDGER,Stock movements (ledger),SUPPLY_CHAIN,core.fact_stock_movement,Movement x location x SKU,"Date, Product, Location, Movement type, Partner","Stock, Operations, Finance",NOW,PARTIAL,"Derived from sales, returns, receipts, transfers, sell-out"
+STOCK_POSITION,Stock position,SUPPLY_CHAIN,core.fact_inventory_snapshot,Day x location x SKU,"Date, Product, Location","Stock, Executive, Operations",NOW,PARTIAL,"ERP_INVENTORY_SNAPSHOT, BLINKIT_INVENTORY, INSTAMART_INVENTORY"
+FULFILMENT,Order fulfilment,SUPPLY_CHAIN,core.fact_shipment,Outbound delivery,"Date, Channel, Location, Courier, Order, Geography","Operations, Customer",NOW,PARTIAL,WMS_DISPATCH (file not yet received)
+COURIER_COST,Courier cost,SUPPLY_CHAIN,core.fact_courier_charge (planned),Shipment,"Date, Courier, Geography","Operations, Finance",LATER,GAP,None
+SETTLEMENTS,Marketplace settlements and fees,FINANCE,core.fact_settlement_line (planned),Order x fee type,"Date, Channel, Product","Finance, Commerce",LATER,GAP,None
+LEDGER,Ledger and P&L,FINANCE,core.fact_gl_entry (planned),Ledger entry,"Date, Account, Entity, Location","Finance, Executive",LATER,GAP,None
+PRODUCT_COST,Product cost,FINANCE,core.fact_product_cost (planned),SKU x effective date,"Date, Product, Supplier","Finance, Stock",LATER,PARTIAL,Cost Rate on some invoices; PO purchase price
+RECEIVABLES,Receivables and payouts,FINANCE,core.fact_receivable (planned),Invoice x due date,"Date, Partner, Channel",Finance,LATER,GAP,None
+REVIEWS,Reviews and ratings,CUSTOMER_TEAM,core.fact_review (planned),Review,"Date, Product, Channel, Customer","Customer, Design, Commerce",LATER,GAP,None
+TEAM,Team productivity,CUSTOMER_TEAM,to define with HR,To define,"Date, Employee",Executive,LATER,GAP,None
+AGENT_OUTPUTS,"Forecasts, recommendations, alerts",AGENT_OUTPUTS,insight.*,One output each,"Date, Product, Location, Channel",All,NOW,N/A,Written by the agents

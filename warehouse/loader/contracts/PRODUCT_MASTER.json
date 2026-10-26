@@ -1,0 +1,39 @@
+{
+  "source_name": "PRODUCT_MASTER",
+  "status": "verified",
+  "verified_against": "Ellementry_Final_Mastor_-_2026_september_updated.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "ignore",
+  "header_row": 1,
+  "column_match": "leading",
+  "columns": [
+    {
+      "header": "Prod Num",
+      "column": "prod_num"
+    },
+    {
+      "header": "Status",
+      "column": "status"
+    },
+    {
+      "header": "Prod Name",
+      "column": "prod_name"
+    },
+    {
+      "header": "Prod Type",
+      "column": "prod_type"
+    },
+    {
+      "header": "Unit",
+      "column": "unit"
+    }
+  ],
+  "unnamed_columns": [],
+  "business_date": null,
+  "as_of_required": true,
+  "ignored_columns_note": "Columns after 'Unit' are a stale copy of the stock report: deliberately NOT loaded",
+  "ignored_sheets_note": "Mastor - Jan 2026, MRP to change Lot 1/2 are working sheets"
+}

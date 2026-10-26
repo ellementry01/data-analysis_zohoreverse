@@ -1,0 +1,102 @@
+{
+  "source_name": "ERP_INVENTORY_SNAPSHOT",
+  "status": "verified",
+  "verified_against": "Inventory_report_15_Sept.xls",
+  "layout": "STOCK_PIVOT",
+  "sheet": {
+    "name": "ChannelwiseStock"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 19,
+  "product_columns": [
+    {
+      "header": "Prod Num",
+      "column": "prod_num"
+    },
+    {
+      "header": "Prod Name",
+      "column": "prod_name"
+    },
+    {
+      "header": "Prod Type",
+      "column": "prod_type"
+    },
+    {
+      "header": "Prod Group",
+      "column": "prod_group"
+    },
+    {
+      "header": "Prod Category",
+      "column": "prod_category"
+    },
+    {
+      "header": "Prod Sub Category",
+      "column": "prod_sub_category"
+    },
+    {
+      "header": "Unit",
+      "column": "unit"
+    }
+  ],
+  "block_value_header": "Active MRP",
+  "total_header": "Total",
+  "title_cell": {
+    "row": 1,
+    "col": 1,
+    "equals": "Inventory Position At all Channels -  Product Wise"
+  },
+  "as_of_cell": {
+    "row": 3,
+    "col": 1,
+    "pattern": "^(\\d{1,2})/(\\d{1,2})/(\\d{4}) To (\\d{1,2})/(\\d{1,2})/(\\d{4})$",
+    "order": "MDY"
+  },
+  "channel_filter_cell": {
+    "row": 11,
+    "col": 3
+  },
+  "business_date": null,
+  "as_of_required": true,
+  "columns": [
+    {
+      "header": "Prod Num",
+      "column": "prod_num"
+    },
+    {
+      "header": "Prod Name",
+      "column": "prod_name"
+    },
+    {
+      "header": "Prod Type",
+      "column": "prod_type"
+    },
+    {
+      "header": "Prod Group",
+      "column": "prod_group"
+    },
+    {
+      "header": "Prod Category",
+      "column": "prod_category"
+    },
+    {
+      "header": "Prod Sub Category",
+      "column": "prod_sub_category"
+    },
+    {
+      "header": "Unit",
+      "column": "unit"
+    },
+    {
+      "header": "(location block header)",
+      "column": "location_header"
+    },
+    {
+      "header": "(location quantity)",
+      "column": "qty"
+    },
+    {
+      "header": "(location Active MRP)",
+      "column": "active_mrp"
+    }
+  ]
+}

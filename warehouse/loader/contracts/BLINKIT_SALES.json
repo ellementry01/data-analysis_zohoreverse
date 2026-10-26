@@ -1,0 +1,141 @@
+{
+  "source_name": "BLINKIT_SALES",
+  "status": "verified",
+  "verified_against": "BLINKIT_SALES_DATA_SEP_26.xlsx",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 30,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "Order Id",
+      "column": "order_id"
+    },
+    {
+      "header": "Order Date",
+      "column": "order_date"
+    },
+    {
+      "header": "Item Id",
+      "column": "item_id"
+    },
+    {
+      "header": "ELLE SKU",
+      "column": "elle_sku"
+    },
+    {
+      "header": "Product Name",
+      "column": "product_name"
+    },
+    {
+      "header": "Brand Name",
+      "column": "brand_name"
+    },
+    {
+      "header": "UPC",
+      "column": "upc"
+    },
+    {
+      "header": "Variant Description",
+      "column": "variant_description"
+    },
+    {
+      "header": "Mapping on consumer app (L0, L1, L2)",
+      "column": "mapping_on_consumer_app_l0_l1_l2"
+    },
+    {
+      "header": "Business Category",
+      "column": "business_category"
+    },
+    {
+      "header": "Supply City",
+      "column": "supply_city"
+    },
+    {
+      "header": "Supply State",
+      "column": "supply_state"
+    },
+    {
+      "header": "Supply State GST",
+      "column": "supply_state_gst"
+    },
+    {
+      "header": "Customer City",
+      "column": "customer_city"
+    },
+    {
+      "header": "Customer State",
+      "column": "customer_state"
+    },
+    {
+      "header": "Order Status",
+      "column": "order_status"
+    },
+    {
+      "header": "HSN Code",
+      "column": "hsn_code"
+    },
+    {
+      "header": "IGST(%)",
+      "column": "igst"
+    },
+    {
+      "header": "CGST(%)",
+      "column": "cgst"
+    },
+    {
+      "header": "SGST(%)",
+      "column": "sgst"
+    },
+    {
+      "header": "CESS(%)",
+      "column": "cess"
+    },
+    {
+      "header": "Quantity",
+      "column": "quantity"
+    },
+    {
+      "header": "MRP (Rs)",
+      "column": "mrp_rs"
+    },
+    {
+      "header": "Selling Price (Rs)",
+      "column": "selling_price_rs"
+    },
+    {
+      "header": "IGST Value",
+      "column": "igst_value"
+    },
+    {
+      "header": "CGST Value",
+      "column": "cgst_value"
+    },
+    {
+      "header": "SGST Value",
+      "column": "sgst_value"
+    },
+    {
+      "header": "CESS Value",
+      "column": "cess_value"
+    },
+    {
+      "header": "Total Tax",
+      "column": "total_tax"
+    },
+    {
+      "header": "Total Gross Bill Amount",
+      "column": "total_gross_bill_amount"
+    }
+  ],
+  "business_date": {
+    "header": "Order Date",
+    "format": "text_ymd"
+  },
+  "as_of_required": false
+}
