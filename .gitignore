@@ -1,0 +1,18 @@
+# customer data and generated reports: never committed
+exports/
+reports/
+# secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+# database dumps, caches
+*.dump
+__pycache__/
+*.pyc
+.pytest_cache/
+# raw copies of third-party (Zoho) help pages: not ours to publish
+research/help_pages/
+research/zoho_page_*.txt
+research/rea_help_*.json
+research/zoho_features_screenshot.png
