@@ -326,3 +326,18 @@ SELECT k.shipment_id, k.source_sku_code, coalesce(p.product_key, -1),
 FROM skus k
 LEFT JOIN core.dim_product p ON p.sku_code = stg.sku(k.source_sku_code)
 LEFT JOIN inv i ON i.batch_id = k.batch_id AND i.source_row_number = k.source_row_number AND i.sku = stg.sku(k.source_sku_code);
+
+-- 2.7 exact rules for what is still unallocated (both follow from the row's total; nothing is guessed):
+-- ONE_EACH: row quantity = number of SKUs listed, so each shipped exactly 1.
+UPDATE core.bridge_shipment_sku b SET quantity = 1, quantity_source = 'ONE_EACH'
+FROM core.fact_shipment f
+WHERE f.shipment_id = b.shipment_id AND b.quantity_source = 'UNALLOCATED'
+  AND f.delivery_qty = (SELECT count(*) FROM core.bridge_shipment_sku x WHERE x.shipment_id = b.shipment_id)
+  AND NOT EXISTS (SELECT 1 FROM core.bridge_shipment_sku x WHERE x.shipment_id = b.shipment_id AND x.quantity_source <> 'UNALLOCATED');
+-- REMAINDER: the only unallocated SKU of a row whose other SKUs are known gets the rest of the row quantity.
+UPDATE core.bridge_shipment_sku b SET quantity = r.rest, quantity_source = 'REMAINDER'
+FROM (SELECT x.shipment_id, f.delivery_qty - sum(x.quantity) AS rest
+      FROM core.bridge_shipment_sku x JOIN core.fact_shipment f USING (shipment_id)
+      GROUP BY x.shipment_id, f.delivery_qty
+      HAVING count(*) FILTER (WHERE x.quantity_source = 'UNALLOCATED') = 1) r
+WHERE r.shipment_id = b.shipment_id AND b.quantity_source = 'UNALLOCATED' AND r.rest > 0;

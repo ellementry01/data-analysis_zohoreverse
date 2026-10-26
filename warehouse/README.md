@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.6
+# Ellementry Data Warehouse — v2.7
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -56,6 +56,10 @@ bill series every April, and staging used to keep only the newest file's bill pe
 the line's identity; returns link to the latest bill of that number dated on or before the return; `reconcile.py`
 uses the same key (it had the same blind spot, so its earlier 28/28 missed this).
 
+2.7 (`sql/150_shipment_sku_quantity_rules.sql`): two exact rules for multi-SKU dispatch rows that no bill explains:
+ONE_EACH (row quantity = number of SKUs, so 1 each) and REMAINDER (the one unknown SKU gets the row quantity minus the
+others). Unallocated SKU lines: 2,799 (2.4) -> 338 (2.5) -> 31 (2.6) -> 4, which are genuinely unknowable (2 SKUs, 3 units).
+
 ## Layout
 
 ```
@@ -80,6 +84,7 @@ sql/110_po_document_type.sql  schema 2.3: PO 'Document Remark' (Purchase / Retur
 sql/120_supply_dashboard_fixes.sql schema 2.4: ERP item master source, as-of-assumed flag, courier groups
 sql/130_shipment_sales_link.sql schema 2.5: shipments linked to ERP bills by invoice, order number or AWB
 sql/140_bill_financial_year.sql schema 2.6: bill identity includes the financial year
+sql/150_shipment_sku_quantity_rules.sql schema 2.7: ONE_EACH / REMAINDER quantities for multi-SKU dispatch rows
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)
