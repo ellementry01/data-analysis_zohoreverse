@@ -180,7 +180,7 @@ FROM core.fact_inventory_snapshot s JOIN core.dim_location l USING (location_key
 INSERT INTO dq SELECT 'ledger_not_placed', what, 'WARN', n, why FROM (
     SELECT 'sales lines' what, count(*) n, 'unknown selling location or product' why FROM core.fact_sales_line s
       JOIN core.dim_product p USING (product_key) WHERE p.item_type NOT IN ('CHARGE','SERVICE') AND (s.location_key = -1 OR s.product_key = -1)
-    UNION ALL SELECT 'goods receipts', count(*), 'receiving location not in the PO export (G-025) or supplier not classified (factory list, G-005)'
+    UNION ALL SELECT 'goods receipts', count(*), 'purchase vs return-inward not known: supplier not classified (factory list, G-005) and rule BR-031 not confirmed'
       FROM core.fact_goods_receipt_line g JOIN core.dim_partner pt USING (partner_key)
       LEFT JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
      WHERE g.receiving_location_key = -1

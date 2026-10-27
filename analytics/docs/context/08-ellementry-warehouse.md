@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.8**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.9**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -129,8 +129,11 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
   `sub_category_label` as the drill level.
 - **Ellementry International = B2C export** (channel `EXPORT_B2C`, segment "B2C export"); B2B export = via Dileep.
 - **Quick commerce:** Instamart is the focus; Blinkit stays loaded but is not worked on for now; Zepto has no data yet.
+- **Goods receipts arrive at Bagru** (BR-032, schema 2.9; G-025 closed).
+- **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace
+  RTO must come from marketplace seller-panel reports or courier MIS exports by AWB.
 - **Coming from the business:** ERP inventory for chosen past days (see the stock-history plan), Instamart daily
-  inventory, and an OMS export for fulfilment.
+  inventory.
 
 ## Rules that matter for every number
 - **Money excludes GST** (BR-001/002/003).

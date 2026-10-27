@@ -179,7 +179,8 @@ INSERT INTO core.fact_goods_receipt_line (po_line_id, po_number, source_sku_code
 SELECT po.po_line_id, s.po_number, s.source_sku_code, s.line_occurrence, stg.date_key(s.grn_date),
        greatest(cardinality(array_remove(string_to_array(s.grn_number, ';'), '')), 1),
        po.partner_key, po.product_key,
-       -1,                                            -- receiving location not in the export yet (gap G-025)
+       coalesce((SELECT dl.location_key FROM core.dim_location dl JOIN meta.pipeline_setting ps     -- all receipts arrive at
+                 ON ps.setting_key = 'goods_receipt_location' AND dl.location_code = ps.setting_value), -1),  -- Bagru (BR-032)
        s.received_qty, s.batch_id, s.source_row_number
 FROM stg.purchase_order s
 JOIN core.fact_purchase_order_line po ON po.po_number = s.po_number AND po.source_sku_code = s.source_sku_code

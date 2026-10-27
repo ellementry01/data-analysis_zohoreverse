@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.8
+# Ellementry Data Warehouse — v2.9
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -70,6 +70,10 @@ others). Unallocated SKU lines: 2,799 (2.4) -> 338 (2.5) -> 31 (2.6) -> 4, which
   CATEGORY is the top level (Decor, Tableware...), SUBCATEGORY the finer one the stock report used.
 - **Ellementry International = B2C export** (channel `EXPORT_B2C`, confirmed); B2B exports go through Dileep.
 
+2.9 (`sql/170_goods_receipt_location.sql`): **goods receipts arrive at Bagru** (rule BR-032, business confirmed;
+gap G-025 closed). Setting `goods_receipt_location` = BAGRU_WH places all 4,906 receipts. They enter the stock ledger
+once purchase vs return-inward is known: rule BR-031 confirmed, or the factory list (G-005).
+
 ## Layout
 
 ```
@@ -96,6 +100,7 @@ sql/130_shipment_sales_link.sql schema 2.5: shipments linked to ERP bills by inv
 sql/140_bill_financial_year.sql schema 2.6: bill identity includes the financial year
 sql/150_shipment_sku_quantity_rules.sql schema 2.7: ONE_EACH / REMAINDER quantities for multi-SKU dispatch rows
 sql/160_cost_and_category.sql schema 2.8: product unit cost (stock valued at cost); highest-MRP and item-master category rules
+sql/170_goods_receipt_location.sql schema 2.9: goods receipts placed at Bagru (BR-032)
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)
