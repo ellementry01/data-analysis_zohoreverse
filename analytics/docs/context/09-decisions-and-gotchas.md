@@ -26,6 +26,7 @@
 | Raw exports are kept twice: canonical copies listed in `MANIFEST.tsv`, and every distinct original as received in `exports/_originals/` (`ORIGINALS.tsv` holds their sha256) | The user asked for the original files to be kept; renamed canonical copies alone lose the received names and the superseded re-exports |
 | A sales bill is identified by its number and financial year (2.6) | The ERP restarts bill numbers every April; keying by number alone dropped FY 25-26 bills, and the reconciliation shared the same key so it could not see it. Lesson: a check must not reuse the logic it checks |
 | WMS shipments link to ERP bills by Extern Order No, then AWB (2.5) | The WMS Invoice No of marketplace orders is the marketplace's own invoice |
+| Stock is valued at cost, not MRP (business, 2026-10-27); where MRPs disagree the higher one is current; category from the ERP item master only | Business rules: the company values stock at cost; prices were raised, so the lower MRP is old stock's label |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
 
 ## Gotchas

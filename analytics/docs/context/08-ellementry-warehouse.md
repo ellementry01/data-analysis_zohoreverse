@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.7**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.8**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -121,6 +121,16 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
   (`v_purchase_order_lines`): 24 over-received lines, 5,056 units.
 - **New metrics:** `stock_units_no_mrp`, `over_received_qty`. `rto_rate` and `avg_ship_to_deliver_days` gained
   tracked-channel filters. The `fulfilment.courier` calculated column is no longer used by the dashboards.
+
+## Schema 2.8 (2026-10-27): business answers applied
+- **Stock value is at cost** (metric `stock_value_cost`, unit cost from the ERP item master): ₹3.86 Cr on 15 Sep 2026.
+  The Stock and Executive dashboards show cost; `stock_value_mrp` stays as a metric for reference only.
+- **Higher MRP wins** where sources disagree (price rise); **category = ERP item master only** (top level), with
+  `sub_category_label` as the drill level.
+- **Ellementry International = B2C export** (channel `EXPORT_B2C`, segment "B2C export"); B2B export = via Dileep.
+- **Quick commerce:** Instamart is the focus; Blinkit stays loaded but is not worked on for now; Zepto has no data yet.
+- **Coming from the business:** ERP inventory for chosen past days (see the stock-history plan), Instamart daily
+  inventory, and an OMS export for fulfilment.
 
 ## Rules that matter for every number
 - **Money excludes GST** (BR-001/002/003).

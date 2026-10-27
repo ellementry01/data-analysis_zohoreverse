@@ -184,6 +184,8 @@ C = [  # code, name, sub, group, confirmed, note
  ("INSTAMART","Instamart","Quick commerce","QUICK_COMMERCE",True,"Sale-or-return"),
  ("EXPORT_VIA_DILEEP","Exports","Via Dileep (cost-to-cost)","B2B",True,"Business confirmed"),
  ("EXPORT_DIRECT","Exports","Direct","B2B",False,"Only 2 Rs 1 lines (Hindustan Exports, Singapore)"),
+ ("EXPORT_B2C","Exports","B2C export (Ellementry International)","D2C_WEBSITE",True,
+  "Business confirmed (Oct 2026): Ellementry International = B2C export to consumers abroad; B2B exports go through Dileep (EXPORT_VIA_DILEEP)"),
  ("INTERNAL_EMPLOYEE","Internal","Employee exhibition stock","INTERNAL",True,"Not a sale; excluded from revenue"),
 ]
 CA = []  # (source, field, value, channel, priority, confirmed, evidence)
@@ -192,7 +194,7 @@ retail_map = {'Shopify_Customer':('WEBSITE',True),'Amazon Website':('AMAZON_SELF
  'Myntra Customer':('MYNTRA',False),'Nykaa':('NYKAA',False),'Nykaa Fashion':('NYKAA_FASHION',False),'Pepperfry Customer':('PEPPERFRY',False),
  'Tata Cliq':('TATA_CLIQ',False),'Tata Cliq Mall':('TATA_CLIQ_MALL',False),'Tata Cliq Mall - Furniture':('TATA_CLIQ_MALL_FURNITURE',False),
  'FNP E Retail Marketplace':('FNP',False),'Dileep Essentials Pvt Ltd C-Scheme':('OWN_STORE',False),'Dileep Essentials Pvt Ltd HYD Store':('OWN_STORE',False),
- 'Dileep Essentials Pvt Ltd':('EXPORT_VIA_DILEEP',True)}
+ 'Dileep Essentials Pvt Ltd':('EXPORT_VIA_DILEEP',True),'Ellementry International':('EXPORT_B2C',True)}
 for v in fba_contacts: retail_map[v] = ('AMAZON_FBA',True)
 for src in ["ERP_RETAIL_SALES","ERP_RETAIL_RETURN"]:
     for v,(c,conf) in retail_map.items():
@@ -206,13 +208,13 @@ CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Blinkit 
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Blinkit Pune","BLINKIT",10,False,"FY25-26 retail returns from a Blinkit location"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Jaipur Store","OWN_STORE",10,False,"FY25-26 returns; store identity unresolved"))
 CA.append(("ERP_RETAIL_RETURN","CONTACTNAME","Dileep Essentials Pvt Ltd Lucknow","OWN_STORE",10,False,"FY25-26 returns; location unresolved"))
-UNRESOLVED.append(("ERP_RETAIL_RETURN","CONTACTNAME","Ellementry International","FY25-26 retail returns","Which channel is 'Ellementry International' (international website? export?)"))
 for v,c in [("Shopify","WEBSITE"),("Nykaa Fashion","NYKAA_FASHION"),("Amazon_SC_Easyship","AMAZON_SELF_SHIP"),("Myntra","MYNTRA"),("Tata Cliq Mall","TATA_CLIQ_MALL")]:
     CA.append(("WMS_DISPATCH","Site Location",v,c,10,False,"From the pasted dispatch sample; full list to check on the real export"))
 # Seen on the full dispatch export (Apr 2025 - 15 Sep 2026, received Oct 2026). Names match the channel master one to one.
 for v,c in [("Tata Cliq","TATA_CLIQ"),("Tata Cliq Mall - Furniture","TATA_CLIQ_MALL_FURNITURE"),("Pepperfry","PEPPERFRY"),("Nykaa","NYKAA"),
             ("FNP E Retail","FNP"),("FlipkartV3_MultiWH","FLIPKART"),("Amazon Flex","AMAZON_SELLER_FLEX")]:
     CA.append(("WMS_DISPATCH","Site Location",v,c,10,False,"Seen on the full dispatch export (Oct 2026); to confirm with the business"))
+CA.append(("WMS_DISPATCH","Site Location","Ellementry International","EXPORT_B2C",10,True,"Business confirmed (Oct 2026): B2C export"))
 UNRESOLVED.append(("WMS_DISPATCH","Site Location","Ellementry International","4 dispatches Apr 2025 - Sep 2026","Which channel is 'Ellementry International'? Left Unknown until answered"))
 CA.append(("BLINKIT_SALES","(whole source)","*","BLINKIT",100,True,"Every row of the Blinkit sales file is Blinkit"))
 CA.append(("INSTAMART_SALES","(whole source)","*","INSTAMART",100,True,"Every row of the Instamart sales file is Instamart"))

@@ -20,4 +20,5 @@ BLINKIT,Blinkit,Quick commerce,QUICK_COMMERCE,true,true,Sale-or-return,PARTNER,t
 INSTAMART,Instamart,Quick commerce,QUICK_COMMERCE,true,true,Sale-or-return,PARTNER,true
 EXPORT_VIA_DILEEP,Exports,Via Dileep (cost-to-cost),B2B,true,true,Business confirmed,NONE,false
 EXPORT_DIRECT,Exports,Direct,B2B,true,false,"Only 2 Rs 1 lines (Hindustan Exports, Singapore)",NONE,false
+EXPORT_B2C,Exports,B2C export (Ellementry International),D2C_WEBSITE,true,true,Business confirmed (Oct 2026): Ellementry International = B2C export to consumers abroad; B2B exports go through Dileep (EXPORT_VIA_DILEEP),SELF_SHIP,false
 INTERNAL_EMPLOYEE,Internal,Employee exhibition stock,INTERNAL,true,true,Not a sale; excluded from revenue,NONE,false

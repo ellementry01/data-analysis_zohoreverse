@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.7
+# Ellementry Data Warehouse — v2.8
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -60,6 +60,16 @@ uses the same key (it had the same blind spot, so its earlier 28/28 missed this)
 ONE_EACH (row quantity = number of SKUs, so 1 each) and REMAINDER (the one unknown SKU gets the row quantity minus the
 others). Unallocated SKU lines: 2,799 (2.4) -> 338 (2.5) -> 31 (2.6) -> 4, which are genuinely unknowable (2 SKUs, 3 units).
 
+2.8 (`sql/160_cost_and_category.sql`), business rules given on 2026-10-27:
+- **Stock is valued at cost**: `dim_product.current_cost` = the ERP item master COST; `v_stock_position_latest` gains
+  `unit_cost`, `stock_value_cost`, `cost_status`, `sub_category_label` (`v_stock_position_daily`: `unit_cost`,
+  `stock_value_cost`). Every trading SKU in stock has a cost: ₹3.86 Cr at cost on 15 Sep 2026 (₹14.80 Cr at MRP).
+- **Where MRPs disagree, the higher one is current** (prices were raised; the lower MRP is old stock): the current MRP
+  is the highest of the stock report, the latest invoice and the item master.
+- **Category and sub-category come from the ERP item master only**; no category there = uncategorised. The item master
+  CATEGORY is the top level (Decor, Tableware...), SUBCATEGORY the finer one the stock report used.
+- **Ellementry International = B2C export** (channel `EXPORT_B2C`, confirmed); B2B exports go through Dileep.
+
 ## Layout
 
 ```
@@ -85,6 +95,7 @@ sql/120_supply_dashboard_fixes.sql schema 2.4: ERP item master source, as-of-ass
 sql/130_shipment_sales_link.sql schema 2.5: shipments linked to ERP bills by invoice, order number or AWB
 sql/140_bill_financial_year.sql schema 2.6: bill identity includes the financial year
 sql/150_shipment_sku_quantity_rules.sql schema 2.7: ONE_EACH / REMAINDER quantities for multi-SKU dispatch rows
+sql/160_cost_and_category.sql schema 2.8: product unit cost (stock valued at cost); highest-MRP and item-master category rules
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

@@ -245,3 +245,19 @@ def test_executive_views_exist_and_follow_the_revenue_rules():
     a = q("SELECT round(sum(invoiced_sales), 2) FROM mart.v_sales_orders_daily")[0][0]
     b = q("SELECT round(sum(gross_sales), 2) FROM mart.v_net_sales_daily")[0][0]
     assert a == b
+
+
+def test_cost_highest_mrp_and_item_master_category():
+    """2.8 business rules: unit cost and category come from the ERP item master only; the higher MRP is current."""
+    if not q("SELECT count(*) FROM stg.item_master")[0][0]:
+        pytest.skip("no ERP item master loaded")
+    bad = q("""SELECT count(*) FROM core.dim_product p LEFT JOIN stg.item_master im USING (sku_code)
+               WHERE NOT p.is_unknown_member AND (p.category IS DISTINCT FROM im.category
+                     OR p.current_cost IS DISTINCT FROM round(nullif(im.cost, 0), 2))""")[0][0]   # stored to the paisa
+    assert bad == 0
+    lower = q("""SELECT count(*) FROM core.dim_product p JOIN stg.item_master im USING (sku_code)
+                 WHERE im.mrp > 0 AND p.current_mrp < im.mrp""")[0][0]
+    assert lower == 0                                    # never below the item master's MRP
+    assert q("""SELECT count(*) FROM mart.v_stock_position_latest
+                WHERE stock_value_cost IS DISTINCT FROM CASE WHEN unit_cost > 0 THEN on_hand_qty * unit_cost END""")[0][0] == 0
+    assert q("SELECT channel_group FROM core.dim_channel WHERE channel_code = 'EXPORT_B2C'") == [("D2C_WEBSITE",)]

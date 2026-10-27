@@ -95,7 +95,8 @@ SELECT sku_code, prio, product_name, product_type, category, sub_category, produ
     UNION ALL SELECT sku_code, 8, product_name, NULL, NULL, NULL, NULL, NULL, NULL, NULL, unit_mrp, order_date FROM stg.instamart_sales
     UNION ALL SELECT sku_code, 8, product_name, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, snapshot_date FROM stg.inventory_snapshot
     WHERE source_name <> 'ERP_INVENTORY_SNAPSHOT'
-    -- ERP item master last: it only fills what no transaction or master source above holds (mainly category)
+    -- ERP item master last for names, types, HSN, UOM, EAN (fills gaps only). Category, sub-category and cost come from it
+    -- directly (product_attr below), and its MRP joins the highest-MRP rule.
     UNION ALL SELECT sku_code, 9, product_name, product_type, category, sub_category, NULL, hsn_code, uom, ean_code, mrp, as_of_date
     FROM stg.item_master
 ) x WHERE sku_code IS NOT NULL AND sku_code <> '';
@@ -122,14 +123,18 @@ erp_mrp AS (   -- current MRP: latest ERP stock report (largest non-zero across 
 inv_mrp AS (   -- ... else the latest invoice MRP
     SELECT DISTINCT ON (sku_code) sku_code, unit_mrp AS m FROM stg.retail_sales
     WHERE unit_mrp > 0 ORDER BY sku_code, bill_date DESC NULLS LAST, source_row_number DESC),
-mrp AS (SELECT p.sku_code, coalesce(e.m, i.m, im.mrp) AS current_mrp FROM pick p     -- ... else the ERP item master
+-- 2.5 (business rule, Oct 2026): where sources disagree the HIGHER MRP is current: prices were raised, and the lower MRP is
+-- old stock's label. So the current MRP is the highest of the stock report, the latest invoice and the ERP item master.
+mrp AS (SELECT p.sku_code, nullif(greatest(e.m, i.m, im.mrp), 0) AS current_mrp FROM pick p
         LEFT JOIN erp_mrp e USING (sku_code) LEFT JOIN inv_mrp i USING (sku_code) LEFT JOIN stg.item_master im USING (sku_code))
-SELECT p.*, m.current_mrp,
+-- 2.5: category, sub-category and cost come from the ERP item master only (business rule): no category there = uncategorised
+SELECT p.*, m.current_mrp, im.category AS master_category, im.sub_category AS master_sub_category, nullif(im.cost, 0) AS current_cost,
        coalesce(ov.standard_value, tn.standard_value, 'UNKNOWN') AS item_type,
        CASE WHEN coalesce(ov.standard_value, tn.standard_value) = 'TRADING' THEN
             CASE ms.status WHEN 'Continued' THEN 'CONTINUED' WHEN 'Discontinued' THEN 'DISCONTINUED' ELSE 'NOT_IN_MASTER' END
             ELSE 'NOT_APPLICABLE' END AS lifecycle_status
 FROM pick p JOIN mrp m USING (sku_code)
+LEFT JOIN stg.item_master im USING (sku_code)
 LEFT JOIN ref.code_mapping ov ON ov.domain = 'ITEM_TYPE' AND ov.source_name = 'PRODUCT_MASTER' AND ov.source_value = p.sku_code
 LEFT JOIN ref.code_mapping tn ON tn.domain = 'ITEM_TYPE_NAME' AND tn.source_name = 'PRODUCT_MASTER' AND tn.source_value = p.product_type
 LEFT JOIN (SELECT DISTINCT ON (stg.sku(prod_num)) stg.sku(prod_num) sku_code, btrim(status) status FROM raw.product_master
@@ -137,21 +142,21 @@ LEFT JOIN (SELECT DISTINCT ON (stg.sku(prod_num)) stg.sku(prod_num) sku_code, bt
            ORDER BY stg.sku(prod_num), source_row_number) ms ON ms.sku_code = p.sku_code;
 
 INSERT INTO core.dim_product (sku_code, product_name, item_type, category, sub_category, product_family, hsn_code, uom, ean_code,
-    lifecycle_status, current_mrp, first_seen_date)
-SELECT sku_code, coalesce(product_name, sku_code), item_type, category, sub_category, product_family, hsn_code, uom, ean_code,
-       lifecycle_status, current_mrp, first_seen_date
+    lifecycle_status, current_mrp, current_cost, first_seen_date)
+SELECT sku_code, coalesce(product_name, sku_code), item_type, master_category, master_sub_category, product_family, hsn_code, uom, ean_code,
+       lifecycle_status, current_mrp, current_cost, first_seen_date
 FROM product_attr
 ON CONFLICT (sku_code) DO UPDATE SET product_name = EXCLUDED.product_name, item_type = EXCLUDED.item_type, category = EXCLUDED.category,
     sub_category = EXCLUDED.sub_category, product_family = EXCLUDED.product_family, hsn_code = EXCLUDED.hsn_code, uom = EXCLUDED.uom,
     ean_code = coalesce(EXCLUDED.ean_code, core.dim_product.ean_code), lifecycle_status = EXCLUDED.lifecycle_status,
-    current_mrp = EXCLUDED.current_mrp,
+    current_mrp = EXCLUDED.current_mrp, current_cost = EXCLUDED.current_cost,
     first_seen_date = least(EXCLUDED.first_seen_date, core.dim_product.first_seen_date), updated_at = CURRENT_TIMESTAMP
 WHERE (core.dim_product.product_name, core.dim_product.item_type, core.dim_product.category, core.dim_product.sub_category,
        core.dim_product.product_family, core.dim_product.hsn_code, core.dim_product.uom, core.dim_product.ean_code,
-       core.dim_product.lifecycle_status, core.dim_product.current_mrp, core.dim_product.first_seen_date)
+       core.dim_product.lifecycle_status, core.dim_product.current_mrp, core.dim_product.current_cost, core.dim_product.first_seen_date)
   IS DISTINCT FROM (EXCLUDED.product_name, EXCLUDED.item_type, EXCLUDED.category, EXCLUDED.sub_category,
        EXCLUDED.product_family, EXCLUDED.hsn_code, EXCLUDED.uom, coalesce(EXCLUDED.ean_code, core.dim_product.ean_code),
-       EXCLUDED.lifecycle_status, EXCLUDED.current_mrp, least(EXCLUDED.first_seen_date, core.dim_product.first_seen_date));
+       EXCLUDED.lifecycle_status, EXCLUDED.current_mrp, EXCLUDED.current_cost, least(EXCLUDED.first_seen_date, core.dim_product.first_seen_date));
 
 -- Product history (type 2) for lifecycle, MRP, category, collection, dated by the master's as-of date.
 CREATE TEMP TABLE hist_basis ON COMMIT DROP AS

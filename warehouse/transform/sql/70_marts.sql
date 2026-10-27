@@ -33,6 +33,7 @@ GROUP BY d.calendar_date, d.fiscal_year_label, d.fiscal_month, d.month_start_dat
          c.channel_group, l.location_code, l.location_name, p.sku_code, p.product_name, p.item_type, p.lifecycle_status, p.category,
          pt.partner_type, pt.is_related_party, pt.is_sale_or_return;
 
+-- 2.8: stock is valued at cost (stock_value_cost; unit cost from the ERP item master). MRP value kept for reference.
 -- 2.4: category_label is never blank ('Uncategorised'); stock_value_mrp is NULL, not 0, when no source holds an MRP
 -- (mrp_status = 'MRP missing'), so a value total can say how many units it leaves out.
 -- Current stock per location and SKU, each location counted ONCE from its system of record (BR-025).
@@ -62,7 +63,11 @@ SELECT l.location_code, l.location_name, l.location_type, l.operated_by, l.is_se
        x.on_hand_qty, x.sellable_qty, x.in_transit_qty, d.calendar_date AS as_of_date, x.basis,
        coalesce(p.category, 'Uncategorised')::VARCHAR(100) AS category_label,
        CASE WHEN p.current_mrp > 0 THEN 'MRP known' ELSE 'MRP missing' END AS mrp_status,
-       CASE WHEN p.current_mrp > 0 THEN x.on_hand_qty * p.current_mrp END AS stock_value_mrp
+       CASE WHEN p.current_mrp > 0 THEN x.on_hand_qty * p.current_mrp END AS stock_value_mrp,
+       p.current_cost AS unit_cost,
+       CASE WHEN p.current_cost > 0 THEN x.on_hand_qty * p.current_cost END AS stock_value_cost,
+       CASE WHEN p.current_cost > 0 THEN 'Cost known' ELSE 'Cost missing' END AS cost_status,
+       coalesce(p.sub_category, 'Uncategorised')::VARCHAR(100) AS sub_category_label
 FROM (SELECT * FROM snap UNION ALL SELECT * FROM ledger) x
 JOIN core.dim_location l ON l.location_key = x.location_key
 JOIN core.dim_product p ON p.product_key = x.product_key
@@ -277,7 +282,8 @@ LEFT JOIN tracking tr ON tr.channel_key = f.channel_key;
 CREATE OR REPLACE VIEW mart.v_stock_position_daily AS
 SELECT d.calendar_date AS snapshot_date, d.month_start_date, l.location_code, l.location_name, l.location_type, l.is_sellable_stock,
        p.sku_code, p.product_name, p.item_type, p.lifecycle_status, p.category, p.current_mrp,
-       sum(s.on_hand_qty) AS on_hand_qty, sum(coalesce(s.sellable_qty, s.on_hand_qty)) AS sellable_qty, s.source_name
+       sum(s.on_hand_qty) AS on_hand_qty, sum(coalesce(s.sellable_qty, s.on_hand_qty)) AS sellable_qty, s.source_name,
+       p.current_cost AS unit_cost, sum(s.on_hand_qty) * p.current_cost AS stock_value_cost
 FROM core.fact_inventory_snapshot s
 JOIN core.dim_location l ON l.location_key = s.location_key
 JOIN core.dim_product p ON p.product_key = s.product_key
@@ -285,7 +291,7 @@ JOIN core.dim_date d ON d.date_key = s.snapshot_date_key
 WHERE NOT l.is_unknown_member AND l.inventory_system_of_record = CASE s.source_name WHEN 'ERP_INVENTORY_SNAPSHOT' THEN 'ERP'
           WHEN 'BLINKIT_INVENTORY' THEN 'BLINKIT' WHEN 'INSTAMART_INVENTORY' THEN 'INSTAMART' END
 GROUP BY d.calendar_date, d.month_start_date, l.location_code, l.location_name, l.location_type, l.is_sellable_stock, p.sku_code,
-         p.product_name, p.item_type, p.lifecycle_status, p.category, p.current_mrp, s.source_name;
+         p.product_name, p.item_type, p.lifecycle_status, p.category, p.current_mrp, s.source_name, p.current_cost;
 
 -- Returns with the sale they reverse (where the original invoice is loaded): how long after the sale goods come back.
 CREATE OR REPLACE VIEW mart.v_return_to_sale AS

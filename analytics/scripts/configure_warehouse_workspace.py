@@ -1,14 +1,16 @@
 """
-Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.4, through the public API.
+Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.8, through the public API.
 Re-runnable: every step checks what is already there.
 
     python scripts/configure_warehouse_workspace.py [--base http://localhost:8000] [--workspace 34]
 
-1. Syncs the connector datasets whose mart views gained columns in 2.4 (stock, transfers, POs, cover, fulfilment,
-   products), so the new columns appear.
+1. Syncs every warehouse (connector) dataset, so new columns and re-classified rows appear (2.8 changed categories,
+   MRPs and channels across all views).
 2. Imports mart.v_purchase_order_lines as dataset purchase_order_lines (every PO line, with exception flags).
 3. Metrics: RTO rate is computed on channels that report RTO (is_rto_tracked), delivery time on channels that report
-   deliveries (is_delivery_tracked); new stock_units_no_mrp and over_received_qty.
+   deliveries (is_delivery_tracked); stock_units_no_mrp, over_received_qty; 2.8: stock_value_cost (stock is valued at
+   cost) and stock_units_no_cost.
+4. Calculated column sales_segment: Ellementry International (channel EXPORT_B2C) is its own segment, "B2C export".
 Run build_executive_dashboards.py afterwards.
 """
 from __future__ import annotations
@@ -19,8 +21,8 @@ import sys
 import urllib.error
 import urllib.request
 
-SYNC = ["stock_position_latest", "transfer_in_transit", "open_purchase_orders", "days_of_cover", "fulfilment", "products"]
-SRC = "From ellementry_dw mart (schema 2.4)"
+SRC = "From ellementry_dw mart (schema 2.8)"
+B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 
 
 def main() -> int:
@@ -40,7 +42,7 @@ def main() -> int:
 
     failures = 0
     datasets = {d["slug"]: d for d in call("GET", "/datasets")[1]}
-    for name in SYNC:
+    for name in sorted(n for n, d in datasets.items() if d["kind"] == "connector"):
         s, r = call("POST", f"/datasets/{datasets[name]['id']}/sync")
         print(f"sync {name}: {'OK ' + str(r['dataset']['row_count']) + ' rows' if s == 200 else f'FAILED {r}'}")
         failures += s != 200
@@ -78,6 +80,16 @@ def main() -> int:
          "expression": "SUM(over_received_qty)", "filters": [],
          "description": SRC + ". PO lines where more was received than ordered (pending quantity below zero).",
          "synonyms": ["over received", "excess receipt"], "format": "number", "higher_is_better": False},
+        {"name": "stock_value_cost", "label": "Stock value at cost", "dataset_id": ds("stock_position_latest"),
+         "expression": "SUM(stock_value_cost)", "filters": [], "time_column": "as_of_date", "semi_additive": True,
+         "description": SRC + ". Units on hand x unit cost from the ERP item master (excl. GST). The company values stock at cost.",
+         "synonyms": ["stock value", "inventory value", "stock at cost", "inventory at cost"], "format": "currency",
+         "higher_is_better": True},
+        {"name": "stock_units_no_cost", "label": "Units with no cost (left out of stock value)", "dataset_id": ds("stock_position_latest"),
+         "expression": "SUM(CASE WHEN cost_status = 'Cost missing' THEN on_hand_qty ELSE 0 END)", "filters": [],
+         "time_column": "as_of_date", "semi_additive": True,
+         "description": SRC + ". Stock whose item has no cost in the ERP item master.",
+         "synonyms": ["missing cost", "no cost"], "format": "number", "higher_is_better": False},
     ]
     metrics = {x["name"]: x for x in call("GET", "/metrics")[1]}
     for w in wanted:
@@ -90,6 +102,19 @@ def main() -> int:
             ok = s == 201
         print(f"metric {w['name']}: {'OK' if ok else f'FAILED {r}'}")
         failures += not ok
+
+    for name in ("net_sales_daily", "sales_orders_daily"):
+        full = call("GET", f"/datasets/{ds(name)}")[1]
+        col = next(c for c in full["columns"] if c["name"] == "sales_segment")
+        expr = col["expression"]
+        if expr.startswith("CAST((") and expr.endswith(") AS TEXT)"):   # stored with the type cast the app adds
+            expr = expr[len("CAST(("):-len(") AS TEXT)")]
+        if "EXPORT_B2C" not in expr:
+            assert expr.startswith("CASE WHEN "), expr[:40]
+            expr = "CASE " + B2C_EXPORT + expr[len("CASE "):]
+            s, r = call("PATCH", f"/datasets/{ds(name)}/columns/sales_segment", {"expression": expr, "data_type": "text"})
+            print(f"{name}.sales_segment B2C export: {'OK' if s == 200 else f'FAILED {r}'}")
+            failures += s != 200
     return 1 if failures else 0
 
 
