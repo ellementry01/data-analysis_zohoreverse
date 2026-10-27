@@ -31,7 +31,7 @@ STALE_TRANSIT = {"field": "transfer_in_transit.transit_status", "op": "eq", "val
 # Amazon receives FBA shipments itself and never posts an ERP inward entry (G-007): kept apart from own locations
 TO_OWN = {"field": "transfer_in_transit.destination_group", "op": "eq", "value": "To own locations"}
 TO_FBA = {"field": "transfer_in_transit.destination_group", "op": "eq", "value": "To Amazon FBA"}
-# the PO export's own Document Remark; shown as a filter only, rule BR-031 is not applied in the warehouse yet
+# BR-031 confirmed (warehouse 2.10): the warehouse already leaves return-inward lines out; the filter is a safety net
 PURCHASE_PO = {"field": "open_purchase_orders.document_type", "op": "eq", "value": "PURCHASE"}
 PURCHASE_LT = {"field": "supplier_lead_time.document_type", "op": "eq", "value": "PURCHASE"}
 
@@ -163,7 +163,7 @@ DASHBOARDS = [
 
     ("Purchasing & transfers",
      "Open purchase-order lines from the latest PO exports, and stock sent between locations but not yet received. "
-     "Purchase vs return lines follow the PO export's own Document Remark (rule BR-031 awaiting business confirmation). "
+     "Purchases only: return-inward lines (PO Document Remark 'Return', rule BR-031, confirmed) are left out. "
      "The FY 25-26 PO export's date is assumed (31 Mar 2026), so its 'overdue' days are a minimum. "
      "Stock sent to Amazon FBA is received by Amazon, which never posts an ERP inward entry: it is shown apart from own "
      "locations, where 'not received after 60 days' is a real exception for the warehouse team.",

@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.9
+# Ellementry Data Warehouse — v2.10
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -74,6 +74,13 @@ others). Unallocated SKU lines: 2,799 (2.4) -> 338 (2.5) -> 31 (2.6) -> 4, which
 gap G-025 closed). Setting `goods_receipt_location` = BAGRU_WH places all 4,906 receipts. They enter the stock ledger
 once purchase vs return-inward is known: rule BR-031 confirmed, or the factory list (G-005).
 
+2.10 (`sql/180_po_remark_confirmed.sql`): **rule BR-031 confirmed** (switch `po_document_remark_confirmed` = true).
+Return-inward lines leave open POs (682 -> 625 lines) and lead time (purchase lines only: 2,054, avg 75 days); all
+4,906 receipts enter the stock ledger (2,054 GOODS_RECEIPT, 3,33,147 units; 2,852 RETURN_INWARD, 5,972 units).
+This surfaced a gap: `implied_negative_opening_stock` 23 -> 296, of which 284 SKUs at Bagru, ~20,700 units received
+in the period whose way out is in no export (assemblies? consumption? another ERP location?). List:
+`reports/bagru_unexplained_outflow.csv`; the month-end stock exports will narrow it down.
+
 ## Layout
 
 ```
@@ -101,6 +108,7 @@ sql/140_bill_financial_year.sql schema 2.6: bill identity includes the financial
 sql/150_shipment_sku_quantity_rules.sql schema 2.7: ONE_EACH / REMAINDER quantities for multi-SKU dispatch rows
 sql/160_cost_and_category.sql schema 2.8: product unit cost (stock valued at cost); highest-MRP and item-master category rules
 sql/170_goods_receipt_location.sql schema 2.9: goods receipts placed at Bagru (BR-032)
+sql/180_po_remark_confirmed.sql schema 2.10: BR-031 confirmed (Purchase vs Return lines)
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

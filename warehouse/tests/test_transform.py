@@ -150,8 +150,9 @@ def po_exports(tmp_path):
         with psycopg.connect(dbname=DB) as c:
             return load_file("ERP_PURCHASE_ORDER", _po_xlsx(tmp_path / name, rows), as_of=dt.date.fromisoformat(as_of),
                              loaded_by="pytest", conn=c)
+    confirmed = q("SELECT setting_value FROM meta.pipeline_setting WHERE setting_key = 'po_document_remark_confirmed'")[0][0]
     yield load
-    setting("po_document_remark_confirmed", "false")
+    setting("po_document_remark_confirmed", confirmed)          # BR-031 is confirmed in production since 2.10
     with psycopg.connect(dbname=DB) as c:
         c.execute("UPDATE meta.load_batch SET status = 'SUPERSEDED' WHERE batch_id > %s", (start,))
     assert run().returncode == 0                       # facts no longer point at the test batches
@@ -189,6 +190,7 @@ def test_po_exports_of_different_years_coexist_and_a_reexport_replaces(po_export
 def test_po_document_remark_decides_nothing_until_confirmed(po_exports):
     po_exports("remark.xlsx", [("PYTEST/R/1", "2026-04-03", "GSTEA2724", 5, 5, "In Progress", "Purchase"),
                                ("PYTEST/R/2", "2026-04-03", "GSTEA2724", 3, 3, "In Progress", "Return")], "2026-04-30")
+    setting("po_document_remark_confirmed", "false")
     assert run().returncode == 0
     open_pos = lambda: dict(q("SELECT po_number, document_type FROM mart.v_open_purchase_orders WHERE po_number LIKE %s", "PYTEST/R/%"))
     assert open_pos() == {"PYTEST/R/1": "PURCHASE", "PYTEST/R/2": "RETURN"}       # BR-031 proposed: shown, not applied
