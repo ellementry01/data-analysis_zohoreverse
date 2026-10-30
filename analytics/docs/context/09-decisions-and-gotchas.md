@@ -27,6 +27,7 @@
 | A sales bill is identified by its number and financial year (2.6) | The ERP restarts bill numbers every April; keying by number alone dropped FY 25-26 bills, and the reconciliation shared the same key so it could not see it. Lesson: a check must not reuse the logic it checks |
 | WMS shipments link to ERP bills by Extern Order No, then AWB (2.5) | The WMS Invoice No of marketplace orders is the marketplace's own invoice |
 | Stock is valued at cost, not MRP (business, 2026-10-27); where MRPs disagree the higher one is current; category from the ERP item master only | Business rules: the company values stock at cost; prices were raised, so the lower MRP is old stock's label |
+| The stock report of the day before the period (31 Mar 2025) is kept as opening stock (BR-033); month-end reports are stock history; a month-by-month movement check replaces the single implied-opening check | With saved stock days, gaps can be dated to a month instead of guessed over the whole period |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
 
 ## Gotchas

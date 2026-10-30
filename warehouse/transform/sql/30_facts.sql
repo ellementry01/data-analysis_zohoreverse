@@ -233,7 +233,7 @@ LEFT JOIN lk_loc l ON l.source_name = s.source_name AND l.source_value = s.locat
                   AND l.source_field = CASE s.source_name WHEN 'ERP_INVENTORY_SNAPSHOT' THEN 'location column header'
                                                           WHEN 'BLINKIT_INVENTORY' THEN 'Warehouse Facility Name' ELSE 'FacilityName' END
 LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
-WHERE s.snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)
+WHERE s.snapshot_date BETWEEN (SELECT period_start FROM ctx) - 1 AND (SELECT period_end FROM ctx)   -- the day before = opening stock (BR-033)
   AND s.on_hand_qty IS NOT NULL
   AND (s.on_hand_qty <> 0 OR coalesce(s.in_transit_qty, 0) <> 0 OR coalesce(s.incoming_qty, 0) <> 0);
 

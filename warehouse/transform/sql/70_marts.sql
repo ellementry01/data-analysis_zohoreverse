@@ -323,3 +323,4 @@ JOIN core.dim_date d ON d.date_key = po.po_date_key
 LEFT JOIN core.dim_date dd ON dd.date_key = po.due_date_key
 JOIN core.dim_partner pt ON pt.partner_key = po.partner_key
 JOIN core.dim_product p ON p.product_key = po.product_key;
+

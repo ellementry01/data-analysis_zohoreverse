@@ -120,7 +120,8 @@ DASHBOARDS = [
             extra=[{"metric": "units_returned"}]), 0, 12, 12, 6)]),
 
     ("Stock",
-     "Stock on 15 Sep 2026, each location from its own stock report, trading items only, valued at cost "
+     "Stock on 15 Sep 2026 (trend: month-end stock reports from 31 Mar 2025), each location from its own stock report, "
+     "trading items only, valued at cost "
      "(unit cost from the ERP item master, excl. GST). Categories come from the ERP item master. "
      "History starts once the daily stock report is saved (gap G-001). Stock at partners has no opening balance yet (G-028).",
      [],
@@ -138,7 +139,10 @@ DASHBOARDS = [
       chart("Stock value by category", "hbar", top("stock_position_latest.category_label", "stock_value_cost", 15, [TRADING, OWN_STOCK]), 0, 7, 6, 6,
             drill=["stock_position_latest.sub_category_label", "stock_position_latest.product_name"]),
       chart("Stock by location", "table", top("stock_position_latest.location_name", "stock_value_cost", 25, [TRADING, OWN_STOCK],
-            [{"metric": "stock_on_hand"}]), 6, 7, 6, 6)]),
+            [{"metric": "stock_on_hand"}]), 6, 7, 6, 6),
+      chart("Stock value at cost, month-end", "line",
+            {"dimensions": [MONTH], "measures": [{"metric": "stock_value_cost_history"}],
+             "filters": [{"field": "stock_position_daily.item_type", "op": "eq", "value": "TRADING"}]}, 0, 13, 12, 5)]),
 
     ("Fulfilment",
      "Website and marketplace orders dispatched from Bagru (WMS export). RTO = returned to origin. Late = shipped after the "

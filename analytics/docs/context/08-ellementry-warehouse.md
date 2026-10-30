@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.10**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.11**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -131,7 +131,15 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
 - **Quick commerce:** Instamart is the focus; Blinkit stays loaded but is not worked on for now; Zepto has no data yet.
 - **Goods receipts arrive at Bagru** (BR-032, schema 2.9; G-025 closed). **BR-031 confirmed** (schema 2.10): open
   POs and lead time cover purchase lines only, and receipts are in the stock ledger. Open question: 284 Bagru SKUs
-  (~20,700 units) received with no recorded way out (`reports/bagru_unexplained_outflow.csv`).
+  (~20,700 units) received with no recorded way out (superseded in 2.11, see below).
+- **Stock history (schema 2.11):** month-end stock reports 31 Mar 2025 - 31 Aug 2026 loaded (19 stock days with 15 Sep).
+  Stock dashboard: "Stock value at cost, month-end" (metric `stock_value_cost_history`, dataset `stock_position_daily`).
+  New dataset `stock_movement_check` (metric `unexplained_stock_qty`): opening + movements vs closing per period. Bagru,
+  whole period: 55,188 units left and 71,350 arrived with no document (non-PO purchases, gift-set assembly, packaging
+  use): `reports/bagru_unexplained_stock.csv`. What would explain it: an ERP item-wise stock ledger or GRN register
+  that includes non-PO inwards, assembly and consumption.
+- **Blinkit:** old Blinkit data is set aside (new seller arrangement); the negative consignment ledger stays hidden.
+- **Negative ERP stock and Instamart inventory:** the business is handling both.
 - **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace
   RTO must come from marketplace seller-panel reports or courier MIS exports by AWB.
 - **Coming from the business:** ERP inventory for chosen past days (see the stock-history plan), Instamart daily

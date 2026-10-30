@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.10
+# Ellementry Data Warehouse — v2.11
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -81,6 +81,16 @@ This surfaced a gap: `implied_negative_opening_stock` 23 -> 296, of which 284 SK
 in the period whose way out is in no export (assemblies? consumption? another ERP location?). List:
 `reports/bagru_unexplained_outflow.csv`; the month-end stock exports will narrow it down.
 
+2.11 (`sql/190_stock_history.sql`, `transform/sql/45_stock_check.sql`): **stock history** from the month-end stock
+reports (31 Mar 2025 - 31 Aug 2026, received Oct 2026; 19 stock days with 15 Sep 2026). The report of the day before
+the period is kept as opening stock (BR-033). New `mart.v_stock_movement_check`: between two saved stock days, opening +
+recorded movements vs closing, per location and SKU (`unexplained_qty`); check `stock_movement_unexplained` replaces
+`implied_negative_opening_stock`. Findings: month-to-month swings at Bagru are mostly receipt timing (one date per PO line,
+G-027); over the whole period Bagru has 55,188 units that left and 71,350 that arrived with no document in the exports
+(purchases without a PO, sets assembled at Bagru, packaging used): `reports/bagru_unexplained_stock.csv`. The 2.10
+"received with no way out" reading came from the missing opening stock and is superseded. The 7 locations named in
+the report filter without a column never had a column in any of the 19 reports: they hold no stock.
+
 ## Layout
 
 ```
@@ -109,6 +119,7 @@ sql/150_shipment_sku_quantity_rules.sql schema 2.7: ONE_EACH / REMAINDER quantit
 sql/160_cost_and_category.sql schema 2.8: product unit cost (stock valued at cost); highest-MRP and item-master category rules
 sql/170_goods_receipt_location.sql schema 2.9: goods receipts placed at Bagru (BR-032)
 sql/180_po_remark_confirmed.sql schema 2.10: BR-031 confirmed (Purchase vs Return lines)
+sql/190_stock_history.sql     schema 2.11: month-end stock history, opening stock (BR-033), stock movement check
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

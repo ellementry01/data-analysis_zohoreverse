@@ -28,7 +28,7 @@ FROM (SELECT (SELECT count(*) FROM stg.retail_return WHERE return_date BETWEEN (
 INSERT INTO dq SELECT 'inventory_units_reconcile', 'core.fact_inventory_snapshot', 'ERROR', CASE WHEN abs(a - b) > 0.001 THEN 1 ELSE 0 END,
        format('ERP stock report units in period: staged %s, fact %s', a, b)
 FROM (SELECT coalesce((SELECT sum(on_hand_qty) FROM stg.inventory_snapshot WHERE source_name = 'ERP_INVENTORY_SNAPSHOT'
-                         AND snapshot_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)), 0) a,
+                         AND snapshot_date BETWEEN (SELECT period_start FROM ctx) - 1 AND (SELECT period_end FROM ctx)), 0) a,
              coalesce((SELECT sum(on_hand_qty) FROM core.fact_inventory_snapshot WHERE source_name = 'ERP_INVENTORY_SNAPSHOT'), 0) b) x;
 
 INSERT INTO dq SELECT 'shipment_rows_reconcile', 'core.fact_shipment', 'ERROR', abs(a - b), format('staged in-period deliveries %s, fact rows %s', a, b)
@@ -116,7 +116,7 @@ INSERT INTO dq SELECT 'outside_period_excluded', t, 'WARN', n, 'rows outside the
     UNION ALL SELECT 'stg.purchase_order', count(*) FILTER (WHERE po_date NOT BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) FROM stg.purchase_order
     UNION ALL SELECT 'stg.blinkit_sales', count(*) FILTER (WHERE order_date NOT BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) FROM stg.blinkit_sales
     UNION ALL SELECT 'stg.instamart_sales', count(*) FILTER (WHERE order_date NOT BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) FROM stg.instamart_sales
-    UNION ALL SELECT 'stg.inventory_snapshot', count(*) FILTER (WHERE snapshot_date NOT BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) FROM stg.inventory_snapshot) x;
+    UNION ALL SELECT 'stg.inventory_snapshot', count(*) FILTER (WHERE snapshot_date NOT BETWEEN (SELECT period_start FROM ctx) - 1 AND (SELECT period_end FROM ctx)) FROM stg.inventory_snapshot) x;
 
 INSERT INTO dq SELECT 'unparseable_dates', t, 'WARN', n, 'non-empty date text that is not a valid date; row excluded' FROM (
     SELECT 'stg.retail_sales' t, count(*) FILTER (WHERE bill_date IS NULL AND bill_date_raw IS NOT NULL) n FROM stg.retail_sales
@@ -193,18 +193,14 @@ INSERT INTO dq SELECT 'ledger_not_placed', what, 'WARN', n, why FROM (
       FROM core.fact_sales_line s JOIN core.dim_partner p USING (partner_key)
      WHERE p.is_sale_or_return AND NOT EXISTS (SELECT 1 FROM lk_consign c WHERE c.partner_key = s.partner_key)) x;
 
--- Opening stock implied by today's snapshot minus the recorded movements. Negative = an inflow is missing
--- from the ledger (expected while goods receipts cannot be placed).
-INSERT INTO dq SELECT 'implied_negative_opening_stock', 'core.fact_stock_movement', 'WARN', count(*),
-       format('location x SKU pairs whose snapshot minus recorded movements is below zero, as of %s', max(snap_date))
-FROM (SELECT s.location_key, s.product_key, max(d.calendar_date) snap_date, sum(s.on_hand_qty) snap,
-             coalesce((SELECT sum(m.quantity) FROM core.fact_stock_movement m WHERE m.location_key = s.location_key
-                        AND m.product_key = s.product_key AND m.movement_date_key <= s.snapshot_date_key), 0) moved
-      FROM core.fact_inventory_snapshot s JOIN core.dim_date d ON d.date_key = s.snapshot_date_key
-      JOIN core.dim_location l ON l.location_key = s.location_key
-      WHERE s.source_name = 'ERP_INVENTORY_SNAPSHOT' AND l.inventory_system_of_record = 'ERP' AND s.location_key <> -1 AND s.product_key <> -1
-      GROUP BY s.location_key, s.product_key, s.snapshot_date_key) x
-WHERE snap - moved < 0;
+-- 2.11: with month-end stock days saved, check each period between two stock days: opening + recorded movements should
+-- equal closing (mart.v_stock_movement_check). Before 2.11 this was one check from a single snapshot back to the period
+-- start (implied_negative_opening_stock), which could only work while there was one stock day.
+INSERT INTO dq SELECT 'stock_movement_unexplained', 'mart.v_stock_movement_check', 'WARN', count(*),
+       format('location x SKU x period rows where closing stock <> opening + recorded movements: %s units left without a document, %s arrived without one (%s stock days)',
+              coalesce(-sum(unexplained_qty) FILTER (WHERE unexplained_qty < 0), 0), coalesce(sum(unexplained_qty) FILTER (WHERE unexplained_qty > 0), 0),
+              (SELECT count(DISTINCT snapshot_date_key) FROM core.fact_inventory_snapshot WHERE source_name = 'ERP_INVENTORY_SNAPSHOT'))
+FROM mart.v_stock_movement_check WHERE unexplained_qty <> 0;
 
 -- ============================================================ write results
 INSERT INTO meta.dq_check_result (transform_run_id, check_name, target_table, severity, outcome, failed_row_count, details)

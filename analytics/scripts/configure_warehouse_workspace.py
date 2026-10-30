@@ -1,5 +1,5 @@
 """
-Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.8, through the public API.
+Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.11, through the public API.
 Re-runnable: every step checks what is already there.
 
     python scripts/configure_warehouse_workspace.py [--base http://localhost:8000] [--workspace 34]
@@ -21,7 +21,9 @@ import sys
 import urllib.error
 import urllib.request
 
-SRC = "From ellementry_dw mart (schema 2.8)"
+SRC = "From ellementry_dw mart (schema 2.11)"
+IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every PO line with exception flags
+           ("v_stock_movement_check", "stock_movement_check")]     # 2.11: opening + movements vs closing, per stock period
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 
 
@@ -47,12 +49,13 @@ def main() -> int:
         print(f"sync {name}: {'OK ' + str(r['dataset']['row_count']) + ' rows' if s == 200 else f'FAILED {r}'}")
         failures += s != 200
 
-    if "purchase_order_lines" not in datasets:
-        connector = next(c for c in call("GET", "/connectors")[1] if c["name"].startswith("ellementry_dw"))
+    connector = next(c for c in call("GET", "/connectors")[1] if c["name"].startswith("ellementry_dw"))
+    for view, name in IMPORTS:
+        if name in datasets:
+            continue
         s, r = call("POST", f"/connectors/{connector['id']}/import",
-                    {"tables": [{"schema": "mart", "table": "v_purchase_order_lines", "name": "purchase_order_lines"}],
-                     "refresh_minutes": 60})
-        print(f"import purchase_order_lines: {'OK' if s == 201 else f'FAILED {r}'}")
+                    {"tables": [{"schema": "mart", "table": view, "name": name}], "refresh_minutes": 60})
+        print(f"import {name}: {'OK' if s == 201 else f'FAILED {r}'}")
         failures += s != 201
     datasets = {d["slug"]: d for d in call("GET", "/datasets")[1]}
 
@@ -85,6 +88,16 @@ def main() -> int:
          "description": SRC + ". Units on hand x unit cost from the ERP item master (excl. GST). The company values stock at cost.",
          "synonyms": ["stock value", "inventory value", "stock at cost", "inventory at cost"], "format": "currency",
          "higher_is_better": True},
+        {"name": "stock_value_cost_history", "label": "Stock value at cost (saved stock days)", "dataset_id": ds("stock_position_daily"),
+         "expression": "SUM(stock_value_cost)", "filters": [], "time_column": "snapshot_date", "semi_additive": True,
+         "description": SRC + ". Stock at cost on each saved stock day (month-ends from 31 Mar 2025, then 15 Sep 2026); "
+                              "by month it takes the last saved day of the month.",
+         "synonyms": ["stock trend", "stock history", "inventory trend"], "format": "currency", "higher_is_better": True},
+        {"name": "unexplained_stock_qty", "label": "Stock movement without a document (units)", "dataset_id": ds("stock_movement_check"),
+         "expression": "SUM(unexplained_qty)", "filters": [], "time_column": "period_to",
+         "description": SRC + ". Closing stock minus (opening + recorded movements) between two saved stock days. "
+                              "Negative = left without a document; positive = arrived without one.",
+         "synonyms": ["stock gap", "unexplained stock", "stock difference"], "format": "number", "higher_is_better": True},
         {"name": "stock_units_no_cost", "label": "Units with no cost (left out of stock value)", "dataset_id": ds("stock_position_latest"),
          "expression": "SUM(CASE WHEN cost_status = 'Cost missing' THEN on_hand_qty ELSE 0 END)", "filters": [],
          "time_column": "as_of_date", "semi_additive": True,
