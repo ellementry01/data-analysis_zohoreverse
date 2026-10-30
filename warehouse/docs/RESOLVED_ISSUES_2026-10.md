@@ -1,5 +1,7 @@
 # Resolved data issues — October 2026
 
+> **Current log:** [`ISSUE_LOG.md`](ISSUE_LOG.md) / [`Data_Issues_and_Doubts_Log_2026-10-30.xlsx`](Data_Issues_and_Doubts_Log_2026-10-30.xlsx), with every issue under Solved or Unsolved. This write-up covers schemas 2.4-2.7 only.
+
 The issues fixed in the warehouse (schemas 2.4 to 2.7, 22–26 Oct 2026) for the Stock, Fulfilment and Purchasing &
 transfers dashboards, and how each was fixed.
 
