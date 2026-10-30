@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.11**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.12**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -138,6 +138,8 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
   whole period: 55,188 units left and 71,350 arrived with no document (non-PO purchases, gift-set assembly, packaging
   use): `reports/bagru_unexplained_stock.csv`. What would explain it: an ERP item-wise stock ledger or GRN register
   that includes non-PO inwards, assembly and consumption.
+- **Schema 2.12 / 30 Oct:** PO exports dated 26 Sep 2026 (no more "export date assumed"); Instamart July 2025 fixed
+  (59,550 -> 310 units; total Instamart sell-out 6,494 units). Issue log: `warehouse/docs/ISSUE_LOG.md`.
 - **Blinkit:** old Blinkit data is set aside (new seller arrangement); the negative consignment ledger stays hidden.
 - **Negative ERP stock and Instamart inventory:** the business is handling both.
 - **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace

@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.11
+# Ellementry Data Warehouse — v2.12
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -91,6 +91,11 @@ G-027); over the whole period Bagru has 55,188 units that left and 71,350 that a
 "received with no way out" reading came from the missing opening stock and is superseded. The 7 locations named in
 the report filter without a column never had a column in any of the 19 reports: they hold no stock.
 
+2.12 (`sql/200_po_export_date.sql`): both Pending PO exports dated **26 Sep 2026** (file metadata; the FY 25-26 file
+holds receipts to 24 Sep 2026), so open PO lines are no longer "export date assumed" (D-083 / D-094). Also fixed in the
+normaliser (no schema change): the Instamart workbook's "june" sheet carries 37 July orders pasted one column to the
+left; they are copies of rows on the "july" sheet and are dropped (July 2025: 59,550 -> 310 units; D-126).
+
 ## Layout
 
 ```
@@ -120,6 +125,7 @@ sql/160_cost_and_category.sql schema 2.8: product unit cost (stock valued at cos
 sql/170_goods_receipt_location.sql schema 2.9: goods receipts placed at Bagru (BR-032)
 sql/180_po_remark_confirmed.sql schema 2.10: BR-031 confirmed (Purchase vs Return lines)
 sql/190_stock_history.sql     schema 2.11: month-end stock history, opening stock (BR-033), stock movement check
+sql/200_po_export_date.sql    schema 2.12: Pending PO exports dated 26 Sep 2026 (file metadata)
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

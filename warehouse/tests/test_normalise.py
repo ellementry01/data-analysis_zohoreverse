@@ -110,3 +110,26 @@ def test_stray_cells_are_skipped_and_reported(tmp_path):
     f = book(tmp_path / "i.xlsx", {"April": [[None] + INSTAMART, instamart_row(0, dt.datetime(2025, 4, 2)), stray]})
     recs, notes = {n: (r, no) for n, r, no in normalise_workbook(f, "INSTAMART_SALES")}["April"]
     assert len(recs) == 1 and any("skipped 1 row" in n for n in notes)
+
+
+def _shift_left(row):
+    """The 'june' sheet fault: an order pasted one column to the left of the SKU column (SKU cell lost)."""
+    i = 1 + INSTAMART.index("Elle SKU")
+    return row[:i] + row[i + 1:] + [None]
+
+
+def test_row_pasted_one_column_left_is_dropped_when_its_order_is_elsewhere(tmp_path):
+    good = instamart_row(0, dt.datetime(2025, 7, 9))
+    f = book(tmp_path / "i.xlsx", {"june": [[None] + INSTAMART, instamart_row(0, dt.datetime(2025, 6, 1)), _shift_left(good)],
+                                   "july": [[None] + INSTAMART, good]})
+    sheets = {n: (r, no) for n, r, no in normalise_workbook(f, "INSTAMART_SALES")}
+    june, notes = sheets["june"]
+    assert len(june) == 1 and june[0]["ORDERED_DATE"] == "2025-06-01" and any("one column to the left" in n for n in notes)
+    assert sum(r["UNITS_SOLD"] for r in sheets["july"][0]) == 1        # the order counts once, with its real quantity
+
+
+def test_row_pasted_one_column_left_without_a_correct_copy_is_refused(tmp_path):
+    f = book(tmp_path / "i.xlsx", {"june": [[None] + INSTAMART, instamart_row(0, dt.datetime(2025, 6, 1)),
+                                            _shift_left(instamart_row(1, dt.datetime(2025, 7, 9)))]})
+    with pytest.raises(LayoutError, match="shifted one column left"):
+        normalise_workbook(f, "INSTAMART_SALES")

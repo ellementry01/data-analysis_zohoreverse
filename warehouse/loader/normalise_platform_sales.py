@@ -216,7 +216,32 @@ def normalise_workbook(path: Path, source: str) -> list[tuple[str, list[dict], l
                 for r in rows[1:]:
                     if r[si] not in (None, "") and r[ii] not in (None, "") and SKU_PATTERN.match(str(r[si]).strip()):
                         item_to_sku[str(r[ii]).strip()].add(str(r[si]).strip())
-    return [(n, *normalise_sheet(source, n, rows, reference, item_to_sku)) for n, rows in sheets]
+    result = [(n, *normalise_sheet(source, n, rows, reference, item_to_sku)) for n, rows in sheets]
+    return _drop_shifted_copies(source, result) if source == "INSTAMART_SALES" else result
+
+
+def _drop_shifted_copies(source: str, result: list) -> list:
+    """Instamart 'june' sheet (Oct 2026 workbook): 37 July orders pasted at its foot one column to the left (no SKU
+    column), so 'No' sits in the SKU column, the MRP in COMBO_UNITS_SOLD and the selling value in UNITS_SOLD. Such a row
+    is dropped only when the same order (date, store, item id, MRP) is in the workbook correctly laid out; otherwise the
+    run stops: a shifted row is never repaired by guessing."""
+    def shifted(r):
+        return (str(r.get(SKU_HEADER[source]) or "").strip().lower() in ("no", "yes") and r.get("GMV") is None
+                and isinstance(r.get("COMBO_UNITS_SOLD"), (int, float)))
+    good = {(r[DATE_HEADER[source]], r["STORE_ID"], r[ITEM_HEADER[source]], r["BASE_MRP"])
+            for _, recs, _ in result for r in recs if not shifted(r)}
+    out = []
+    for name, recs, notes in result:
+        bad = [r for r in recs if shifted(r)]
+        if bad:
+            orphans = [r for r in bad if (r[DATE_HEADER[source]], r["STORE_ID"], r[ITEM_HEADER[source]], r["COMBO_UNITS_SOLD"]) not in good]
+            if orphans:
+                raise LayoutError(f"sheet {name!r}: {len(orphans)} row(s) shifted one column left with no correct copy elsewhere")
+            recs = [r for r in recs if not shifted(r)]
+            notes = notes + [f"dropped {len(bad)} row(s) pasted one column to the left; each is a copy of an order "
+                             f"present correctly in another sheet"]
+        out.append((name, recs, notes))
+    return out
 
 
 def write_month(source: str, records: list[dict], out_dir: Path) -> list[Path]:
