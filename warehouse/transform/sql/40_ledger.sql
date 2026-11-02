@@ -116,10 +116,14 @@ CROSS JOIN (SELECT coalesce(bool_or(setting_value = 'true'), FALSE) AS confirmed
 WHERE g.receiving_location_key <> -1
   AND (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE') OR (sw.confirmed AND po.document_type IN ('PURCHASE','RETURN')));
 
--- partner sell-through leaves the partner location (demand, not revenue: BR-024)
+-- partner sell-through leaves the partner location (demand, not revenue: BR-024). Instamart's sell-out names no facility we
+-- can map, so it leaves the pooled Instamart consignment stock (BR-034). Blinkit's stays unplaced (old Blinkit data parked).
 INSERT INTO core.fact_stock_movement (movement_date_key, location_key, product_key, movement_type_key, quantity,
     counterparty_location_key, partner_key, source_table, source_line_id)
-SELECT so.order_date_key, so.location_key, so.product_key, (SELECT movement_type_key FROM mt WHERE movement_code = 'CONSIGNMENT_SELLOUT'),
+SELECT so.order_date_key, coalesce(nullif(so.location_key, -1), pool.location_key), so.product_key,
+       (SELECT movement_type_key FROM mt WHERE movement_code = 'CONSIGNMENT_SELLOUT'),
        -so.units_sold, NULL, so.partner_key, 'fact_partner_sellout', so.sellout_id
 FROM core.fact_partner_sellout so JOIN stock_product sp ON sp.product_key = so.product_key
-WHERE so.location_key <> -1 AND so.units_sold > 0;
+LEFT JOIN (SELECT dc.channel_key, dl.location_key FROM core.dim_channel dc JOIN core.dim_location dl ON dl.location_code = 'CONSIGN_INSTAMART'
+           WHERE dc.channel_code = 'INSTAMART') pool ON pool.channel_key = so.channel_key
+WHERE coalesce(nullif(so.location_key, -1), pool.location_key) IS NOT NULL AND so.units_sold > 0;

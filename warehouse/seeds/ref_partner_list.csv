@@ -15,3 +15,9 @@ KIRANAKART TECHNOLOGIES PVT LTD - Chennai,CUSTOMER,QUICK_COMMERCE_PARTNER,Kirana
 Hindustan Exports,CUSTOMER,EXPORT_CUSTOMER,,false,Two Rs 1 lines to Singapore; open question,,,
 Sundry Customer,CUSTOMER,UNCLASSIFIED,,false,Catch-all account; open question. Listed so it is never classified by elimination,,,
 DILEEP ESSENTIALS INC,CUSTOMER,UNCLASSIFIED,,false,Seen once in FY25-26 domestic returns; open question,,,
+PJTJ TECHNOLOGIES PRIVATE LIMITED,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART
+MOKSH ENTERPRISES PRIVATE LIMITED,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART
+CLOUDSTORE RETAIL PRIVATE LIMITED,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART
+CLOUDKART VENTURES PRIVATE LIMITED,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART
+JUPITER KART PRIVATE LIMITED - Kerala,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART
+JUPITER KART PRIVATE LIMITED - Tamil Nadu,CUSTOMER,QUICK_COMMERCE_PARTNER,Instamart buying accounts,true,Business list 2026-11-02: one of the accounts Instamart is billed to (facility codes in the list; the ERP bills the company),INSTAMART,BR-034,CONSIGN_INSTAMART

@@ -140,6 +140,9 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
   that includes non-PO inwards, assembly and consumption.
 - **Schema 2.12 / 30 Oct:** PO exports dated 26 Sep 2026 (no more "export date assumed"); Instamart July 2025 fixed
   (59,550 -> 310 units; total Instamart sell-out 6,494 units). Issue log: `warehouse/docs/ISSUE_LOG.md`.
+- **Instamart accounts (2 Nov, BR-034):** six ERP accounts are Instamart (Cloudstore Retail, Cloudkart Ventures, Jupiter
+  Kart x2, PJTJ Technologies, Moksh Enterprises); their invoices are quick-commerce partner sales, and Instamart stock is
+  rebuilt at CONSIGN_INSTAMART (ledger basis, no opening balance, so it stays off the stock tiles like other partners).
 - **Blinkit:** old Blinkit data is set aside (new seller arrangement); the negative consignment ledger stays hidden.
 - **Negative ERP stock and Instamart inventory:** the business is handling both.
 - **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace

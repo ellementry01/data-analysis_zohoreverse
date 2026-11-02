@@ -96,6 +96,11 @@ holds receipts to 24 Sep 2026), so open PO lines are no longer "export date assu
 normaliser (no schema change): the Instamart workbook's "june" sheet carries 37 July orders pasted one column to the
 left; they are copies of rows on the "july" sheet and are dropped (July 2025: 59,550 -> 310 units; D-126).
 
+Seeds and transform, 2 Nov 2026 (no schema change): **Instamart's buying accounts** (rule BR-034, business list):
+Cloudstore Retail, Cloudkart Ventures, Jupiter Kart (Kerala, Tamil Nadu), PJTJ Technologies, Moksh Enterprises are
+Instamart partners, sale-or-return, with stock pooled at the virtual location CONSIGN_INSTAMART; Instamart's sell-out
+leaves it. Implied Instamart stock on 15 Sep 2026: about 3,229 units on top of an unknown opening stock (D-125).
+
 ## Layout
 
 ```

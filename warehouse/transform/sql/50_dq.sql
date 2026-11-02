@@ -187,8 +187,8 @@ INSERT INTO dq SELECT 'ledger_not_placed', what, 'WARN', n, why FROM (
         OR NOT (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE')
                 OR (po.document_type IN ('PURCHASE','RETURN') AND EXISTS (SELECT 1 FROM meta.pipeline_setting
                     WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true')))
-    UNION ALL SELECT 'platform sell-out', count(*), 'the platform export does not say which of its locations the units left'
-      FROM core.fact_partner_sellout WHERE location_key = -1
+    UNION ALL SELECT 'platform sell-out', count(*), 'the platform export does not say which of its locations the units left (Instamart is pooled, BR-034)'
+      FROM core.fact_partner_sellout so JOIN core.dim_channel c USING (channel_key) WHERE so.location_key = -1 AND c.channel_code <> 'INSTAMART'
     UNION ALL SELECT 'consignment lines', count(*), 'sale-or-return partner has no consignment location in ref.partner_list'
       FROM core.fact_sales_line s JOIN core.dim_partner p USING (partner_key)
      WHERE p.is_sale_or_return AND NOT EXISTS (SELECT 1 FROM lk_consign c WHERE c.partner_key = s.partner_key)) x;

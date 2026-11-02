@@ -86,6 +86,8 @@ loc("EMPLOYEE_EXHIBITION",None,"With employees (exhibitions)","EMPLOYEE_HOLDING"
     "Virtual location: stock issued to employees for exhibitions until it comes back (BR-029)","")
 loc("CONSIGN_BLINKIT",None,"Blinkit (Kiranakart) consignment stock","PARTNER_CONSIGNMENT","BLINKIT",None,None,True,True,"NONE",True,False,None,
     "Virtual location: stock invoiced to Kiranakart sale-or-return, until sold through or returned (BR-022). Separate from the Blinkit feeder locations the ERP tracks by stock transfer","Are Kiranakart invoices and transfers to Blinkit feeders two different supply routes?")
+loc("CONSIGN_INSTAMART",None,"Instamart consignment stock","PARTNER_CONSIGNMENT","INSTAMART",None,None,True,True,"NONE",True,True,None,
+    "Virtual location: stock invoiced to Instamart's buying accounts (Cloudstore Retail, Cloudkart Ventures, Jupiter Kart, PJTJ Technologies, Moksh Enterprises) sale-or-return, until Instamart sells it (all facilities pooled) or returns it (BR-022, BR-034). Business confirmed 2026-11-02","")
 
 # ---------------------------------------------------------------- LOCATION ALIASES
 LA = []  # (source, field, value, code, confirmed, evidence)
