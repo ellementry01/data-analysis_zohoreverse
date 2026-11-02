@@ -129,3 +129,15 @@ WHERE b.batch_id = (SELECT batch_id FROM meta.load_batch WHERE source_name = 'ER
                     ORDER BY as_of_date DESC, batch_id DESC LIMIT 1)
   AND nullif(btrim(r.sku_no), '') IS NOT NULL
 ORDER BY stg.sku(r.sku_no), r.source_row_number;
+
+-- ERP goods-receipt register (2.14): one row per GRN line; per GRN number the latest loaded file wins.
+DROP TABLE IF EXISTS stg.grn_register;
+CREATE TABLE stg.grn_register AS
+WITH src AS (
+    SELECT r.*, max(r.batch_id) OVER (PARTITION BY btrim(r.grn_no)) AS latest_batch
+    FROM raw.erp_grn_register r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
+SELECT s.batch_id, s.source_row_number, btrim(s.grn_no) AS grn_number, stg.any_date(s.grn_date) AS grn_date,
+       nullif(btrim(s.supplier), '') AS supplier_name, nullif(btrim(s.po_no), '') AS po_number, stg.any_date(s.po_date) AS po_date,
+       s.product_no AS source_sku_code, stg.sku(s.product_no) AS sku_code, nullif(btrim(s.product_description), '') AS product_name,
+       stg.num(s.received_quantity) AS received_qty, stg.num(s.rate) AS rate, stg.num(s.amount) AS amount
+FROM src s WHERE s.batch_id = s.latest_batch;

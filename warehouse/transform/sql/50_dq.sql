@@ -77,6 +77,16 @@ INSERT INTO dq SELECT 'shipment_status_unmapped', 'core.fact_shipment', 'WARN', 
        'statuses not in ref.code_mapping SHIPMENT_STATUS: ' || coalesce(string_agg(DISTINCT shipment_status_raw, ', '), '-')
 FROM core.fact_shipment WHERE shipment_status = 'UNMAPPED';
 
+INSERT INTO dq SELECT 'grn_rows_reconcile', 'core.fact_grn_line', 'ERROR', abs(a - b),
+       format('GRN register lines in period with quantity > 0: staged %s, fact %s', a, b)
+FROM (SELECT (SELECT count(*) FROM stg.grn_register WHERE received_qty > 0
+              AND grn_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) a,
+             (SELECT count(*) FROM core.fact_grn_line) b) x;
+
+INSERT INTO dq SELECT 'grn_unknown_product_or_supplier', 'core.fact_grn_line', 'WARN', count(*),
+       'GRN lines whose product or supplier is not in the dimensions: ' || coalesce(string_agg(DISTINCT source_sku_code, ', '), '-')
+FROM core.fact_grn_line WHERE product_key = -1 OR partner_key = -1;
+
 INSERT INTO dq SELECT 'courier_unmapped', 'core.dim_courier', 'WARN', count(*),
        'courier names not in ref.code_mapping COURIER: ' || coalesce(string_agg(courier_name, ', ' ORDER BY courier_name), '-')
 FROM core.dim_courier WHERE courier_group = 'Other (unmapped)';

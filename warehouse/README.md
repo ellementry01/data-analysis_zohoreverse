@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.13
+# Ellementry Data Warehouse — v2.14
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -109,6 +109,14 @@ SKU. New views for the dashboards built on 2 Nov: `mart.v_slow_stock` (days sinc
 gains `stock_value_cost`, `category_label`, `cover_band`. The Shopify returns export was not loaded: every reason in it
 is "other-reason".
 
+2.14 (`sql/220_grn_register.sql`): the **ERP goods-receipt register** (MRN Register, downloaded from the ERP on 2 Nov
+2026) as a source, `ERP_GRN_REGISTER`. The report prints a GRN header row plus item rows and repeats item rows once per
+debit-note memo; `python -m loader.normalise_grn_register` flattens it and keeps repeats once (its quantities equal the
+ERP's own GRN movement for 1,694 of 1,698 products). `core.fact_grn_line` (own date per receipt, every GRN, including
+60,318 units on closed POs missing from the Pending PO export) now feeds the stock ledger and `v_supplier_lead_time`;
+the PO export's receipts are used only when no register is loaded. Purchase vs return-inward: the PO's remark, else
+the supplier's POs, else purchase. Stock check after 2.14: arrived without a document 1,44,152 -> 54,541 units.
+
 ## Layout
 
 ```
@@ -140,6 +148,7 @@ sql/180_po_remark_confirmed.sql schema 2.10: BR-031 confirmed (Purchase vs Retur
 sql/190_stock_history.sql     schema 2.11: month-end stock history, opening stock (BR-033), stock movement check
 sql/200_po_export_date.sql    schema 2.12: Pending PO exports dated 26 Sep 2026 (file metadata)
 sql/210_return_reasons.sql    schema 2.13: Amazon FBA customer returns (return reasons)
+sql/220_grn_register.sql      schema 2.14: ERP goods-receipt register (receipts with their own dates)
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

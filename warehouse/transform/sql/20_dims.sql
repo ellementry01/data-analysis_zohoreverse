@@ -20,7 +20,8 @@ SELECT DISTINCT contact_name AS partner_name, 'CUSTOMER'::VARCHAR(10) AS partner
 UNION SELECT DISTINCT contact_name, 'CUSTOMER', 'ERP_RETAIL_RETURN'   FROM stg.retail_return   WHERE contact_name IS NOT NULL
 UNION SELECT DISTINCT contact_name, 'CUSTOMER', 'ERP_DOMESTIC_SALES'  FROM stg.domestic_sales  WHERE contact_name IS NOT NULL
 UNION SELECT DISTINCT contact_name, 'CUSTOMER', 'ERP_DOMESTIC_RETURN' FROM stg.domestic_return WHERE contact_name IS NOT NULL
-UNION SELECT DISTINCT contact_name, 'SUPPLIER', 'ERP_PURCHASE_ORDER'  FROM stg.purchase_order  WHERE contact_name IS NOT NULL;
+UNION SELECT DISTINCT contact_name, 'SUPPLIER', 'ERP_PURCHASE_ORDER'  FROM stg.purchase_order  WHERE contact_name IS NOT NULL
+UNION SELECT DISTINCT supplier_name, 'SUPPLIER', 'ERP_PURCHASE_ORDER' FROM stg.grn_register    WHERE supplier_name IS NOT NULL;   -- 2.14: same suppliers, same rules
 
 -- Classification: listed name > default rule of the source. Retail defaults are business-confirmed
 -- (BR-005, BR-009) and always apply. Elimination rules (domestic BR-011, PO BR-013) apply ONLY when

@@ -1,0 +1,89 @@
+{
+  "source_name": "ERP_GRN_REGISTER",
+  "status": "verified",
+  "verified_against": "MRNRegister (Inventory Reports > MRN Register 11213), normalised by loader.normalise_grn_register",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "Sheet1"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 17,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "GRN No.",
+      "column": "grn_no"
+    },
+    {
+      "header": "GRN Date",
+      "column": "grn_date"
+    },
+    {
+      "header": "Supplier",
+      "column": "supplier"
+    },
+    {
+      "header": "PO No.",
+      "column": "po_no"
+    },
+    {
+      "header": "PO Date",
+      "column": "po_date"
+    },
+    {
+      "header": "Bill No.",
+      "column": "bill_no"
+    },
+    {
+      "header": "Bill Date",
+      "column": "bill_date"
+    },
+    {
+      "header": "Product No.",
+      "column": "product_no"
+    },
+    {
+      "header": "HSN Code",
+      "column": "hsn_code"
+    },
+    {
+      "header": "Product Description",
+      "column": "product_description"
+    },
+    {
+      "header": "Bill Quantity",
+      "column": "bill_quantity"
+    },
+    {
+      "header": "Received Quantity",
+      "column": "received_quantity"
+    },
+    {
+      "header": "Rate",
+      "column": "rate"
+    },
+    {
+      "header": "Amount",
+      "column": "amount"
+    },
+    {
+      "header": "GST %",
+      "column": "gst"
+    },
+    {
+      "header": "Total Amount",
+      "column": "total_amount"
+    },
+    {
+      "header": "Repeats in source",
+      "column": "repeats_in_source"
+    }
+  ],
+  "business_date": {
+    "header": "GRN Date",
+    "format": "text_dmy_repeated"
+  },
+  "as_of_required": false
+}

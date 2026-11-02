@@ -420,6 +420,48 @@ COMMENT ON COLUMN raw.erp_domestic_sales.docirn IS 'Source header: DOCIRN';
 COMMENT ON COLUMN raw.erp_domestic_sales.docackno IS 'Source header: DOCACKNO';
 COMMENT ON COLUMN raw.erp_domestic_sales.docackdate IS 'Source header: DOCACKDATE';
 
+-- ERP_GRN_REGISTER
+CREATE TABLE raw.erp_grn_register (
+    batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
+    source_row_number  INTEGER NOT NULL,
+    grn_no                                   TEXT,
+    grn_date                                 TEXT,
+    supplier                                 TEXT,
+    po_no                                    TEXT,
+    po_date                                  TEXT,
+    bill_no                                  TEXT,
+    bill_date                                TEXT,
+    product_no                               TEXT,
+    hsn_code                                 TEXT,
+    product_description                      TEXT,
+    bill_quantity                            TEXT,
+    received_quantity                        TEXT,
+    rate                                     TEXT,
+    amount                                   TEXT,
+    gst                                      TEXT,
+    total_amount                             TEXT,
+    repeats_in_source                        TEXT,
+    PRIMARY KEY (batch_id, source_row_number)
+);
+COMMENT ON TABLE raw.erp_grn_register IS 'As received from ERP_GRN_REGISTER. Contract: loader/contracts/ERP_GRN_REGISTER.json';
+COMMENT ON COLUMN raw.erp_grn_register.grn_no IS 'Source header: GRN No.';
+COMMENT ON COLUMN raw.erp_grn_register.grn_date IS 'Source header: GRN Date';
+COMMENT ON COLUMN raw.erp_grn_register.supplier IS 'Source header: Supplier';
+COMMENT ON COLUMN raw.erp_grn_register.po_no IS 'Source header: PO No.';
+COMMENT ON COLUMN raw.erp_grn_register.po_date IS 'Source header: PO Date';
+COMMENT ON COLUMN raw.erp_grn_register.bill_no IS 'Source header: Bill No.';
+COMMENT ON COLUMN raw.erp_grn_register.bill_date IS 'Source header: Bill Date';
+COMMENT ON COLUMN raw.erp_grn_register.product_no IS 'Source header: Product No.';
+COMMENT ON COLUMN raw.erp_grn_register.hsn_code IS 'Source header: HSN Code';
+COMMENT ON COLUMN raw.erp_grn_register.product_description IS 'Source header: Product Description';
+COMMENT ON COLUMN raw.erp_grn_register.bill_quantity IS 'Source header: Bill Quantity';
+COMMENT ON COLUMN raw.erp_grn_register.received_quantity IS 'Source header: Received Quantity';
+COMMENT ON COLUMN raw.erp_grn_register.rate IS 'Source header: Rate';
+COMMENT ON COLUMN raw.erp_grn_register.amount IS 'Source header: Amount';
+COMMENT ON COLUMN raw.erp_grn_register.gst IS 'Source header: GST %';
+COMMENT ON COLUMN raw.erp_grn_register.total_amount IS 'Source header: Total Amount';
+COMMENT ON COLUMN raw.erp_grn_register.repeats_in_source IS 'Source header: Repeats in source';
+
 -- ERP_INVENTORY_SNAPSHOT
 CREATE TABLE raw.erp_inventory_snapshot (
     batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),

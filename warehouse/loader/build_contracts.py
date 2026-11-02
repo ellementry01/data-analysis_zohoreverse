@@ -71,6 +71,8 @@ SPEC = {
                                {"unnamed_columns": [{"position": 0, "rule": "row_counter"}],
                                 "ignored_sheets_note": "Brand Metrics = city-level marketing data, not loaded in this phase"}),
     "ERP_ITEM_MASTER":        ("Product_Master_List_13-10-2026_11_51.xlsx", {"name": "Sheet1"}, "must_be_empty", None, True, {}),
+    "ERP_GRN_REGISTER":       ("ERP_GRN_REGISTER__2025-04-01_2026-09-14.xlsx", {"name": "Sheet1"}, "must_be_empty",
+                               {"header": "GRN Date", "format": "text_dmy_repeated"}, False, {}),   # normalised MRN Register
     "AMAZON_CUSTOMER_RETURNS": ("484681020741.csv", {"name": "CSV"}, "must_be_empty",
                                 {"header": "return-date", "format": "iso_timestamp"}, False, {}),
     "INSTAMART_INVENTORY":    ("Instamart_inventory_26_sep_26.xlsx", {"pattern": r"^ItemInventory_\d+$"}, "must_be_empty", None, True, {}),

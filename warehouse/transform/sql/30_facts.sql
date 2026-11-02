@@ -15,6 +15,7 @@ DELETE FROM core.fact_purchase_order_line;
 DELETE FROM core.fact_sales_line;
 DELETE FROM core.fact_stock_transfer_line;
 DELETE FROM core.fact_return_reason_line;
+DELETE FROM core.fact_grn_line;
 DELETE FROM core.fact_partner_sellout;
 DELETE FROM core.fact_inventory_snapshot;
 
@@ -356,3 +357,30 @@ SELECT 'AMAZON_CUSTOMER_RETURNS', stg.date_key(s.return_date),
 FROM stg.amazon_returns s
 LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
 WHERE s.quantity > 0 AND s.return_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);
+
+-- --------------------------------------------------------------------- goods-receipt register (2.14)
+-- Every GRN line with its own date. Purchase vs return-inward (BR-031): the PO's Document Remark when the PO is in the
+-- Pending PO export; else what that supplier's POs in the export are (a supplier with only Return POs = return-inward);
+-- else PURCHASE (the register's POs missing from the export are closed factory POs). Received at Bagru (BR-032).
+INSERT INTO core.fact_grn_line (grn_number, grn_date_key, partner_key, supplier_name, po_number, po_date_key, po_line_id, product_key,
+    source_sku_code, receiving_location_key, received_qty, rate, amount, document_type, document_type_basis, batch_id, source_row_number)
+SELECT g.grn_number, stg.date_key(g.grn_date), coalesce(pt.partner_key, -1), g.supplier_name, g.po_number, stg.date_key(g.po_date),
+       pol.po_line_id, coalesce(p.product_key, -1), g.source_sku_code,
+       coalesce((SELECT dl.location_key FROM core.dim_location dl JOIN meta.pipeline_setting ps
+                 ON ps.setting_key = 'goods_receipt_location' AND dl.location_code = ps.setting_value), -1),
+       g.received_qty, g.rate, g.amount,
+       coalesce(po.document_type, sp.document_type, 'PURCHASE'),
+       CASE WHEN po.document_type IS NOT NULL THEN 'PO_REMARK' WHEN sp.document_type IS NOT NULL THEN 'SUPPLIER_POS' ELSE 'DEFAULT_PURCHASE' END,
+       g.batch_id, g.source_row_number
+FROM stg.grn_register g
+LEFT JOIN core.dim_partner pt ON pt.partner_name = g.supplier_name AND pt.partner_role = 'SUPPLIER'
+LEFT JOIN core.dim_product p ON p.sku_code = g.sku_code
+LEFT JOIN (SELECT po_number, min(document_type) AS document_type FROM core.fact_purchase_order_line
+           WHERE document_type IN ('PURCHASE','RETURN') GROUP BY po_number HAVING count(DISTINCT document_type) = 1) po
+       ON po.po_number = g.po_number
+LEFT JOIN (SELECT f.partner_key, min(f.document_type) AS document_type FROM core.fact_purchase_order_line f
+           WHERE f.document_type IN ('PURCHASE','RETURN') GROUP BY f.partner_key HAVING count(DISTINCT f.document_type) = 1) sp
+       ON sp.partner_key = pt.partner_key
+LEFT JOIN LATERAL (SELECT f.po_line_id FROM core.fact_purchase_order_line f
+                   WHERE f.po_number = g.po_number AND f.product_key = p.product_key ORDER BY f.line_occurrence LIMIT 1) pol ON TRUE
+WHERE g.received_qty > 0 AND g.grn_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);

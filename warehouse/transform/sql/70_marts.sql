@@ -122,6 +122,20 @@ WHERE po.po_status IN ('OPEN','IN_PROGRESS','OVERDUE') AND coalesce(po.pending_q
 -- Supplier lead time: PO date to the receipt date the report gives. Part-delivered lines are flagged approximate (G-027).
 -- Return-inward documents have no supplier lead time: left out once BR-031 is confirmed, as above.
 CREATE OR REPLACE VIEW mart.v_supplier_lead_time AS
+-- 2.14: from the GRN register (one row per receipt line, its own date) when it is loaded; the PO export otherwise
+SELECT pt.partner_name::VARCHAR(200) AS supplier, pt.partner_type::VARCHAR(30) AS supplier_type, g.po_number::VARCHAR(60), p.sku_code::VARCHAR(40),
+       p.product_name::VARCHAR(300), pd.calendar_date AS po_date, gd.calendar_date AS receipt_date,
+       (gd.calendar_date - pd.calendar_date)::INTEGER AS lead_time_days, 1::SMALLINT AS receipt_count, FALSE AS is_approximate,
+       g.received_qty, po.order_qty, g.document_type::VARCHAR(8)
+FROM core.fact_grn_line g
+JOIN core.dim_date gd ON gd.date_key = g.grn_date_key
+JOIN core.dim_date pd ON pd.date_key = g.po_date_key
+JOIN core.dim_partner pt ON pt.partner_key = g.partner_key
+JOIN core.dim_product p ON p.product_key = g.product_key
+LEFT JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
+WHERE NOT (g.document_type = 'RETURN' AND EXISTS (SELECT 1 FROM meta.pipeline_setting
+           WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true'))
+UNION ALL
 SELECT pt.partner_name AS supplier, pt.partner_type AS supplier_type, po.po_number, p.sku_code, p.product_name,
        d.calendar_date AS po_date, g2.calendar_date AS receipt_date, g2.calendar_date - d.calendar_date AS lead_time_days,
        g.receipt_count, (g.receipt_count > 1) AS is_approximate, g.received_qty, po.order_qty, po.document_type
@@ -132,7 +146,8 @@ JOIN core.dim_date g2 ON g2.date_key = g.grn_date_key
 JOIN core.dim_partner pt ON pt.partner_key = g.partner_key
 JOIN core.dim_product p ON p.product_key = g.product_key
 WHERE NOT (po.document_type = 'RETURN' AND EXISTS (SELECT 1 FROM meta.pipeline_setting
-           WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true'));
+           WHERE setting_key = 'po_document_remark_confirmed' AND setting_value = 'true'))
+  AND NOT EXISTS (SELECT 1 FROM core.fact_grn_line);
 
 -- Days of cover: sellable stock now / average units leaving that location per day over the last 30 days of the period
 -- (sold, plus transferred out since 2.4: without transfers the central warehouse looked like years of cover)

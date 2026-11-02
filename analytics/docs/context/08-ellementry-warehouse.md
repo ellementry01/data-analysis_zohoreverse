@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.13**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.14**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -147,6 +147,11 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
   Instamart (`partner_stock_monthly`, `quick_commerce_sell_out_daily`, `net_sales_daily`), Data health
   (`data_quality_latest`, `data_gaps`, `load_batches`); Returns gained Amazon FBA return reasons (`return_reasons`).
   Built by `build_executive_dashboards.py` (ten dashboards); metrics added by `configure_warehouse_workspace.py`.
+- **ERP reports downloaded 2 Nov (schema 2.14):** the MRN Register (goods receipts, loaded) and Document Wise Stock
+  Movement (explains 80% of Bagru's unexplained stock: receipts on closed POs, scrap, stock adjustments, inventory
+  transfers, subcontractor movements). How to download from the ERP: Reports > module > interval "Any" > From / To >
+  Set Date > tick Consolidated > Excel > the arrow next to the report > download icon. Originals in
+  `exports/_originals/erp_2026-11-02/`.
 - **Blinkit:** old Blinkit data is set aside (new seller arrangement); the negative consignment ledger stays hidden.
 - **Negative ERP stock and Instamart inventory:** the business is handling both.
 - **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace

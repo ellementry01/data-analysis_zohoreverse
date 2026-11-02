@@ -114,7 +114,17 @@ LEFT JOIN core.fact_purchase_order_line po ON po.po_line_id = g.po_line_id
 CROSS JOIN (SELECT coalesce(bool_or(setting_value = 'true'), FALSE) AS confirmed FROM meta.pipeline_setting
             WHERE setting_key = 'po_document_remark_confirmed') sw
 WHERE g.receiving_location_key <> -1
-  AND (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE') OR (sw.confirmed AND po.document_type IN ('PURCHASE','RETURN')));
+  AND (pt.partner_type IN ('FACTORY_SUPPLIER','RETURN_SOURCE') OR (sw.confirmed AND po.document_type IN ('PURCHASE','RETURN')))
+  AND NOT EXISTS (SELECT 1 FROM core.fact_grn_line);          -- 2.14: the GRN register replaces these when loaded
+
+-- 2.14 goods receipts from the ERP GRN register: every GRN, its own date, purchase or return-inward (BR-031)
+INSERT INTO core.fact_stock_movement (movement_date_key, location_key, product_key, movement_type_key, quantity,
+    counterparty_location_key, partner_key, source_table, source_line_id)
+SELECT g.grn_date_key, g.receiving_location_key, g.product_key,
+       (SELECT movement_type_key FROM mt WHERE movement_code = CASE g.document_type WHEN 'RETURN' THEN 'RETURN_INWARD' ELSE 'GOODS_RECEIPT' END),
+       g.received_qty, NULL, g.partner_key, 'fact_grn_line', g.grn_line_id
+FROM core.fact_grn_line g JOIN stock_product sp ON sp.product_key = g.product_key
+WHERE g.receiving_location_key <> -1;
 
 -- partner sell-through leaves the partner location (demand, not revenue: BR-024). Instamart's sell-out names no facility we
 -- can map, so it leaves the pooled Instamart consignment stock (BR-034). Blinkit's stays unplaced (old Blinkit data parked).
