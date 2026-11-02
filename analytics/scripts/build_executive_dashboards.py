@@ -1,5 +1,5 @@
 """
-Builds the six executive dashboards of the prototype in a workspace connected to the Ellementry warehouse, through the
+Builds the executive dashboards of the prototype in a workspace connected to the Ellementry warehouse, through the
 public API (the same calls the UI makes). Re-runnable: dashboards with these names are replaced.
 
     python scripts/build_executive_dashboards.py [--base http://localhost:8000] [--workspace 34]
@@ -31,6 +31,12 @@ STALE_TRANSIT = {"field": "transfer_in_transit.transit_status", "op": "eq", "val
 # Amazon receives FBA shipments itself and never posts an ERP inward entry (G-007): kept apart from own locations
 TO_OWN = {"field": "transfer_in_transit.destination_group", "op": "eq", "value": "To own locations"}
 TO_FBA = {"field": "transfer_in_transit.destination_group", "op": "eq", "value": "To Amazon FBA"}
+# slow stock: not sold anywhere for over 180 days (bands 4-6 of mart.v_slow_stock.sales_age_band)
+SLOW = {"field": "slow_stock.sales_age_band", "op": "in",
+        "value": ["4. Last sale 181-365 days ago", "5. Last sale over a year ago", "6. No sale since Apr 2025"]}
+SLOW_COVER = {"field": "days_of_cover.cover_band", "op": "in", "value": ["5. Over a year", "6. Nothing sold or sent in 30 days"]}
+IM_SELLOUT = {"field": "quick_commerce_sell_out_daily.platform", "op": "eq", "value": "Instamart"}
+IM_STOCK = {"field": "partner_stock_monthly.partner", "op": "eq", "value": "INSTAMART"}
 # BR-031 confirmed (warehouse 2.10): the warehouse already leaves return-inward lines out; the filter is a safety net
 PURCHASE_PO = {"field": "open_purchase_orders.document_type", "op": "eq", "value": "PURCHASE"}
 PURCHASE_LT = {"field": "supplier_lead_time.document_type", "op": "eq", "value": "PURCHASE"}
@@ -102,7 +108,8 @@ DASHBOARDS = [
             [{"field": "net_sales_daily.sales_segment", "op": "eq", "value": "Own stores"}]), 6, 13, 6, 6)]),
 
     ("Returns",
-     "Customer and partner returns, excluding GST. Return reasons are not recorded in the ERP yet (gap G-009).",
+     "Customer and partner returns, excluding GST. The ERP records no return reasons (gap G-009); the reasons below come from "
+     "Amazon's FBA customer-returns report (Amazon-fulfilled orders only, units).",
      [{"id": "period", "type": "date_range", "label": "Period", "field": "@time", "value": ALL_DATA}],
      [kpi("Returns value", "returns_value", 0, 0, w=3, compare=None),
       kpi("Units returned", "units_returned", 3, 0, w=3, compare=None),
@@ -117,7 +124,15 @@ DASHBOARDS = [
             {"dimensions": [{"field": "returns_to_sale.return_window", "alias": "return_window"}], "measures": [{"field": "returns_to_sale.returns_value", "agg": "sum", "alias": "rv", "label": "Returns value"}],
              "sort": [{"field": "return_window", "dir": "asc"}]}, 6, 7, 6, 5),
       chart("Top 15 returned products", "table", top("returns_daily.product_name", "returns_value", 15,
-            extra=[{"metric": "units_returned"}]), 0, 12, 12, 6)]),
+            extra=[{"metric": "units_returned"}]), 0, 12, 12, 6),
+      chart("Amazon FBA returns by reason (units)", "hbar", top("return_reasons.reason_group", "amazon_units_returned", 10), 0, 18, 6, 5,
+            drill=["return_reasons.reason"]),
+      chart("Condition when returned (Amazon FBA)", "donut",
+            {"dimensions": [{"field": "return_reasons.condition_on_return"}], "measures": [{"metric": "amazon_units_returned"}]}, 6, 18, 6, 5),
+      chart("Amazon return reasons in detail", "table",
+            top("return_reasons.reason", "amazon_units_returned", 20, extra=[]), 0, 23, 6, 6),
+      chart("Products returned most on Amazon (units)", "table",
+            top("return_reasons.product_name", "amazon_units_returned", 15), 6, 23, 6, 6)]),
 
     ("Stock",
      "Stock on 15 Sep 2026 (trend: month-end stock reports from 31 Mar 2025), each location from its own stock report, "
@@ -196,6 +211,109 @@ DASHBOARDS = [
              "measures": [{"metric": "over_received_qty", "alias": "over"}],
              "filters": [{"field": "purchase_order_lines.is_over_received", "op": "eq", "value": True}],
              "sort": [{"field": "over", "dir": "desc"}], "limit": 25}, 6, 17, 6, 5)]),
+
+    ("Discontinued & slow stock",
+     "Trading stock on 15 Sep 2026 at cost, by how long since the product last sold anywhere (all channels, invoices). "
+     "'No sale since Apr 2025' = no invoice in the loaded period. Stock at partners is not included.",
+     [],
+     [kpi("Trading stock at cost", "slow_stock_value_cost", 0, 0, w=3, compare=None),
+      kpi("Not sold in over 180 days", "slow_stock_value_cost", 3, 0, w=3, compare=None, filters=[SLOW]),
+      kpi("No sale since Apr 2025", "slow_stock_value_cost", 6, 0, w=3, compare=None,
+          filters=[{"field": "slow_stock.sales_age_band", "op": "eq", "value": "6. No sale since Apr 2025"}]),
+      kpi("Discontinued stock at cost", "slow_stock_value_cost", 9, 0, w=3, compare=None,
+          filters=[{"field": "slow_stock.lifecycle_status", "op": "eq", "value": "DISCONTINUED"}]),
+      chart("Stock by time since last sale (at cost)", "bar",
+            {"dimensions": [{"field": "slow_stock.sales_age_band", "alias": "band"}], "measures": [{"metric": "slow_stock_value_cost"}],
+             "sort": [{"field": "band", "dir": "asc"}]}, 0, 2, 6, 5),
+      chart("Continued vs discontinued, by time since last sale", "stacked_bar",
+            {"dimensions": [{"field": "slow_stock.sales_age_band", "alias": "band"}, {"field": "slow_stock.lifecycle_status"}],
+             "measures": [{"metric": "slow_stock_value_cost"}], "sort": [{"field": "band", "dir": "asc"}]}, 6, 2, 6, 5),
+      chart("Slow stock (over 180 days) by category", "hbar", top("slow_stock.category_label", "slow_stock_value_cost", 12, [SLOW]), 0, 7, 6, 6,
+            drill=["slow_stock.sub_category_label"]),
+      chart("Slow stock (over 180 days) by location", "hbar", top("slow_stock.location_name", "slow_stock_value_cost", 12, [SLOW]), 6, 7, 6, 6),
+      chart("Slowest stock: top 25 products by value", "table",
+            {"dimensions": [{"field": "slow_stock.sku_code"}, {"field": "slow_stock.product_name"}, {"field": "slow_stock.lifecycle_status"},
+                            {"field": "slow_stock.sales_age_band"}, {"field": "slow_stock.last_sale_date"}],
+             "measures": [{"metric": "slow_stock_value_cost", "alias": "v"},
+                          {"field": "slow_stock.on_hand_qty", "agg": "sum", "alias": "units", "label": "Units on hand"}],
+             "filters": [SLOW], "sort": [{"field": "v", "dir": "desc"}], "limit": 25}, 0, 13, 12, 7)]),
+
+    ("Days of cover",
+     "How long sellable stock lasts at each location at the last 30 days' pace (units sold plus units sent out by transfer), "
+     "on 15 Sep 2026, valued at cost. Under 30 days = may run out; over a year = overstock.",
+     [],
+     [kpi("Sellable stock at cost", "cover_stock_value_cost", 0, 0, w=4, compare=None),
+      kpi("Under 30 days of cover", "cover_stock_value_cost", 4, 0, w=4, compare=None,
+          filters=[{"field": "days_of_cover.cover_band", "op": "eq", "value": "1. Under 30 days"}]),
+      kpi("Over a year, or nothing sold in 30 days", "cover_stock_value_cost", 8, 0, w=4, compare=None, filters=[SLOW_COVER]),
+      chart("Stock by days of cover (at cost)", "bar",
+            {"dimensions": [{"field": "days_of_cover.cover_band", "alias": "band"}], "measures": [{"metric": "cover_stock_value_cost"}],
+             "sort": [{"field": "band", "dir": "asc"}]}, 0, 2, 6, 5),
+      chart("Cover by location (at cost)", "stacked_bar",
+            {"dimensions": [{"field": "days_of_cover.location_name"}, {"field": "days_of_cover.cover_band"}],
+             "measures": [{"metric": "cover_stock_value_cost"}]}, 6, 2, 6, 5),
+      chart("May run out: under 30 days of cover", "table",
+            {"dimensions": [{"field": "days_of_cover.location_name"}, {"field": "days_of_cover.sku_code"}, {"field": "days_of_cover.product_name"}],
+             "measures": [{"field": "days_of_cover.days_of_cover", "agg": "min", "alias": "cover", "label": "Days of cover"},
+                          {"field": "days_of_cover.sellable_qty", "agg": "sum", "alias": "qty", "label": "Sellable units"},
+                          {"field": "days_of_cover.avg_daily_units_30d", "agg": "sum", "alias": "pace", "label": "Sold per day (30 days)"}],
+             "filters": [{"field": "days_of_cover.cover_band", "op": "eq", "value": "1. Under 30 days"}],
+             "sort": [{"field": "pace", "dir": "desc"}], "limit": 25}, 0, 7, 12, 7),
+      chart("Overstock: over a year of cover, by value", "table",
+            {"dimensions": [{"field": "days_of_cover.location_name"}, {"field": "days_of_cover.sku_code"}, {"field": "days_of_cover.product_name"}],
+             "measures": [{"metric": "cover_stock_value_cost", "alias": "v"},
+                          {"field": "days_of_cover.days_of_cover", "agg": "min", "alias": "cover", "label": "Days of cover"}],
+             "filters": [{"field": "days_of_cover.cover_band", "op": "eq", "value": "5. Over a year"}],
+             "sort": [{"field": "v", "dir": "desc"}], "limit": 25}, 0, 14, 12, 7)]),
+
+    ("Instamart",
+     "Instamart, sale-or-return. Sent / returned = our invoices and credit notes to Instamart's six buying accounts (rule BR-034); "
+     "sold = Instamart's consumer sell-out (demand, never our revenue: BR-024). Stock with Instamart = sent minus returned minus "
+     "sold since 1 Apr 2025; Instamart's opening stock is unknown, so it is not a stock count.",
+     [{"id": "period", "type": "date_range", "label": "Period", "field": "@time", "value": ALL_DATA}],
+     [kpi("Units sold by Instamart", "qc_units_sold", 0, 0, compare=None, filters=[IM_SELLOUT]),
+      kpi("Sell-out value (GMV)", "qc_sell_out_value", 2, 0, compare=None, filters=[IM_SELLOUT]),
+      kpi("Invoiced to Instamart (net, excl. GST)", "net_sales", 4, 0, compare=None,
+          filters=[{"field": "net_sales_daily.channel_name", "op": "eq", "value": "Instamart"}]),
+      kpi("Units sent to Instamart", "partner_units_sent", 6, 0, compare=None, filters=[IM_STOCK]),
+      kpi("Units returned by Instamart", "partner_units_returned", 8, 0, compare=None, filters=[IM_STOCK]),
+      kpi("Stock with Instamart (since Apr 2025)", "partner_stock_balance", 10, 0, compare=None, filters=[IM_STOCK]),
+      chart("Units sent vs sold, by month", "bar",
+            {"dimensions": [MONTH], "measures": [{"metric": "partner_units_sent"}, {"metric": "partner_units_sold"},
+                                                 {"metric": "partner_units_returned"}], "filters": [IM_STOCK]}, 0, 2, 8, 5),
+      chart("Stock with Instamart over time", "line",
+            {"dimensions": [MONTH], "measures": [{"metric": "partner_stock_balance"}], "filters": [IM_STOCK]}, 8, 2, 4, 5),
+      chart("Top 15 products sold on Instamart", "table",
+            top("quick_commerce_sell_out_daily.product_name", "qc_units_sold", 15, [IM_SELLOUT], [{"metric": "qc_sell_out_value"}]), 0, 7, 6, 6),
+      chart("Instamart sales by city", "hbar", top("quick_commerce_sell_out_daily.city", "qc_units_sold", 15, [IM_SELLOUT]), 6, 7, 6, 6)]),
+
+    ("Data health",
+     "How complete and trustworthy the data behind the dashboards is: the quality checks of the latest warehouse build, the "
+     "data still missing (gaps), and the source files loaded. A blocking error stops a build, so a published build always shows 0.",
+     [],
+     [kpi("Blocking data errors", "dq_blocking_errors", 0, 0, w=3, compare=None),
+      kpi("Checks flagging rows (warnings)", "dq_failed_checks", 3, 0, w=3, compare=None),
+      kpi("Open data gaps", "open_data_gaps", 6, 0, w=3, compare=None),
+      kpi("Source files loaded", "files_loaded", 9, 0, w=3, compare=None),
+      chart("Quality checks that flag rows (latest build)", "table",
+            {"dimensions": [{"field": "data_quality_latest.check_name"}, {"field": "data_quality_latest.target_table"},
+                            {"field": "data_quality_latest.severity"}, {"field": "data_quality_latest.details"}],
+             "measures": [{"field": "data_quality_latest.failed_row_count", "agg": "sum", "alias": "rows", "label": "Rows flagged"}],
+             "filters": [{"field": "data_quality_latest.outcome", "op": "eq", "value": "FAIL"}],
+             "sort": [{"field": "rows", "dir": "desc"}], "limit": 60}, 0, 2, 12, 8),
+      chart("Open data gaps", "table",
+            {"dimensions": [{"field": "data_gaps.gap_id", "alias": "gap"}, {"field": "data_gaps.title"}, {"field": "data_gaps.owner"},
+                            {"field": "data_gaps.priority"}],
+             "measures": [{"metric": "open_data_gaps", "alias": "n"}],
+             "filters": [{"field": "data_gaps.status", "op": "neq", "value": "CLOSED"}],
+             "sort": [{"field": "gap", "dir": "asc"}], "limit": 40}, 0, 10, 7, 8),
+      chart("Files loaded, by source", "table",
+            {"dimensions": [{"field": "load_batches.source_name"}],
+             "measures": [{"metric": "files_loaded", "alias": "files"},
+                          {"field": "load_batches.rows_loaded", "agg": "sum", "alias": "rows", "label": "Rows loaded"},
+                          {"field": "load_batches.as_of_date", "agg": "max", "alias": "latest", "label": "Latest as-of date"}],
+             "filters": [{"field": "load_batches.status", "op": "eq", "value": "LOADED"}],
+             "sort": [{"field": "files", "dir": "desc"}], "limit": 30}, 7, 10, 5, 8)]),
 ]
 
 

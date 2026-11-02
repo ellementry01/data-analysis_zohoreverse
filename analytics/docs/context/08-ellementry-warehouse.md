@@ -12,7 +12,7 @@
     re-exports), with sha256 in `ORIGINALS.tsv`. The loader never reads this folder.
   - `sellout/` holds the normalised Blinkit and Instamart monthly files, with `NORMALISE_LOG.tsv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.12**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.13**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy used to test loads.
@@ -143,6 +143,10 @@ the app side with `scripts/configure_warehouse_workspace.py`, then `build_execut
 - **Instamart accounts (2 Nov, BR-034):** six ERP accounts are Instamart (Cloudstore Retail, Cloudkart Ventures, Jupiter
   Kart x2, PJTJ Technologies, Moksh Enterprises); their invoices are quick-commerce partner sales, and Instamart stock is
   rebuilt at CONSIGN_INSTAMART (ledger basis, no opening balance, so it stays off the stock tiles like other partners).
+- **Dashboards added 2 Nov (schema 2.13):** Discontinued & slow stock (`slow_stock`), Days of cover (`days_of_cover`),
+  Instamart (`partner_stock_monthly`, `quick_commerce_sell_out_daily`, `net_sales_daily`), Data health
+  (`data_quality_latest`, `data_gaps`, `load_batches`); Returns gained Amazon FBA return reasons (`return_reasons`).
+  Built by `build_executive_dashboards.py` (ten dashboards); metrics added by `configure_warehouse_workspace.py`.
 - **Blinkit:** old Blinkit data is set aside (new seller arrangement); the negative consignment ledger stays hidden.
 - **Negative ERP stock and Instamart inventory:** the business is handling both.
 - **The WMS dispatch report is the OMS report:** there is no richer OMS export. Missing delivery dates and marketplace

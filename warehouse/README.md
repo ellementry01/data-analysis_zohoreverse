@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.12
+# Ellementry Data Warehouse — v2.13
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -101,6 +101,14 @@ Cloudstore Retail, Cloudkart Ventures, Jupiter Kart (Kerala, Tamil Nadu), PJTJ T
 Instamart partners, sale-or-return, with stock pooled at the virtual location CONSIGN_INSTAMART; Instamart's sell-out
 leaves it. Implied Instamart stock on 15 Sep 2026: about 3,229 units on top of an unknown opening stock (D-125).
 
+2.13 (`sql/210_return_reasons.sql`): **Amazon FBA customer returns** as a source (`AMAZON_CUSTOMER_RETURNS`, CSV, date
+format `iso_timestamp`): `core.fact_return_reason_line` and `mart.v_return_reasons` (reason, reason group, condition on
+return; customer-comments stays in raw). Amazon listing suffixes (-FBA, -FBA1, __fba, -GBL, _New, -V) are stripped to our
+SKU. New views for the dashboards built on 2 Nov: `mart.v_slow_stock` (days since the SKU last sold, by band),
+`mart.v_partner_stock_monthly` (sent / returned / sold / balance at sale-or-return partners), and `v_days_of_cover`
+gains `stock_value_cost`, `category_label`, `cover_band`. The Shopify returns export was not loaded: every reason in it
+is "other-reason".
+
 ## Layout
 
 ```
@@ -131,6 +139,7 @@ sql/170_goods_receipt_location.sql schema 2.9: goods receipts placed at Bagru (B
 sql/180_po_remark_confirmed.sql schema 2.10: BR-031 confirmed (Purchase vs Return lines)
 sql/190_stock_history.sql     schema 2.11: month-end stock history, opening stock (BR-033), stock movement check
 sql/200_po_export_date.sql    schema 2.12: Pending PO exports dated 26 Sep 2026 (file metadata)
+sql/210_return_reasons.sql    schema 2.13: Amazon FBA customer returns (return reasons)
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

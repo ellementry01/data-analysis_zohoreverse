@@ -172,7 +172,9 @@ def insights(columns: list[dict], rows: list[list], limited: bool = False) -> li
     if not rows:
         return [{"type": "empty", "text": "No rows match this question and its filters."}]
     dims = [i for i, c in enumerate(columns) if c["role"] == "dimension"]
-    meas = [i for i, c in enumerate(columns) if c["role"] == "measure" and not c.get("compare_of")]
+    # numeric measures only: a measure can also hold dates or text (e.g. MAX of a date column) and has no trend or share
+    meas = [i for i, c in enumerate(columns) if c["role"] == "measure" and not c.get("compare_of")
+            and all(isinstance(r[i], (int, float)) and not isinstance(r[i], bool) for r in rows if r[i] is not None)]
     time_idx = next((i for i in dims if columns[i]["type"] in ("date", "datetime")), None)
     other_dims = [i for i in dims if i != time_idx]
     partial = None

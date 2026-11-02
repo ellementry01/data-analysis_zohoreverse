@@ -14,6 +14,7 @@ DELETE FROM core.fact_goods_receipt_line;
 DELETE FROM core.fact_purchase_order_line;
 DELETE FROM core.fact_sales_line;
 DELETE FROM core.fact_stock_transfer_line;
+DELETE FROM core.fact_return_reason_line;
 DELETE FROM core.fact_partner_sellout;
 DELETE FROM core.fact_inventory_snapshot;
 
@@ -342,3 +343,16 @@ FROM (SELECT x.shipment_id, f.delivery_qty - sum(x.quantity) AS rest
       GROUP BY x.shipment_id, f.delivery_qty
       HAVING count(*) FILTER (WHERE x.quantity_source = 'UNALLOCATED') = 1) r
 WHERE r.shipment_id = b.shipment_id AND b.quantity_source = 'UNALLOCATED' AND r.rest > 0;
+
+-- --------------------------------------------------------------------- return reasons (2.13)
+-- Amazon FBA customer returns: one row per returned unit with Amazon's reason and condition. Units only; the value of
+-- a return stays with the ERP credit note (fact_return_line). Channel: Amazon FBA (these are Amazon-fulfilled orders).
+INSERT INTO core.fact_return_reason_line (source_name, return_date_key, channel_key, product_key, source_sku_code, order_number,
+    reason_code, disposition, fulfilment_centre, quantity, batch_id, source_row_number)
+SELECT 'AMAZON_CUSTOMER_RETURNS', stg.date_key(s.return_date),
+       coalesce((SELECT channel_key FROM core.dim_channel WHERE channel_code = 'AMAZON_FBA'), -1),
+       coalesce(p.product_key, -1), s.source_sku_code, s.order_number, coalesce(s.reason_code, 'NO_REASON_GIVEN'),
+       s.disposition, s.fulfilment_centre, s.quantity, s.batch_id, s.source_row_number
+FROM stg.amazon_returns s
+LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
+WHERE s.quantity > 0 AND s.return_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);

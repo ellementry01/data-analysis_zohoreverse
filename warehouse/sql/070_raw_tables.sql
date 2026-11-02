@@ -8,6 +8,38 @@ COMMENT ON COLUMN meta.load_batch.period_start IS 'Earliest business date presen
 COMMENT ON COLUMN meta.load_batch.period_end   IS 'Latest business date present in the file. The 15-Sep cut-off is applied in staging, not here';
 COMMENT ON COLUMN meta.load_batch.as_of_date   IS 'For snapshot / state / master files: the date the export represents (given by the operator, cross-checked with the file where it states one)';
 
+-- AMAZON_CUSTOMER_RETURNS
+CREATE TABLE raw.amazon_customer_returns (
+    batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
+    source_row_number  INTEGER NOT NULL,
+    return_date                              TEXT,
+    order_id                                 TEXT,
+    sku                                      TEXT,
+    asin                                     TEXT,
+    fnsku                                    TEXT,
+    product_name                             TEXT,
+    quantity                                 TEXT,
+    fulfillment_center_id                    TEXT,
+    detailed_disposition                     TEXT,
+    reason                                   TEXT,
+    license_plate_number                     TEXT,
+    customer_comments                        TEXT,
+    PRIMARY KEY (batch_id, source_row_number)
+);
+COMMENT ON TABLE raw.amazon_customer_returns IS 'As received from AMAZON_CUSTOMER_RETURNS. Contract: loader/contracts/AMAZON_CUSTOMER_RETURNS.json';
+COMMENT ON COLUMN raw.amazon_customer_returns.return_date IS 'Source header: return-date';
+COMMENT ON COLUMN raw.amazon_customer_returns.order_id IS 'Source header: order-id';
+COMMENT ON COLUMN raw.amazon_customer_returns.sku IS 'Source header: sku';
+COMMENT ON COLUMN raw.amazon_customer_returns.asin IS 'Source header: asin';
+COMMENT ON COLUMN raw.amazon_customer_returns.fnsku IS 'Source header: fnsku';
+COMMENT ON COLUMN raw.amazon_customer_returns.product_name IS 'Source header: product-name';
+COMMENT ON COLUMN raw.amazon_customer_returns.quantity IS 'Source header: quantity';
+COMMENT ON COLUMN raw.amazon_customer_returns.fulfillment_center_id IS 'Source header: fulfillment-center-id';
+COMMENT ON COLUMN raw.amazon_customer_returns.detailed_disposition IS 'Source header: detailed-disposition';
+COMMENT ON COLUMN raw.amazon_customer_returns.reason IS 'Source header: reason';
+COMMENT ON COLUMN raw.amazon_customer_returns.license_plate_number IS 'Source header: license-plate-number';
+COMMENT ON COLUMN raw.amazon_customer_returns.customer_comments IS 'Source header: customer-comments';
+
 -- BLINKIT_INVENTORY
 CREATE TABLE raw.blinkit_inventory (
     batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),

@@ -65,6 +65,7 @@ def select_sheet(book: dict, contract: dict) -> str:
 
 # --------------------------------------------------------------------------- dates
 _ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?: \d{2}:\d{2}:\d{2})?$")
+_ISO_TS = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$")  # Amazon reports
 _DMY = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")
 _MDY_T = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})(?: \d{1,2}:\d{2}(?::\d{2})?)?$")
 
@@ -90,6 +91,9 @@ def parse_business_date(text: str | None, fmt: str) -> dt.date | None:
                 return None
             dates = {dt.date(int(m[3]), int(m[2]), int(m[1])) for m in ms}
             return dates.pop() if len(dates) == 1 else None
+        if fmt == "iso_timestamp":             # e.g. 2026-09-14T11:31:48+00:00: the date as written (staging converts zones)
+            m = _ISO_TS.match(t)
+            return dt.date(int(m[1]), int(m[2]), int(m[3])) if m else None
         if fmt == "text_mdy_time":
             m = _MDY_T.match(t)
             return dt.date(int(m[3]), int(m[1]), int(m[2])) if m else None

@@ -28,6 +28,9 @@
 | WMS shipments link to ERP bills by Extern Order No, then AWB (2.5) | The WMS Invoice No of marketplace orders is the marketplace's own invoice |
 | Stock is valued at cost, not MRP (business, 2026-10-27); where MRPs disagree the higher one is current; category from the ERP item master only | Business rules: the company values stock at cost; prices were raised, so the lower MRP is old stock's label |
 | The stock report of the day before the period (31 Mar 2025) is kept as opening stock (BR-033); month-end reports are stock history; a month-by-month movement check replaces the single implied-opening check | With saved stock days, gaps can be dated to a month instead of guessed over the whole period |
+| Slow stock is judged by days since the SKU last sold anywhere (all channels), not at the location holding it | A product selling in the website or B2B channel is not dead stock just because one store holds a unit |
+| Return reasons come from Amazon's FBA customer-returns report only; the Shopify returns export is not loaded | The ERP records no reasons; the Shopify export says "other-reason" on every row |
+| Insights skip a measure whose values are not numbers (e.g. MAX of a date) | A "latest as-of date" column crashed the dashboard insights (TypeError) |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
 
 ## Gotchas

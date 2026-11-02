@@ -1,0 +1,69 @@
+{
+  "source_name": "AMAZON_CUSTOMER_RETURNS",
+  "status": "verified",
+  "verified_against": "484681020741.csv (Seller Central FBA customer returns)",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "CSV"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 12,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "return-date",
+      "column": "return_date"
+    },
+    {
+      "header": "order-id",
+      "column": "order_id"
+    },
+    {
+      "header": "sku",
+      "column": "sku"
+    },
+    {
+      "header": "asin",
+      "column": "asin"
+    },
+    {
+      "header": "fnsku",
+      "column": "fnsku"
+    },
+    {
+      "header": "product-name",
+      "column": "product_name"
+    },
+    {
+      "header": "quantity",
+      "column": "quantity"
+    },
+    {
+      "header": "fulfillment-center-id",
+      "column": "fulfillment_center_id"
+    },
+    {
+      "header": "detailed-disposition",
+      "column": "detailed_disposition"
+    },
+    {
+      "header": "reason",
+      "column": "reason"
+    },
+    {
+      "header": "license-plate-number",
+      "column": "license_plate_number"
+    },
+    {
+      "header": "customer-comments",
+      "column": "customer_comments"
+    }
+  ],
+  "business_date": {
+    "header": "return-date",
+    "format": "iso_timestamp"
+  },
+  "as_of_required": false
+}

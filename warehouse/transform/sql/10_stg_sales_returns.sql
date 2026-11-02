@@ -126,3 +126,18 @@ SELECT n.batch_id, n.source_row_number, u.seq::SMALLINT AS receipt_seq, btrim(u.
        cardinality(n.nums) AS n_receipts, cardinality(n.dts) AS n_dates
 FROM n CROSS JOIN LATERAL unnest(n.nums) WITH ORDINALITY AS u(num, seq)
 WHERE btrim(u.num) <> '';
+
+-- Amazon FBA customer returns (2.13): return reasons. Latest file wins per return day. Timestamps are UTC: the return
+-- date is taken in India time. Amazon listing SKUs carry suffixes that are not part of our item code
+-- (-FBA, -FBA1, __fba, -GBL, _New, -V): stripped. customer-comments stays in raw.
+DROP TABLE IF EXISTS stg.amazon_returns;
+CREATE TABLE stg.amazon_returns AS
+WITH src AS (
+    SELECT r.*, (btrim(r.return_date)::TIMESTAMPTZ AT TIME ZONE 'Asia/Kolkata')::DATE AS return_day
+    FROM raw.amazon_customer_returns r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED'),
+ranked AS (SELECT s.*, max(s.batch_id) OVER (PARTITION BY s.return_day) AS latest_batch FROM src s)
+SELECT batch_id, source_row_number, return_day AS return_date, btrim(order_id) AS order_number, btrim(sku) AS source_sku_code,
+       stg.sku(regexp_replace(btrim(sku), '([-_]+(fba[0-9]*|gbl|new|v))+$', '', 'i')) AS sku_code, stg.num(quantity) AS quantity,
+       nullif(btrim(fulfillment_center_id), '') AS fulfilment_centre, nullif(btrim(detailed_disposition), '') AS disposition,
+       nullif(btrim(reason), '') AS reason_code
+FROM ranked WHERE batch_id = latest_batch;

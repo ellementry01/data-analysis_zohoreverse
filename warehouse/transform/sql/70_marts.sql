@@ -160,7 +160,14 @@ SELECT sp.location_code, sp.location_name, sp.location_type, sp.sku_code, sp.pro
        CASE WHEN coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0) > 0
             THEN round(sp.sellable_qty / (coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0)), 1) END AS days_of_cover,
        sp.as_of_date, sp.basis,
-       round(coalesce(se.avg_daily_units, 0), 3) AS avg_daily_transfer_out_30d
+       round(coalesce(se.avg_daily_units, 0), 3) AS avg_daily_transfer_out_30d,
+       sp.stock_value_cost, sp.category_label,
+       CASE WHEN coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0) = 0 THEN '6. Nothing sold or sent in 30 days'
+            WHEN sp.sellable_qty / (coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0)) < 30 THEN '1. Under 30 days'
+            WHEN sp.sellable_qty / (coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0)) < 90 THEN '2. 30-90 days'
+            WHEN sp.sellable_qty / (coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0)) < 180 THEN '3. 90-180 days'
+            WHEN sp.sellable_qty / (coalesce(so.avg_daily_units, 0) + coalesce(se.avg_daily_units, 0)) < 365 THEN '4. 180-365 days'
+            ELSE '5. Over a year' END AS cover_band
 FROM mart.v_stock_position_latest sp
 LEFT JOIN sold so ON so.location_code = sp.location_code AND so.sku_code = sp.sku_code
 LEFT JOIN sent se ON se.location_code = sp.location_code AND se.sku_code = sp.sku_code
@@ -232,7 +239,8 @@ GROUP BY d.calendar_date, d.fiscal_year_label, d.fiscal_month, d.month_start_dat
 CREATE OR REPLACE VIEW mart.v_partner_sellout_daily AS
 SELECT d.calendar_date, d.month_start_date, so.source_name, c.channel_name AS platform, so.city, l.location_name AS platform_location,
        p.sku_code, p.product_name, p.category, p.lifecycle_status,
-       sum(so.units_sold) AS units_sold, sum(so.order_count) AS orders, sum(so.mrp_value) AS mrp_value, sum(so.selling_value) AS selling_value
+       sum(so.units_sold) AS units_sold, sum(so.order_count) AS orders, sum(so.mrp_value) AS mrp_value,
+       sum(coalesce(so.selling_value, so.gmv_reported)) AS selling_value   -- Instamart gives GMV (at MRP), no selling price
 FROM core.fact_partner_sellout so
 JOIN core.dim_date d ON d.date_key = so.order_date_key
 JOIN core.dim_channel c ON c.channel_key = so.channel_key
@@ -324,3 +332,84 @@ LEFT JOIN core.dim_date dd ON dd.date_key = po.due_date_key
 JOIN core.dim_partner pt ON pt.partner_key = po.partner_key
 JOIN core.dim_product p ON p.product_key = po.product_key;
 
+-- =============================================================================
+-- 2.13 views for the Discontinued & slow stock, Instamart, Days of cover and Returns dashboards
+-- =============================================================================
+
+-- Slow and dead stock: every trading SKU held at an ERP-reported location on the latest stock day, with how long since
+-- the SKU last sold ANYWHERE (all channels, invoices; employee stock excluded) and how much it sold in the last 90 days.
+-- in_stock_since = first saved stock day the SKU held stock at that location (31 Mar 2025 = 'at least since').
+CREATE OR REPLACE VIEW mart.v_slow_stock AS
+WITH period AS (SELECT period_end FROM meta.transform_run WHERE status = 'SUCCEEDED' ORDER BY transform_run_id DESC LIMIT 1),
+sold AS (
+    SELECT s.product_key, max(d.calendar_date) AS last_sale_date,
+           sum(s.quantity) FILTER (WHERE d.calendar_date > (SELECT period_end FROM period) - 90) AS units_sold_90d,
+           sum(s.quantity) FILTER (WHERE d.calendar_date > (SELECT period_end FROM period) - 365) AS units_sold_365d
+    FROM core.fact_sales_line s JOIN core.dim_date d ON d.date_key = s.bill_date_key
+    JOIN core.dim_partner pt ON pt.partner_key = s.partner_key
+    WHERE NOT pt.is_internal AND s.quantity > 0 GROUP BY s.product_key),
+since AS (
+    SELECT s.location_key, s.product_key, min(d.calendar_date) AS in_stock_since
+    FROM core.fact_inventory_snapshot s JOIN core.dim_date d ON d.date_key = s.snapshot_date_key
+    WHERE s.source_name = 'ERP_INVENTORY_SNAPSHOT' AND s.on_hand_qty > 0 GROUP BY 1, 2)
+SELECT sp.location_code, sp.location_name, sp.location_type, sp.sku_code, sp.product_name, sp.category_label, sp.sub_category_label,
+       sp.lifecycle_status, sp.on_hand_qty, sp.stock_value_cost, sp.unit_cost, sp.as_of_date,
+       so.last_sale_date, (SELECT period_end FROM period) - so.last_sale_date AS days_since_last_sale,
+       coalesce(so.units_sold_90d, 0) AS units_sold_90d, coalesce(so.units_sold_365d, 0) AS units_sold_365d,
+       si.in_stock_since,
+       CASE WHEN so.last_sale_date IS NULL THEN '6. No sale since Apr 2025'
+            WHEN (SELECT period_end FROM period) - so.last_sale_date <= 30 THEN '1. Sold in the last 30 days'
+            WHEN (SELECT period_end FROM period) - so.last_sale_date <= 90 THEN '2. Last sale 31-90 days ago'
+            WHEN (SELECT period_end FROM period) - so.last_sale_date <= 180 THEN '3. Last sale 91-180 days ago'
+            WHEN (SELECT period_end FROM period) - so.last_sale_date <= 365 THEN '4. Last sale 181-365 days ago'
+            ELSE '5. Last sale over a year ago' END AS sales_age_band
+FROM mart.v_stock_position_latest sp
+JOIN core.dim_location l ON l.location_code = sp.location_code
+JOIN core.dim_product p ON p.sku_code = sp.sku_code
+LEFT JOIN sold so ON so.product_key = p.product_key
+LEFT JOIN since si ON si.location_key = l.location_key AND si.product_key = p.product_key
+WHERE sp.basis LIKE 'SNAPSHOT%' AND sp.item_type = 'TRADING' AND sp.on_hand_qty > 0;
+
+-- Stock at sale-or-return partners (Instamart, Blinkit) by month, from the ledger: sent, returned, sold through, and the
+-- running balance. Movements since the period start only: there is no opening balance (G-028), so closing_qty is
+-- 'stock sent and not yet sold or returned since Apr 2025', not a stock count.
+CREATE OR REPLACE VIEW mart.v_partner_stock_monthly AS
+WITH mv AS (
+    SELECT l.location_key, d.month_start_date, mt.movement_code, sum(m.quantity) AS q, sum(m.quantity * p.current_cost) AS v
+    FROM core.fact_stock_movement m
+    JOIN core.dim_location l ON l.location_key = m.location_key AND l.location_type = 'PARTNER_CONSIGNMENT'
+    JOIN core.dim_movement_type mt ON mt.movement_type_key = m.movement_type_key
+    JOIN core.dim_date d ON d.date_key = m.movement_date_key
+    JOIN core.dim_product p ON p.product_key = m.product_key
+    GROUP BY 1, 2, 3),
+months AS (SELECT DISTINCT d.month_start_date FROM core.dim_date d
+           WHERE d.calendar_date BETWEEN (SELECT min(period_start) FROM meta.transform_run WHERE status = 'SUCCEEDED')
+                                     AND (SELECT period_end FROM meta.transform_run WHERE status = 'SUCCEEDED' ORDER BY transform_run_id DESC LIMIT 1)),
+grid AS (SELECT DISTINCT mv.location_key, mo.month_start_date FROM mv CROSS JOIN months mo),
+m AS (SELECT g.location_key, g.month_start_date,
+             coalesce(sum(mv.q) FILTER (WHERE mv.movement_code IN ('CONSIGNMENT_IN')), 0) AS sent_qty,
+             coalesce(-sum(mv.q) FILTER (WHERE mv.movement_code IN ('CONSIGNMENT_RETURN_OUT')), 0) AS returned_qty,
+             coalesce(-sum(mv.q) FILTER (WHERE mv.movement_code IN ('CONSIGNMENT_SELLOUT')), 0) AS sold_qty,
+             coalesce(sum(mv.q), 0) AS net_qty, coalesce(sum(mv.v), 0) AS net_value_cost
+      FROM grid g LEFT JOIN mv ON mv.location_key = g.location_key AND mv.month_start_date = g.month_start_date
+      GROUP BY 1, 2)
+SELECT m.month_start_date, l.location_code, l.location_name, l.operated_by AS partner, m.sent_qty, m.returned_qty, m.sold_qty, m.net_qty,
+       sum(m.net_qty) OVER w AS closing_qty, sum(m.net_value_cost) OVER w AS closing_value_cost
+FROM m JOIN core.dim_location l ON l.location_key = m.location_key
+WINDOW w AS (PARTITION BY m.location_key ORDER BY m.month_start_date);
+
+-- Return reasons (Amazon FBA customer returns): units by reason and condition. reason_group / reason come from
+-- ref.code_mapping (RETURN_REASON_GROUP / RETURN_REASON_LABEL); unmapped codes show as 'Other'.
+CREATE OR REPLACE VIEW mart.v_return_reasons AS
+SELECT d.calendar_date AS return_date, d.month_start_date, f.source_name, c.channel_name, c.sub_channel_name,
+       p.sku_code, p.product_name, p.category, f.reason_code,
+       coalesce(lb.standard_value, initcap(replace(lower(f.reason_code), '_', ' '))) AS reason,
+       coalesce(gr.standard_value, 'Other') AS reason_group,
+       initcap(replace(lower(coalesce(f.disposition, 'UNKNOWN')), '_', ' ')) AS condition_on_return,
+       f.fulfilment_centre, f.quantity AS units_returned
+FROM core.fact_return_reason_line f
+JOIN core.dim_date d ON d.date_key = f.return_date_key
+JOIN core.dim_channel c ON c.channel_key = f.channel_key
+JOIN core.dim_product p ON p.product_key = f.product_key
+LEFT JOIN ref.code_mapping gr ON gr.domain = 'RETURN_REASON_GROUP' AND gr.source_name = f.source_name AND gr.source_value = f.reason_code
+LEFT JOIN ref.code_mapping lb ON lb.domain = 'RETURN_REASON_LABEL' AND lb.source_name = f.source_name AND lb.source_value = f.reason_code;

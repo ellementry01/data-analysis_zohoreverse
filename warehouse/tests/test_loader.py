@@ -53,6 +53,9 @@ def test_nan_is_refused():
     ("4/14/2025 15:56", "text_mdy_time", dt.date(2025, 4, 14)),        # month first (WMS)
     ("2026-04-06 00:00:00", "excel_datetime_or_text_dmy_repeated", dt.date(2026, 4, 6)),
     ("06/04/2026", "excel_datetime_or_text_dmy_repeated", dt.date(2026, 4, 6)),
+    ("2026-09-14T11:31:48+00:00", "iso_timestamp", dt.date(2026, 9, 14)),   # Amazon reports (UTC)
+    ("2026-09-14T11:31:48Z", "iso_timestamp", dt.date(2026, 9, 14)),
+    ("14/09/2026", "iso_timestamp", None),
 ])
 def test_business_dates(text, fmt, expected):
     assert parse_business_date(text, fmt) == expected

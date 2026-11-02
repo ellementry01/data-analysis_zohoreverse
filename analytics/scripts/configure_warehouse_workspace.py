@@ -1,5 +1,5 @@
 """
-Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.11, through the public API.
+Brings the warehouse workspace's app configuration in line with ellementry_dw schema 2.13, through the public API.
 Re-runnable: every step checks what is already there.
 
     python scripts/configure_warehouse_workspace.py [--base http://localhost:8000] [--workspace 34]
@@ -21,9 +21,12 @@ import sys
 import urllib.error
 import urllib.request
 
-SRC = "From ellementry_dw mart (schema 2.11)"
+SRC = "From ellementry_dw mart (schema 2.13)"
 IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every PO line with exception flags
-           ("v_stock_movement_check", "stock_movement_check")]     # 2.11: opening + movements vs closing, per stock period
+           ("v_stock_movement_check", "stock_movement_check"),     # 2.11: opening + movements vs closing, per stock period
+           ("v_slow_stock", "slow_stock"),                         # 2.13: stock with days since the SKU last sold
+           ("v_partner_stock_monthly", "partner_stock_monthly"),   # 2.13: sent / returned / sold at sale-or-return partners
+           ("v_return_reasons", "return_reasons")]                 # 2.13: Amazon FBA return reasons
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 
 
@@ -98,6 +101,56 @@ def main() -> int:
          "description": SRC + ". Closing stock minus (opening + recorded movements) between two saved stock days. "
                               "Negative = left without a document; positive = arrived without one.",
          "synonyms": ["stock gap", "unexplained stock", "stock difference"], "format": "number", "higher_is_better": True},
+        {"name": "slow_stock_value_cost", "label": "Stock value at cost (by last sale)", "dataset_id": ds("slow_stock"),
+         "expression": "SUM(stock_value_cost)", "filters": [],
+         "description": SRC + ". Trading stock at ERP-reported locations on the latest stock day, valued at cost; "
+                              "slice by sales_age_band (how long since the SKU last sold anywhere).",
+         "synonyms": ["slow stock", "dead stock", "ageing stock"], "format": "currency", "higher_is_better": False},
+        {"name": "cover_stock_value_cost", "label": "Sellable stock value at cost (cover view)", "dataset_id": ds("days_of_cover"),
+         "expression": "SUM(stock_value_cost)", "filters": [],
+         "description": SRC + ". Sellable trading stock by location at cost; slice by cover_band.",
+         "synonyms": ["cover value", "overstock value"], "format": "currency", "higher_is_better": True},
+        {"name": "partner_units_sent", "label": "Units sent to partner (sale-or-return)", "dataset_id": ds("partner_stock_monthly"),
+         "expression": "SUM(sent_qty)", "filters": [], "time_column": "month_start_date",
+         "description": SRC + ". Units invoiced to sale-or-return partners (Instamart, Blinkit).",
+         "synonyms": ["sent to instamart", "supplied to instamart"], "format": "number", "higher_is_better": True},
+        {"name": "partner_units_returned", "label": "Units returned by partner", "dataset_id": ds("partner_stock_monthly"),
+         "expression": "SUM(returned_qty)", "filters": [], "time_column": "month_start_date",
+         "description": SRC + ". Units the partner sent back (credit notes).",
+         "synonyms": ["returned by instamart"], "format": "number", "higher_is_better": False},
+        {"name": "partner_units_sold", "label": "Units sold through by partner", "dataset_id": ds("partner_stock_monthly"),
+         "expression": "SUM(sold_qty)", "filters": [], "time_column": "month_start_date",
+         "description": SRC + ". Units the partner sold to consumers (sell-out).",
+         "synonyms": ["sold by instamart", "sell through"], "format": "number", "higher_is_better": True},
+        {"name": "partner_stock_balance", "label": "Stock with partner (since Apr 2025, no opening)", "dataset_id": ds("partner_stock_monthly"),
+         "expression": "SUM(closing_qty)", "filters": [], "time_column": "month_start_date", "semi_additive": True,
+         "description": SRC + ". Sent minus returned minus sold since 1 Apr 2025. The partner's opening stock is unknown (G-028), "
+                              "so this is not a stock count.",
+         "synonyms": ["stock at instamart", "instamart stock"], "format": "number", "higher_is_better": True},
+        {"name": "qc_sell_out_value", "label": "Quick-commerce sell-out value (consumer prices)", "dataset_id": ds("quick_commerce_sell_out_daily"),
+         "expression": "SUM(selling_value)", "filters": [],
+         "description": SRC + ". What consumers paid on the platform (Instamart reports GMV at MRP). Demand, never our revenue (BR-024).",
+         "synonyms": ["instamart gmv", "sell out value"], "format": "currency", "higher_is_better": True},
+        {"name": "amazon_units_returned", "label": "Amazon FBA units returned (with reason)", "dataset_id": ds("return_reasons"),
+         "expression": "SUM(units_returned)", "filters": [], "time_column": "return_date",
+         "description": SRC + ". Amazon FBA customer returns with Amazon's reason and condition. Units only.",
+         "synonyms": ["return reasons", "amazon returns"], "format": "number", "higher_is_better": False},
+        {"name": "dq_failed_checks", "label": "Quality checks flagging rows", "dataset_id": ds("data_quality_latest"),
+         "expression": "SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END)", "filters": [],
+         "description": SRC + ". Checks of the latest build that flag at least one row (warnings: known gaps).",
+         "synonyms": ["data quality", "failed checks"], "format": "number", "higher_is_better": False},
+        {"name": "dq_blocking_errors", "label": "Blocking data errors", "dataset_id": ds("data_quality_latest"),
+         "expression": "SUM(CASE WHEN outcome = 'FAIL' THEN CASE WHEN severity = 'ERROR' THEN 1 ELSE 0 END ELSE 0 END)", "filters": [],
+         "description": SRC + ". ERROR checks that failed. Always 0 on a published build: a failed ERROR check stops the build.",
+         "synonyms": ["data errors"], "format": "number", "higher_is_better": False},
+        {"name": "open_data_gaps", "label": "Open data gaps", "dataset_id": ds("data_gaps"),
+         "expression": "SUM(CASE WHEN status <> 'CLOSED' THEN 1 ELSE 0 END)", "filters": [],
+         "description": SRC + ". Data the warehouse still needs from the business or the ERP team.",
+         "synonyms": ["data gaps", "missing data"], "format": "number", "higher_is_better": False},
+        {"name": "files_loaded", "label": "Source files loaded", "dataset_id": ds("load_batches"),
+         "expression": "SUM(CASE WHEN status = 'LOADED' THEN 1 ELSE 0 END)", "filters": [],
+         "description": SRC + ". Export files loaded into the warehouse.", "synonyms": ["files", "loads"], "format": "number",
+         "higher_is_better": True},
         {"name": "stock_units_no_cost", "label": "Units with no cost (left out of stock value)", "dataset_id": ds("stock_position_latest"),
          "expression": "SUM(CASE WHEN cost_status = 'Cost missing' THEN on_hand_qty ELSE 0 END)", "filters": [],
          "time_column": "as_of_date", "semi_additive": True,

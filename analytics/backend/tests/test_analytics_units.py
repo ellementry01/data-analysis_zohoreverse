@@ -236,3 +236,12 @@ def test_previous_period(lo, hi, mode, plo, phi):
 def test_previous_year_of_leap_day_keeps_length():
     plo, phi = previous_period(date(2024, 2, 29), date(2024, 3, 1), "previous_year")
     assert plo.year == 2023 and (phi - plo).days == 1
+
+
+def test_date_measure_beside_a_number_gets_no_insight_and_does_not_fail():
+    # typed as a number by the engine, as MAX(a date column) is: the values decide
+    latest = {"name": "latest", "label": "Latest as-of date", "role": "measure", "type": "decimal", "format": "number"}
+    rows = [["A", 3, "2026-09-15"], ["B", 5, "2026-03-31"], ["C", 1, "2026-09-26"]]
+    ins = insights([D("source"), M("files"), latest], rows)
+    assert any(i["type"] == "top" and "files" in i["text"].lower() for i in ins)
+    assert not any("Latest as-of date" in i["text"] for i in ins)
