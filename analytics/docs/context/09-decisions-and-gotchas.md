@@ -13,7 +13,7 @@
 | Connector passwords are referenced by env var **name** (`ELLEMENTRY_CONN_*` only) | Secrets never pass through the API, the database or chat, and the prefix stops a connector from reading arbitrary server secrets |
 | Connector imports keep the source column types | Empty views would otherwise import as all-text |
 | Ports are bound to 127.0.0.1; identity-only auth | It's a local-first tool; real auth is a prerequisite for sharing (R1) |
-| The warehouse lives in `ellementry-analytics/warehouse` (moved 2026-10-22, history kept) and the exports in `ellementry-analytics/exports` (outside git) | One place for the whole product; the exports hold customer data |
+| The warehouse lives in `warehouse/` (moved 2026-10-22, history kept) and the exports in `exports/` (outside git), both at the repo root | One place for the whole product; the exports hold customer data |
 | Platform workbooks are normalised into the contract layout rather than loosening the contracts | Contracts stay strict; every change the normaliser makes is logged, personal data and payout columns are never written |
 | Mappings added from data evidence are `is_confirmed = false` with the evidence in the note | Same rule as the original reviewed seeds: nothing is assumed confirmed until the business says so |
 | PO Document Remark is stored but decides nothing until BR-031 is confirmed (`po_document_remark_confirmed`) | A PROPOSED rule is never treated as confirmed (PRD convention) |
@@ -31,6 +31,13 @@
 | Slow stock is judged by days since the SKU last sold anywhere (all channels), not at the location holding it | A product selling in the website or B2B channel is not dead stock just because one store holds a unit |
 | Return reasons come from Amazon's FBA customer-returns report only; the Shopify returns export is not loaded | The ERP records no reasons; the Shopify export says "other-reason" on every row |
 | Insights skip a measure whose values are not numbers (e.g. MAX of a date) | A "latest as-of date" column crashed the dashboard insights (TypeError) |
+| BR-031 confirmed (2026-10-27): the PO remark "Purchase" vs "Return" decides purchase vs return-inward; all goods receipts arrive at Bagru (BR-032) | Business answers; they replaced a proposed rule and an unknown receiving location |
+| The six Instamart billing accounts are one quick-commerce partner with pooled stock (BR-034) | The business confirmed the list; Instamart's facilities can't be told apart in our invoices |
+| Instamart rows pasted one column left are dropped only when the same order exists correctly elsewhere; otherwise the normaliser refuses the file | July 2025 showed 59,550 units instead of 310; a silent drop could hide real orders |
+| Goods receipts come from the ERP MRN Register when it is loaded (2.14); the Pending PO export's receipts are used only without it | The register has every GRN with its own date, including closed POs the Pending PO export drops; the memo-repeated item rows are kept once |
+| Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
+| Whole folder is one git repo pushed to `ellementry01/data-analysis_zohoreverse` (public, by the user's choice); `exports/` and `reports/` stay out | One place for the product; customer data is never committed |
+| ERP reports are downloaded only by the agent in the built-in browser, in the user's own signed-in session; nothing in the ERP is changed | The user authorised downloads only |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
 
 ## Gotchas
@@ -41,14 +48,22 @@
 - Importing `claude` from `config` causes a circular import. That is why `check_model` lives in `config.py`.
 - Tests import with `from conftest import …`.
 - Prompt caches are per model, so the first Sonnet question pays its own cache write.
-- The README and QA_REPORT test counts (328 and 363) are stale; the current count is **404**.
+- The README and QA_REPORT test counts (328 and 363) are stale; the current count is **406**.
 - The README "Quick start" still mentions "Load demo workspace". The button still works.
+- **Port 8000 can be taken** by another app (a uvicorn from another project once held it). Start the stack with `APP_PORT=8001` temporarily, or stop the other app.
+- **Migration numbers can clash with another session's.** Check `warehouse/sql/` and `meta.schema_version` before naming one; the next free number is 230 (schema 2.15).
+- **New `source_table` or `source_system` values hit CHECK constraints** (`fact_stock_movement_source_table_check`, the source_system check). The migration must drop and re-add the constraint.
+- **A new mart view used by a DQ check must exist before step 50**; the stock check view lives in `45_stock_check.sql` for that reason.
+- **The test database `dw_test_po` must get every new migration too**; otherwise the transform tests fail at setup (see 07).
+- **Metric expressions can't use `AND`**; use a nested CASE. **Sorting by a dimension field** needs an alias.
+- **ERP (Expand smERP) reports:** widen the browser to 1400×900 first (the size resets every turn). With Consolidated ticked the channel list doesn't open. See 07 for the download steps and the reports that fail inside the ERP.
 
 - **After a hard shutdown**, the app's PostgreSQL container runs a long crash-recovery sync (about 10 minutes). The app can exit first; once the db is healthy, run `docker compose restart app`.
 - **Docker Desktop doesn't start by itself after a reboot.** Launch `%LOCALAPPDATA%/Programs/DockerDesktop/Docker Desktop.exe`.
 - **Warehouse commands go through `python dw.py …`** from `warehouse/`, so the admin login never appears in a command line. Tests: `DW_DATABASE=<disposable db> python dw.py pytest`; the script refuses `ellementry_dw`.
 - **Windows Python writes CRLF line endings** unless told otherwise. The generators now write LF. Check `git diff --stat` for whole-file diffs.
 - **Relative dates in the app are measured from today, but the warehouse period ends on 15 Sep 2026.** "Last 30 days" is empty until the as-of anchor (dashboard plan, item A2) is built or the period is moved.
+- **Dashboard ids change on every rebuild** (`build_executive_dashboards.py` replaces by name). Don't hard-code them.
 
 ## Known functional limitations
 - "By warehouse" on a sales register can group by the warehouse code instead of the name. This is a demo-data quirk.
@@ -58,10 +73,13 @@
 - Excel, PNG and PDF exports run client-side (PDF via print).
 
 ## Sensible next steps (none in progress; ask the user before starting)
-1. Load real facts into `ellementry_dw` (in the warehouse project). Then re-verify the sales, returns and stock answers against direct SQL.
-2. Add a stock-history mart view, so trend questions about stock become answerable.
-3. Build the first dashboards for workspace 34, and add glossary terms for Ellementry vocabulary such as channel and location names.
-4. Configure `READONLY_DATABASE_URL` with `scripts/create_readonly_role.sql` (R5).
-5. Add real authentication (OIDC or an SSO proxy) before any shared or network deployment (R1).
-6. Migrate to Tailwind 4 to clear the build-time npm audit findings (R2).
-7. Refresh the test counts in the README and QA_REPORT.
+Done since 2026-10-22: real facts loaded, stock history (month-ends), ten dashboards.
+1. Load the rest of Bagru's stock movements (scrap, adjustments, inventory transfers, subcontract) by running the ERP Document Wise Stock Movement *Summary* month by month (18 downloads), or the Purchase Register once the ERP login has a department (D-124).
+2. Get the business's answers to the open confirmations in `warehouse/docs/ISSUE_LOG.md` (locations, courier codes, partner list, negative stock) and apply them through seeds.
+3. Start the daily stock save (D-004) and the Instamart daily inventory download (D-125) into `exports/_inbox/`.
+4. Build the "as of" anchor for relative dates (dashboard plan A2), so "last 30 days" works against 15 Sep 2026.
+5. Add glossary terms for Ellementry vocabulary (channel and location names) to help Ask AI.
+6. Configure `READONLY_DATABASE_URL` with `scripts/create_readonly_role.sql` (R5).
+7. Add real authentication (OIDC or an SSO proxy) before any shared or network deployment (R1).
+8. Migrate to Tailwind 4 to clear the build-time npm audit findings (R2).
+9. Refresh the test counts in the README and QA_REPORT.

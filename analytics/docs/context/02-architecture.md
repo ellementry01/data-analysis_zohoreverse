@@ -15,7 +15,10 @@ README.md, QA_REPORT.md   user docs + security audit
 docs/context/             these context files
 Dockerfile, docker-compose.yml, .dockerignore
 .env                      Docker secrets (git-ignored; NEVER print)   .env.docker.example = template
-start.bat, scripts/       setup.ps1, start.ps1 (-Dev), create_readonly_role.sql
+start.bat, scripts/       setup.ps1, start.ps1 (-Dev), create_readonly_role.sql,
+                          configure_warehouse_workspace.py (syncs workspace 34, metrics, calculated columns),
+                          build_executive_dashboards.py (rebuilds the 10 dashboards; see 08)
+docs/                     EXECUTIVE_DASHBOARD_PLAN.md, WAREHOUSE_SCHEMA_REVIEW.md, WAREHOUSE_LOAD_FIX_PLAN.md
 sample_data/              generate.py (seed 42, ~280k rows), messy CSV/XLSX, ground_truth.json
 backend/
   .env / .env.example     local secrets (never print) / template
@@ -69,7 +72,7 @@ frontend/src/
    - Multi-fact queries merge the CTEs on shared dimension keys and on the calendar.
 3. **`sql_safety.validate_select`** checks the SQL with the sqlglot AST. See 05.
 4. **`executor.run_readonly`** runs it in a `READ ONLY` transaction with `statement_timeout`, `lock_timeout`, `work_mem`, `search_path` set to the workspace schema only, and a row cap. Every query is written to `query_history`.
-5. **`analytics.run_spec`** adds the period comparison, a suggested chart, the date range, warnings and **insights**: trend slope/R², change, peak, MAD anomalies, correlation and contributors, with incomplete periods excluded.
+5. **`analytics.run_spec`** adds the period comparison, a suggested chart, the date range, warnings and **insights**: trend slope/R², change, peak, MAD anomalies, correlation and contributors, with incomplete periods excluded. Insights use only measures whose values are numbers (a MAX of a date is skipped).
 
 ## Ask AI flow (summary; details in 04)
 ```

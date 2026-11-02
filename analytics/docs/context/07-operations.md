@@ -50,7 +50,7 @@ docker compose ps
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **404 passed**, in about 2 minutes. About 80 s of that is building the demo workspace once.
+- Current result: **406 passed** (2026-11-02), in about 2 minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)
@@ -62,14 +62,26 @@ $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 - **Live AI checks cost real money.** Get the user's OK first, and keep them short.
 
 ## Warehouse (ellementry_dw)
-Run these from `ellementry-analytics/warehouse/` (details in its README and in 08):
+Run these from `warehouse/` (details in its README and in 08):
 ```bash
-python dw.py backup                       # before any load
+python dw.py backup                       # before any load or migration
+python dw.py psql --single-transaction -f sql/<NNN>_<name>.sql   # a new migration; first with DW_DATABASE=ellementry_dw_trial
 python load_manifest.py ../exports        # load new exports listed in ../exports/MANIFEST.tsv
 python dw.py transform run                # rebuild; ERROR checks roll everything back
-python reconcile.py ../exports            # files vs warehouse, must say N of N agree
+python reconcile.py ../exports            # files vs warehouse, must say 28 of 28 agree
+DW_DATABASE=dw_test_po python dw.py pytest -q   # warehouse tests, never on ellementry_dw
 ```
-Then sync workspace 34. Each dataset has a Sync button, or `POST /api/workspaces/34/datasets/{id}/sync`; the hourly scheduler also does it.
+- **Test database `dw_test_po`:** a disposable, seeded copy with the sample files loaded (the transform tests need data). Apply every new migration to it as well (`DW_DATABASE=dw_test_po python dw.py psql --single-transaction -f sql/<file>`, then `python dw.py seeds dw_test_po`). Otherwise the transform tests fail at setup with "relation/column does not exist". The full suite takes about 10+ minutes.
+
+Then, from `analytics/` on the host (the scripts call the app's API on :8000), sync the app and rebuild the dashboards:
+```bash
+python scripts/configure_warehouse_workspace.py   # sync datasets, import new views, metrics, calculated columns
+python scripts/build_executive_dashboards.py      # rebuild the 10 dashboards (ids change), flag empty widgets
+```
+Each dataset also has a Sync button (`POST /api/workspaces/34/datasets/{id}/sync`), and the hourly scheduler syncs too.
+
+## ERP downloads (Expand smERP, in the built-in browser)
+The user signs in themselves; the agent only downloads reports. Report centre: `Report/ReportLinkCentre.aspx?ReportModuleIndex=N` (3 Sales, 4 Purchase, 7 Inventory). Steps: pick **Custom date** in the box in front of the dates → choose From / To → **Set Date** → tick **Consolidated** → choose **Excel** → click the arrow in front of the report. Files land in `C:\Users\Dileep\Downloads`; copy them to `exports/_originals/erp_<date>/`. Widen the browser to 1400×900 first (the narrow layout hides the controls). Known ERP failures: Document Wise Stock Movement *Details* ("Divide by zero"; Summary works), Purchase Register ("Employee is not associated with any Department"), Customer Information Sheet (needs a contact).
 
 ## Demo data
 - `sample_data/generate.py` (seed 42) writes 11 messy files for a synthetic home and kitchen brand, plus `ground_truth.json`, which is computed independently with pandas.

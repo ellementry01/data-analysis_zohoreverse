@@ -9,8 +9,8 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 4. **Never use Opus or Fable models** and never enable server-side fallbacks (see 04).
 5. **The app reads the Ellementry warehouse read-only.**
    - The app connects only as the `ellementry_metrics` role, which can read only `mart`.
-   - The warehouse changes only through `ellementry-analytics/warehouse`: `python dw.py …` with the admin login from `warehouse/.env` (never printed), after `python dw.py backup`, with reconciliation afterwards. Tests run only on a disposable database.
-   - `ellementry-analytics/exports` holds customer data. Never commit it, upload it or print personal fields; the normaliser drops them.
+   - The warehouse changes only through `warehouse/` (repo root): `python dw.py …` with the admin login from `warehouse/.env` (never printed), after `python dw.py backup`, with reconciliation afterwards. Tests run only on a disposable database (`dw_test_po`). ERP access is the user's signed-in session: download reports only, never change anything or sign out.
+   - `exports/` (repo root, not in git) holds customer data. Never commit it, upload it or print personal fields; the normaliser drops them.
 6. **Don't claim a feature works unless it's implemented and tested.**
 
 ## Defences in place
