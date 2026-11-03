@@ -37,6 +37,8 @@
 | Goods receipts come from the ERP MRN Register when it is loaded (2.14); the Pending PO export's receipts are used only without it | The register has every GRN with its own date, including closed POs the Pending PO export drops; the memo-repeated item rows are kept once |
 | Franchise and SIS partners come from the business's store status sheet (BR-035): one partner stock location per franchise account, Shoppers Stop pooled (one billing account for 14 counters); return-PO receipts from partners are not taken off partner stock until D-089 is answered | The sheet's franchise names match the ERP billing names exactly; subtracting both return routes could count the same goods twice |
 | The COO-readiness fixes (segment labels, partner stock out of days of cover, retail-only return rate) were found on 2026-11-03 and deliberately left for later | The user said "Not now"; see the review in 08 |
+| Dashboard descriptions are shown on the dashboard (under the title, and in the PDF) | Caveats such as "RTO is website-only" were only in the API; a COO reading the screen never saw them |
+| Dashboard values filters use shared lookup fields (`locations.*`, `products.*`) when widgets come from several datasets | A filter on a field of one dataset is applied to every widget and gave wrong month-end figures on the other dataset |
 | Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
 | Whole folder is one git repo pushed to `ellementry01/data-analysis_zohoreverse` (public, by the user's choice); `exports/` and `reports/` stay out | One place for the product; customer data is never committed |
 | ERP reports are downloaded only by the agent in the built-in browser, in the user's own signed-in session; nothing in the ERP is changed | The user authorised downloads only |
@@ -68,6 +70,8 @@
 - **New partner types reach the app's calculated columns silently.** `sales_segment` and `location_group` are CASE expressions in the app; a new `partner_type` or `location_type` in the warehouse falls into their ELSE branch (2.15's franchise / SIS went to "B2B - other"). Check them after every warehouse release that adds a type.
 - **Warehouse tests can be stale, not the data.** In 2.15 two failed only because a test used Shoppers Stop as its "unlisted" example and another still joined shipments on the WMS invoice number (shipments link by `sales_bill_number` since 2.5). Read the assertion before changing data.
 - **Checking numbers through the app:** `POST /api/workspaces/34/query` takes a QuerySpec (dimensions, measures, filters, sort, limit); sorting needs an alias. Dataset names in `GET /datasets` are display names ("Net sales daily"), while fields use the table name (`net_sales_daily.x`).
+- **A dashboard values filter applies to every widget.** Pick a field every widget's dataset can reach (a shared lookup such as `locations.location_name` or `products.category`), and check each widget with the filter set; a field from one fact dataset silently distorts widgets on another.
+- **Measure and dimension `label`s override column headers** in widget specs; use them rather than renaming metrics.
 - **Dashboard ids change on every rebuild** (`build_executive_dashboards.py` replaces by name). Don't hard-code them.
 
 ## Known functional limitations

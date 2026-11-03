@@ -122,7 +122,7 @@
 **Calculated label columns** (made by `configure_warehouse_workspace.py`; the dashboards expect them): `sales_segment` (with "B2C export" for EXPORT_B2C and "B2B & partners (classification pending)" instead of Unknown), `channel` ("Classification pending"), `stock_position_latest.location_group`, `returns_to_sale.return_window`, `transfer_in_transit.route`.
 
 ## Dashboards (10, built by `scripts/build_executive_dashboards.py`)
-Current ids are 172–181; they change on every rebuild because dashboards with the same names are replaced. The script runs every widget and reports any that come back empty.
+Current ids are 192–201 (Stock 195, Fulfilment 196); they change on every rebuild because dashboards with the same names are replaced. The script runs every widget and reports any that come back empty.
 
 | Dashboard | Main datasets | Notes |
 |---|---|---|
@@ -148,15 +148,22 @@ The user chose **not to fix yet** ("Not now"); the fixes below are the next job 
 
 | Dashboard | Verdict | Why |
 |---|---|---|
-| Fulfilment | Show | 45,246 deliveries, RTO 7.8% (website), late 10.7%, ~25 h order-to-ship; caveats are in the description |
+| Fulfilment | **Ready (reworked 2026-11-03)** | 45,246 orders, 37,243 delivered, RTO 7.8% (website; COD 16.2% vs prepaid 1.2%), late 10.7%, ~25 h order-to-ship, 4.8 days delivery |
 | Discontinued & slow stock | Show | ₹3.86 Cr at cost (matches Stock); ₹53 L not sold 180+ days; partners excluded |
-| Stock | Show, with caveats | Month-end line: Bagru falls ~₹1 Cr in May 2025 (71,449 → 55,185 units; the stock check shows 16,677 units left with no document, part of D-124, not yet explained). "Sellable units" = "Units on hand" (the ERP report has no damaged split) |
+| Stock | **Ready (reworked 2026-11-03)**; caveats in its description | Month-end line: Bagru falls ~₹1 Cr in May 2025 (71,449 → 55,185 units; the stock check shows 16,677 units left with no document, part of D-124, not yet explained). "Sellable units" = "Units on hand" (the ERP report has no damaged split) |
 | Instamart | Show, with caveats | Stock with Instamart (3,229) is rebuilt, no opening balance; city chart lists "Bangalore" and "bangalore" separately (city case not normalised) |
 | Purchasing & transfers | Show, with caveats | FY 25-26 PO export date assumed, so overdue days are a minimum; very old open lines may just be unclosed in the ERP |
 | Executive overview, Sales & channels | **Fix first** | Totals right, segment labels wrong (see fix 1) |
 | Days of cover | **Fix first** | Includes partner ledger balances (see fix 2): headline ₹5.41 Cr, real ~₹3.80 Cr |
 | Returns | **Fix first** | See fix 3 |
 | Data health | Team only | Not for management |
+
+**Stock and Fulfilment rework (2026-11-03, for the COO).** The user chose to show these two. Verified through the widget API and in the browser: every widget returns data; Location / Category (Stock) and Order date / Channel (Fulfilment) filters, Compare (last year), drill-down (location group → location, category → sub-category → product, month → day, status → channel) and Excel export all work.
+- **App (frontend):** the dashboard description is shown under the title (screen and PDF), so caveats travel with the numbers; the Compare control is hidden on dashboards without a date filter.
+- **Calculated columns** (now made by step 5 of `configure_warehouse_workspace.py`, not by hand): `fulfilment.order_status` (readable WMS status) and `stock_position_latest.location` (name, with "(closed)" for inactive locations).
+- **Fulfilment:** six tiles (Orders, Delivered, RTO rate website, Shipped late, Order to ship hours, Delivery time days); orders by month and payment type; order status; monthly RTO and late-shipment trend; website RTO COD vs prepaid; channel and courier tables with plain column labels. The `deliveries` metric is `COUNT(*)` of WMS orders (cancelled and in transit included), so widgets call it "Orders".
+- **Stock:** filters use the shared lookups `locations.location_name` and `products.category`, because a filter on a `stock_position_latest`-only field silently gives wrong numbers on the month-end (`stock_position_daily`) widget. Tiles: value, units, products in stock, continued, discontinued, units with no cost; new "Top 20 products by stock value" table; month-end line titled "at today's unit cost"; the description explains partner stock, closed stores, DFAL and the May 2025 Bagru drop.
+- Known data quirks the COO may see: category names from the ERP item master include "Gift Componenets" (typo) and both "Furniture" and "Furniture & Lighting"; "Shipped, no delivery update" (4,778) is mostly channels that send no delivery dates.
 
 **Fixes waiting (all in the app layer, no warehouse change needed):**
 1. **`sales_segment` calculated column** on `net_sales_daily` and `sales_orders_daily` (set in `scripts/configure_warehouse_workspace.py`, which patches it in place): `QUICK_COMMERCE_PARTNER` is labelled "Quick-commerce partner returns" but it is Instamart / Blinkit *net sales* (₹35.6 L in FY 26-27 to date); `FRANCHISE_PARTNER` and `SIS_PARTNER` (new in 2.15) fall into "B2B - other". Add "Quick commerce (sale-or-return)", "Franchise stores" and "Shoppers Stop (SIS)". The configure script only adds the B2C-export branch when missing, so the patch logic must also replace the old labels. Then rerun `build_executive_dashboards.py`.

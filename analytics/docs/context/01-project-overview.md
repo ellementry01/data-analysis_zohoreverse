@@ -69,11 +69,12 @@ The research output is in `research/`: `DISCOVERY.md`, `FEATURE_MATRIX.md` (each
 17. **ERP report downloads (2026-11-02), schema 2.14.** The user logged into the ERP in the built-in browser; the MRN (goods-receipt) register was loaded, and the Document Wise Stock Movement report explained 80% of Bagru's unexplained stock.
 18. **Store status sheet (2026-11-02), schema 2.15.** The business sent the list of all stores (own / franchise / SIS, running / closed): franchise and Shoppers Stop accounts classified as sale-or-return partners; own-store status applied.
 19. **COO readiness review (2026-11-03).** All 10 dashboards checked on live data: six can be shown, three need app-side fixes first (segment labels, partner stock in days of cover, return rate), Data health is for the team. Fixes deferred by the user; details in 08.
+20. **Stock and Fulfilment made COO-ready (2026-11-03).** The user will show these two. Descriptions now appear on dashboards; readable order status; COD vs prepaid RTO; monthly RTO / late trend; Stock filters by location and category; closed stores marked; top products table.
 
 ## Current status (2026-11-03)
 - Docker stack (`ellementry-db-1`, `ellementry-app-1`) is running and healthy on http://localhost:8000, with Claude enabled.
 - Backend test suite: **406 passed**. Warehouse suite: **85 passed, 7 skipped** (see 07). The README and QA_REPORT counts are older (328 and 363).
-- Only one workspace exists in the Docker app: **34 Ellementry (live warehouse)**, with 29 datasets, 45 metrics, 18 relationships and **10 dashboards** (ids 172–181). Not all are ready for management: see "COO readiness review" in 08.
+- Only one workspace exists in the Docker app: **34 Ellementry (live warehouse)**, with 29 datasets, 45 metrics, 18 relationships and **10 dashboards** (ids 192–201; Stock 195, Fulfilment 196). Not all are ready for management: see "COO readiness review" in 08.
 - The warehouse (`ellementry_dw`, **schema 2.15**) holds **real data for 1 Apr 2025 – 15 Sep 2026**: sales, returns, transfers, POs, goods receipts, shipments, Instamart sell-out, Amazon return reasons, and stock for **19 days** (31 Mar 2025, every month-end to 31 Aug 2026, and 15 Sep 2026). `reconcile.py` agrees on **28 of 28** checks.
 - Issue log: **90 solved, 37 unsolved** (`warehouse/docs/ISSUE_LOG.md`). Open business inputs are summarised at the end of 08.
 

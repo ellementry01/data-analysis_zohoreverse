@@ -35,6 +35,11 @@ TO_FBA = {"field": "transfer_in_transit.destination_group", "op": "eq", "value":
 SLOW = {"field": "slow_stock.sales_age_band", "op": "in",
         "value": ["4. Last sale 181-365 days ago", "5. Last sale over a year ago", "6. No sale since Apr 2025"]}
 SLOW_COVER = {"field": "days_of_cover.cover_band", "op": "in", "value": ["5. Over a year", "6. Nothing sold or sent in 30 days"]}
+# Fulfilment table columns: "deliveries" counts every WMS order (cancelled and in transit too), so it is shown as Orders
+ORDERS = {"metric": "deliveries", "alias": "orders", "label": "Orders"}
+RTO = {"metric": "rto_rate", "label": "RTO rate (website)"}
+LATE = {"metric": "late_shipment_rate", "label": "Shipped late"}
+DELIVERY_DAYS = {"metric": "avg_ship_to_deliver_days", "label": "Delivery time (days)"}
 IM_SELLOUT = {"field": "quick_commerce_sell_out_daily.platform", "op": "eq", "value": "Instamart"}
 IM_STOCK = {"field": "partner_stock_monthly.partner", "op": "eq", "value": "INSTAMART"}
 # BR-031 confirmed (warehouse 2.10): the warehouse already leaves return-inward lines out; the filter is a safety net
@@ -135,50 +140,81 @@ DASHBOARDS = [
             top("return_reasons.product_name", "amazon_units_returned", 15), 6, 23, 6, 6)]),
 
     ("Stock",
-     "Stock on 15 Sep 2026 (trend: month-end stock reports from 31 Mar 2025), each location from its own stock report, "
-     "trading items only, valued at cost "
-     "(unit cost from the ERP item master, excl. GST). Categories come from the ERP item master. "
-     "History starts once the daily stock report is saved (gap G-001). Stock at partners has no opening balance yet (G-028).",
-     [],
-     [kpi("Stock value at cost", "stock_value_cost", 0, 0, w=3, compare=None, filters=[TRADING, OWN_STOCK]),
-      kpi("Units on hand", "stock_on_hand", 3, 0, w=2, compare=None, filters=[TRADING, OWN_STOCK]),
-      kpi("Sellable units", "sellable_stock", 5, 0, w=2, compare=None, filters=[TRADING, OWN_STOCK]),
-      kpi("Discontinued stock at cost", "stock_value_cost", 7, 0, w=3, compare=None,
+     "Stock on 15 Sep 2026, the latest stock report, at every company location: Bagru warehouse, own stores, Amazon FBA and "
+     "other company locations. Trading items only, valued at cost (unit cost from the ERP item master, excluding GST); "
+     "every unit in stock has a cost. Stock held by franchise, Shoppers Stop and quick-commerce partners is not included: "
+     "we only know what was sent and returned, not what they sold, so it is not a stock count. Closed stores are marked "
+     "'(closed)' and still show the stock they hold. 'Essential - DFAL' is a company location still being confirmed (D-073). "
+     "Month-end trend: from the ERP's month-end stock reports since 31 Mar 2025, valued at today's unit cost. Bagru fell by "
+     "about 16,700 units (about ₹1 Cr) in May 2025 with no sale, transfer or receipt recorded for it; the ERP documents "
+     "behind it (scrap, adjustments) are still being loaded. Use the Location and Category filters to focus; click a bar to "
+     "drill down.",
+     [{"id": "location", "type": "values", "label": "Location", "field": "locations.location_name", "value": []},
+      {"id": "category", "type": "values", "label": "Category", "field": "products.category", "value": []}],
+     [kpi("Stock value at cost", "stock_value_cost", 0, 0, compare=None, filters=[TRADING, OWN_STOCK]),
+      kpi("Units on hand", "stock_on_hand", 2, 0, compare=None, filters=[TRADING, OWN_STOCK]),
+      ("Products in stock", "kpi",
+       {"measures": [{"field": "stock_position_latest.sku_code", "agg": "count_distinct", "alias": "n", "label": "Products in stock"}],
+        "filters": [TRADING, OWN_STOCK, {"field": "stock_position_latest.on_hand_qty", "op": "gt", "value": 0}]},
+       {"x": 4, "y": 0, "w": 2, "h": 2}, {}),
+      kpi("Continued stock at cost", "stock_value_cost", 6, 0, compare=None,
+          filters=[TRADING, OWN_STOCK, {"field": "stock_position_latest.lifecycle_status", "op": "eq", "value": "CONTINUED"}]),
+      kpi("Discontinued stock at cost", "stock_value_cost", 8, 0, compare=None,
           filters=[TRADING, OWN_STOCK, {"field": "stock_position_latest.lifecycle_status", "op": "eq", "value": "DISCONTINUED"}]),
-      kpi("Units with no cost", "stock_units_no_cost", 10, 0, w=2, compare=None, filters=[TRADING, OWN_STOCK]),
+      kpi("Units with no cost", "stock_units_no_cost", 10, 0, compare=None, filters=[TRADING, OWN_STOCK]),
       chart("Stock value by location group", "hbar", top("stock_position_latest.location_group", "stock_value_cost", 10, [TRADING, OWN_STOCK]), 0, 2, 6, 5,
-            drill=["stock_position_latest.location_name"]),
+            drill=["stock_position_latest.location"]),
       chart("Continued vs discontinued (value at cost)", "donut",
             {"dimensions": [{"field": "stock_position_latest.lifecycle_status"}], "measures": [{"metric": "stock_value_cost"}],
              "filters": [TRADING, OWN_STOCK]}, 6, 2, 6, 5),
       chart("Stock value by category", "hbar", top("stock_position_latest.category_label", "stock_value_cost", 15, [TRADING, OWN_STOCK]), 0, 7, 6, 6,
             drill=["stock_position_latest.sub_category_label", "stock_position_latest.product_name"]),
-      chart("Stock by location", "table", top("stock_position_latest.location_name", "stock_value_cost", 25, [TRADING, OWN_STOCK],
-            [{"metric": "stock_on_hand"}]), 6, 7, 6, 6),
-      chart("Stock value at cost, month-end", "line",
+      chart("Stock by location", "table",
+            {"dimensions": [{"field": "stock_position_latest.location", "label": "Location"}],
+             "measures": [{"metric": "stock_value_cost", "alias": "v", "label": "Value at cost"},
+                          {"metric": "stock_on_hand", "label": "Units"}],
+             "filters": [TRADING, OWN_STOCK], "sort": [{"field": "v", "dir": "desc"}], "limit": 25}, 6, 7, 6, 6),
+      chart("Top 20 products by stock value", "table",
+            {"dimensions": [{"field": "stock_position_latest.sku_code", "label": "SKU"},
+                            {"field": "stock_position_latest.product_name", "label": "Product"},
+                            {"field": "stock_position_latest.category_label", "label": "Category"},
+                            {"field": "stock_position_latest.lifecycle_status", "label": "Status"}],
+             "measures": [{"metric": "stock_value_cost", "alias": "v", "label": "Value at cost"},
+                          {"metric": "stock_on_hand", "label": "Units"}],
+             "filters": [TRADING, OWN_STOCK], "sort": [{"field": "v", "dir": "desc"}], "limit": 20}, 0, 13, 12, 7),
+      chart("Stock value at cost, month-end (at today's unit cost)", "line",
             {"dimensions": [MONTH], "measures": [{"metric": "stock_value_cost_history"}],
-             "filters": [{"field": "stock_position_daily.item_type", "op": "eq", "value": "TRADING"}]}, 0, 13, 12, 5)]),
+             "filters": [{"field": "stock_position_daily.item_type", "op": "eq", "value": "TRADING"}]}, 0, 20, 12, 5)]),
 
     ("Fulfilment",
-     "Website and marketplace orders dispatched from Bagru (WMS export). RTO = returned to origin. Late = shipped after the "
-     "marketplace's ship-by time. The WMS only knows what couriers report back: RTO is recorded for the website only "
-     "(marketplace RTO is handled by the marketplace), and Nykaa, FNP and Flipkart send no delivery dates. Rates are "
-     "therefore measured on the channels that report them; blank = not reported, not zero.",
+     "Website and marketplace orders handled by the Bagru warehouse (WMS order report), by order date, 1 Apr 2025 - 15 Sep 2026. "
+     "Orders = every order in the WMS, including cancelled ones and ones still on the way. RTO (returned to origin) is "
+     "recorded for the website only: marketplaces handle their own RTO and never report it back. Late = shipped after the "
+     "ship-by time. Delivery time is measured where couriers report delivery dates (Nykaa, FNP and Flipkart don't). "
+     "A blank rate means 'not reported', not zero. 'Shipped, no delivery update' are mostly orders on channels that send no "
+     "delivery dates. Use the Order date and Channel filters; Compare shows the same period last year.",
      [{"id": "period", "type": "date_range", "label": "Order date", "field": "@time", "value": ALL_DATA},
       {"id": "channel", "type": "values", "label": "Channel", "field": "fulfilment.channel_name", "value": []}],
-     [kpi("Deliveries", "deliveries", 0, 0, w=3, compare=None),
-      kpi("RTO rate (website)", "rto_rate", 3, 0, w=2, compare=None),
-      kpi("Late shipment rate", "late_shipment_rate", 5, 0, w=2, compare=None),
-      kpi("Avg order-to-ship (hours)", "avg_order_to_ship_hours", 7, 0, w=2, compare=None),
-      kpi("Avg delivery time, days (tracked channels)", "avg_ship_to_deliver_days", 9, 0, w=3, compare=None),
-      chart("Deliveries by month and payment type", "stacked_bar",
+     [kpi("Orders", "deliveries", 0, 0, compare=None),
+      kpi("Delivered", "deliveries", 2, 0, compare=None, filters=[{"field": "fulfilment.order_status", "op": "eq", "value": "Delivered"}]),
+      kpi("RTO rate (website)", "rto_rate", 4, 0, compare=None),
+      kpi("Shipped late", "late_shipment_rate", 6, 0, compare=None),
+      kpi("Order to ship (hours)", "avg_order_to_ship_hours", 8, 0, compare=None),
+      kpi("Delivery time (days)", "avg_ship_to_deliver_days", 10, 0, compare=None),
+      chart("Orders by month and payment type", "stacked_bar",
             {"dimensions": [MONTH, {"field": "fulfilment.payment_type"}], "measures": [{"metric": "deliveries"}]}, 0, 2, 7, 5),
-      chart("Shipment status", "hbar", top("fulfilment.shipment_status", "deliveries", 12), 7, 2, 5, 5),
-      chart("RTO and late shipments by channel", "table",
-            top("fulfilment.channel_name", "deliveries", 12, extra=[{"metric": "rto_rate"}, {"metric": "late_shipment_rate"},
-                                                                     {"metric": "avg_order_to_ship_hours"}]), 0, 7, 6, 6),
-      chart("Couriers", "table", top("fulfilment.courier_group", "deliveries", 12,
-            extra=[{"metric": "rto_rate"}, {"metric": "avg_ship_to_deliver_days"}]), 6, 7, 6, 6)]),
+      chart("Order status", "hbar", top("fulfilment.order_status", "deliveries", 12), 7, 2, 5, 5),
+      chart("RTO rate (website) and late shipments, by month", "line",
+            {"dimensions": [MONTH], "measures": [{"metric": "rto_rate"}, {"metric": "late_shipment_rate"}]}, 0, 7, 7, 5),
+      chart("Website RTO rate: cash on delivery vs prepaid", "bar",
+            {"dimensions": [{"field": "fulfilment.payment_type"}], "measures": [{"metric": "rto_rate"}]}, 7, 7, 5, 5),
+      chart("Orders, RTO and late shipments by channel", "table",
+            {"dimensions": [{"field": "fulfilment.channel_name", "label": "Channel"}],
+             "measures": [ORDERS, RTO, LATE, {"metric": "avg_order_to_ship_hours", "label": "Order to ship (hours)"}, DELIVERY_DAYS],
+             "sort": [{"field": "orders", "dir": "desc"}], "limit": 12}, 0, 12, 7, 6),
+      chart("Couriers", "table",
+            {"dimensions": [{"field": "fulfilment.courier_group", "label": "Courier"}], "measures": [ORDERS, RTO, DELIVERY_DAYS],
+             "sort": [{"field": "orders", "dir": "desc"}], "limit": 12}, 7, 12, 5, 6)]),
 
     ("Purchasing & transfers",
      "Open purchase-order lines from the latest PO exports, and stock sent between locations but not yet received. "

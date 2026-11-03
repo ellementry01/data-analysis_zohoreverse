@@ -94,6 +94,7 @@ export default function DashboardView() {
         </div>
       </div>
       <h1 className="mb-2 hidden text-xl font-semibold print:block">{d.name}</h1>
+      {d.description && <p className="mb-3 max-w-6xl whitespace-pre-line text-xs leading-relaxed text-slate-500">{d.description}</p>}
 
       <div className="no-print mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-card">
         <Filter className="h-4 w-4 text-slate-400" />
@@ -107,10 +108,12 @@ export default function DashboardView() {
             )}
           </div>
         ))}
-        <div className="flex items-center gap-1.5 text-sm">
-          <span className="text-xs font-medium text-slate-500">Compare</span>
-          <Select className="!w-auto" value={compare} onChange={setCompare} placeholder="Off" options={[{ value: "previous_period", label: "Previous period" }, { value: "previous_year", label: "Last year" }]} />
-        </div>
+        {activeFilters.some((f) => f.type === "date_range") && (
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className="text-xs font-medium text-slate-500">Compare</span>
+            <Select className="!w-auto" value={compare} onChange={setCompare} placeholder="Off" options={[{ value: "previous_period", label: "Previous period" }, { value: "previous_year", label: "Last year" }]} />
+          </div>
+        )}
         {canEdit && <button onClick={saveDefaults} className="ml-auto text-xs text-brand-600 hover:underline">Save as default view</button>}
       </div>
       <div className="mb-2 hidden text-xs text-slate-500 print:block">Filters: {activeFilters.map((f) => `${f.label}: ${f.type === "date_range" ? describeRange(f.value) : (f.value || []).join(", ") || "All"}`).join(" · ")}</div>

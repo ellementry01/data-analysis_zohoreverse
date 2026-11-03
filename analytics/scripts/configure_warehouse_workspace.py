@@ -11,6 +11,7 @@ Re-runnable: every step checks what is already there.
    deliveries (is_delivery_tracked); stock_units_no_mrp, over_received_qty; 2.8: stock_value_cost (stock is valued at
    cost) and stock_units_no_cost.
 4. Calculated column sales_segment: Ellementry International (channel EXPORT_B2C) is its own segment, "B2C export".
+5. Label columns: fulfilment.order_status (readable WMS status) and stock_position_latest.location (closed stores marked).
 Run build_executive_dashboards.py afterwards.
 """
 from __future__ import annotations
@@ -28,6 +29,18 @@ IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every 
            ("v_partner_stock_monthly", "partner_stock_monthly"),   # 2.13: sent / returned / sold at sale-or-return partners
            ("v_return_reasons", "return_reasons")]                 # 2.13: Amazon FBA return reasons
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
+LABEL_COLUMNS = [
+    ("fulfilment", "Order status",
+     "CASE shipment_status WHEN 'DELIVERED' THEN 'Delivered' WHEN 'SHIPPED' THEN 'Shipped, no delivery update' "
+     "WHEN 'IN_TRANSIT' THEN 'In transit' WHEN 'OUT_FOR_DELIVERY' THEN 'Out for delivery' "
+     "WHEN 'DELIVERY_ATTEMPTED' THEN 'Delivery attempted' WHEN 'RTO_INITIATED' THEN 'Returning to origin (RTO)' "
+     "WHEN 'RTO_DELIVERED' THEN 'Returned to origin (RTO)' WHEN 'CANCELLED' THEN 'Cancelled' WHEN 'LOST' THEN 'Lost' "
+     "WHEN 'OPEN' THEN 'Not yet shipped' WHEN 'PICKED' THEN 'Not yet shipped' WHEN 'PACKING' THEN 'Not yet shipped' "
+     "ELSE 'Status not recorded' END"),
+    # closed stores keep showing the stock they still hold, marked so (store status sheet, BR-035)
+    ("stock_position_latest", "Location",
+     "CASE WHEN is_active = false THEN location_name || ' (closed)' ELSE location_name END"),
+]
 
 
 def main() -> int:
@@ -181,6 +194,21 @@ def main() -> int:
             s, r = call("PATCH", f"/datasets/{ds(name)}/columns/sales_segment", {"expression": expr, "data_type": "text"})
             print(f"{name}.sales_segment B2C export: {'OK' if s == 200 else f'FAILED {r}'}")
             failures += s != 200
+
+    # 5. Readable label columns used by the Fulfilment and Stock dashboards (added or updated in place)
+    for name, display, expr in LABEL_COLUMNS:
+        full = call("GET", f"/datasets/{ds(name)}")[1]
+        col = next((c for c in full["columns"] if c["display_name"] == display), None)
+        if col is None:
+            s, r = call("POST", f"/datasets/{ds(name)}/columns", {"display_name": display, "expression": expr, "data_type": "text"})
+            ok = s == 201
+        elif expr not in (col.get("expression") or ""):
+            s, r = call("PATCH", f"/datasets/{ds(name)}/columns/{col['name']}", {"expression": expr, "data_type": "text"})
+            ok = s == 200
+        else:
+            ok, r = True, None
+        print(f"{name}.{display}: {'OK' if ok else f'FAILED {r}'}")
+        failures += not ok
     return 1 if failures else 0
 
 
