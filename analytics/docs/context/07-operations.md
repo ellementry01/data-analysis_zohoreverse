@@ -71,6 +71,7 @@ python dw.py transform run                # rebuild; ERROR checks roll everythin
 python reconcile.py ../exports            # files vs warehouse, must say 28 of 28 agree
 DW_DATABASE=dw_test_po python dw.py pytest -q   # warehouse tests, never on ellementry_dw
 ```
+- Warehouse suite (2026-11-03, schema 2.15): **85 passed, 7 skipped** in about 77 minutes; each transform test module rebuilds the test database (~9 minutes).
 - **Test database `dw_test_po`:** a disposable, seeded copy with the sample files loaded (the transform tests need data). Apply every new migration to it as well (`DW_DATABASE=dw_test_po python dw.py psql --single-transaction -f sql/<file>`, then `python dw.py seeds dw_test_po`). Otherwise the transform tests fail at setup with "relation/column does not exist". The full suite takes about 10+ minutes.
 
 Then, from `analytics/` on the host (the scripts call the app's API on :8000), sync the app and rebuild the dashboards:

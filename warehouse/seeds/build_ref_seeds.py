@@ -10,9 +10,9 @@ def loc(*a): L.append(a)
 loc("BAGRU_WH","08 Jaipur Branch","Bagru Warehouse (Head Office)","CENTRAL_WAREHOUSE","SELF","08","Bagru",True,True,"ERP",True,True,82509,
     "Business confirmed: 08 Jaipur Branch = Bagru warehouse; HO is in Bagru. Bare 'Dileep Essentials Pvt Ltd' uses JPR document prefixes.","")
 loc("POPUP_BAGRU","08 Bagru Popup","Bagru Popup Store","POPUP_STORE","SELF","08","Bagru",True,True,"ERP",True,False,368,"Name; holds stock","Is this the same place as 'Dileep Essentials Pvt Ltd Bagru' (transfer prefix BAG/)?")
-loc("STORE_JPR_CSCHEME","08 Jaipur - C-Scheme","Jaipur C-Scheme Store","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",True,False,2488,"Retail invoices with cash / swipe payments; long name 'Dileep Essentials Pvt Ltd C-Scheme'","")
-loc("STORE_HYD_BANJARA","36 HYD - Banjara Hills","Hyderabad Banjara Hills Store","OWN_STORE","SELF","36","Hyderabad",True,True,"ERP",True,False,2855,"Retail invoices with cash / swipe payments; long name 'Dileep Essentials Pvt Ltd HYD Store'","")
-loc("STORE_JPR_MEERAKI","08 Jaipur - Meeraki","Jaipur Meeraki","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",True,False,145,"Holds stock but has NO retail invoices Apr-Sep 2026","Own store, SIS or franchise? Is it the 'Jaipur Store' seen in FY25-26 returns?")
+loc("STORE_JPR_CSCHEME","08 Jaipur - C-Scheme","Jaipur C-Scheme Store","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",True,True,2488,"Store status sheet 2026-11-02: COCO (own store), Running. Retail invoices with cash / swipe payments; long name 'Dileep Essentials Pvt Ltd C-Scheme'","")
+loc("STORE_HYD_BANJARA","36 HYD - Banjara Hills","Hyderabad Banjara Hills Store","OWN_STORE","SELF","36","Hyderabad",True,True,"ERP",True,True,2855,"Store status sheet 2026-11-02: COCO (own store), Running. Retail invoices with cash / swipe payments; long name 'Dileep Essentials Pvt Ltd HYD Store'","")
+loc("STORE_JPR_MEERAKI","08 Jaipur - Meeraki","Jaipur Meeraki","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",False,True,145,"Store status sheet 2026-11-02: 'Dileep Essentials Pvt Ltd Jaipur Store' at Meraaki Kitchen, Civil Lines = this location; COCO (own store), Closed. Last retail bill 16 Jun 2025; the ERP still shows stock here (198 units on 15 Sep 2026)","")
 for code,erp,name,city,gst in [("STORE_DEL_GK","07 Delhi - GK Store","Delhi GK Store","Delhi","07"),
     ("STORE_BLR_INDIRANAGAR","29 Bengaluru - Indiranagar","Bengaluru Indiranagar","Bengaluru","29"),
     ("STORE_BLR_VRMALL","29 Bengaluru - VR Mall","Bengaluru VR Mall","Bengaluru","29"),
@@ -20,7 +20,12 @@ for code,erp,name,city,gst in [("STORE_DEL_GK","07 Delhi - GK Store","Delhi GK S
     ("STORE_MUM_SIB_BANDRA","27 Mumbai - SIB Bandra","Mumbai SIB Bandra","Mumbai","27"),
     ("STORE_GOA_ANJUNA","30 Goa - Anjuna","Goa Anjuna","Anjuna","30"),
     ("STORE_AMD_CGROAD","24 CG Road - Ahmd","Ahmedabad CG Road","Ahmedabad","24")]:
-    loc(code,erp,name,"OWN_STORE","SELF",gst,city,True,True,"ERP",False,False,0,"Zero stock on 15-Sep and no retail invoices Apr-Sep 2026","Closed? And was it own, SIS or franchise?")
+    if code == "STORE_AMD_CGROAD":
+        loc(code,erp,name,"OWN_STORE","SELF",gst,city,True,True,"ERP",False,True,0,"Store status sheet 2026-11-02: COCO (own store), Closed. Last retail bill 7 Apr 2025, stock to Aug 2025","")
+    elif code in ("STORE_DEL_GK","STORE_BLR_INDIRANAGAR"):
+        loc(code,erp,name,"OWN_STORE","SELF",gst,city,True,True,"ERP",False,False,0,"Zero stock and no retail invoices Apr 2025-Sep 2026. Not in the Store status sheet 2026-11-02; its franchise list has RLS Enterprise stores at the same area ("+("GK-1, Delhi" if code=="STORE_DEL_GK" else "Indiranagar, Bengaluru")+")","Was this own store handed over to the RLS Enterprise franchise?")
+    else:
+        loc(code,erp,name,"OWN_STORE","SELF",gst,city,True,True,"ERP",False,False,0,"Zero stock and no retail invoices Apr 2025-Sep 2026; not in the Store status sheet 2026-11-02 (closed before Apr 2025?)","Closed before Apr 2025? Own, SIS or franchise?")
 for code,erp,name,city,gst in [("DEPL_DELHI","07 DEPL Delhi","DEPL Delhi","Delhi","07"),("DEPL_LUCKNOW","09 DEPL - Lucknow","DEPL Lucknow","Lucknow","09"),
     ("DEPL_MUMBAI_PPOB","27 DEPL Mumbai - PPOB","DEPL Mumbai PPOB","Mumbai","27")]:
     loc(code,erp,name,"OTHER","SELF",gst,city,True,False,"ERP",False,False,0,"Zero stock on 15-Sep; purpose not known","What is this location (office, old warehouse, GST registration)?")
@@ -32,8 +37,8 @@ loc("REPAIR_DAMAGE","08 Repair and Damage","Repair and Damage","REPAIR_DAMAGE","
     "Selected in the stock report filter; no stock column","Does this hold damaged stock? Why has it no column in the report?")
 loc("OFFLINE_WH","08 Offline - WH","Offline Warehouse","OFFLINE_WAREHOUSE","SELF","08",None,True,False,"ERP",False,False,None,
     "Selected in the stock report filter; no stock column","What is the Offline warehouse, and is it still used?")
-loc("STORE_JPR_MANSAROVAR","08 Jaipur - Mansarovar","Jaipur Mansarovar","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",False,False,None,
-    "Selected in the stock report filter; no stock column","Closed store? Own, SIS or franchise?")
+loc("STORE_JPR_MANSAROVAR","08 Jaipur - Mansarovar","Jaipur Mansarovar","OWN_STORE","SELF","08","Jaipur",True,True,"ERP",True,True,None,
+    "Store status sheet 2026-11-02: COCO (own store) at Pacific Mall, Mansarovar, Running. New: first retail bill 11 Oct 2026, after the warehouse period; no stock column in the reports to 15 Sep 2026","")
 for code,erp,city,gst in [("FBA_DED1","07 FBA WH - DED1","Delhi","07"),("FBA_ISK3","27 FBA WH - ISK3","Nashik","27"),
                           ("FBA_BLX9","29 FBA WH - BLX9 (Consolidate)","Bengaluru","29")]:
     loc(code,erp,"Amazon FBA "+erp.split(" - ")[-1],"AMAZON_FBA","AMAZON",gst,city,True,True,"ERP",False,False,None,
@@ -88,6 +93,20 @@ loc("CONSIGN_BLINKIT",None,"Blinkit (Kiranakart) consignment stock","PARTNER_CON
     "Virtual location: stock invoiced to Kiranakart sale-or-return, until sold through or returned (BR-022). Separate from the Blinkit feeder locations the ERP tracks by stock transfer","Are Kiranakart invoices and transfers to Blinkit feeders two different supply routes?")
 loc("CONSIGN_INSTAMART",None,"Instamart consignment stock","PARTNER_CONSIGNMENT","INSTAMART",None,None,True,True,"NONE",True,True,None,
     "Virtual location: stock invoiced to Instamart's buying accounts (Cloudstore Retail, Cloudkart Ventures, Jupiter Kart, PJTJ Technologies, Moksh Enterprises) sale-or-return, until Instamart sells it (all facilities pooled) or returns it (BR-022, BR-034). Business confirmed 2026-11-02","")
+
+# Franchise and SIS partners (Store status sheet 2026-11-02, BR-035): stock invoiced sale-or-return until returned (credit notes). One location per
+# franchise account (one account = one store); Shoppers Stop bills its 14 counters on one account, so they are pooled.
+FRANCHISE = [  # (code, ERP billing name, store status on the sheet)
+    ("ADYA","Adya Lifestyle","Closed"),("BEARTH","B Earth Home Decor LLP","Closed"),("DESIGN_ESTATE","Design Estate","Running"),
+    ("GLIMPSESS","Glimpsess","Closed"),("HOME_SECRETS","Home Secrets & Spaces LLP","Closed"),("MORGHADE","Morghade Traders","Closed"),
+    ("RLS_BLR","RLS Enterprise Bangalore","Running"),("RLS_DEL","RLS Enterprise Delhi","Running"),("RLS_GGN","RLS Enterprise Gurugram","Running"),
+    ("RLS_GGN_AIPL","RLS Enterprise Gurugram AIPL","Running"),("RLS_BLR_INDIRANAGAR","RLS Enterprise Indiranagar","Running"),
+    ("SHREE_NIRMAL","Shree Nirmal Ventures Private Limited","Closed")]
+for code,name,status in FRANCHISE:
+    loc("CONSIGN_FR_"+code,None,name+" (franchise) stock","PARTNER_CONSIGNMENT","FRANCHISE",None,None,True,True,"NONE",status=="Running",True,None,
+        f"Virtual location: stock invoiced to this franchise sale-or-return, until it comes back on a credit note (BR-022, BR-035). Store status sheet 2026-11-02: Franchise, "+status+". No opening balance (G-028)","")
+loc("CONSIGN_SIS_SHOPPERS_STOP",None,"Shoppers Stop (SIS) stock","PARTNER_CONSIGNMENT","SIS",None,None,True,True,"NONE",True,True,None,
+    f"Virtual location: stock invoiced to Shoppers Stop Limited sale-or-return for its shop-in-shop counters (14 on the Store status sheet 2026-11-02: 8 running, 6 closed; one billing account, so pooled), until it comes back on a credit note (BR-022, BR-035). No opening balance (G-028)","")
 
 # ---------------------------------------------------------------- LOCATION ALIASES
 LA = []  # (source, field, value, code, confirmed, evidence)
@@ -244,6 +263,8 @@ for src in ("ERP_STOCK_TRANSFER_OUT","ERP_STOCK_TRANSFER_IN","ERP_RETAIL_RETURN"
 for v in ("Dileep Essentials Pvt Ltd Bagru","Dileep Essentials Pvt Ltd CG Road Ahmedabad"):   # both are shops (popup store, own store)
     CA.append(("ERP_RETAIL_SALES","CONTACTNAME",v,"OWN_STORE",10,False,"FY25-26 sales billed at an own store / popup location"))
     CA.append(("ERP_RETAIL_RETURN","CONTACTNAME",v,"OWN_STORE",10,False,"FY25-26 returns at an own store / popup location"))
+CONFIRMED_BY_SHEET = {"Dileep Essentials Pvt Ltd Jaipur Store","Dileep Essentials Pvt Ltd CG Road Ahmedabad"}   # Store status sheet 2026-11-02
+LA = [a[:4]+(True, a[5]+"; confirmed by the Store status sheet 2026-11-02")+a[6:] if a[2] in CONFIRMED_BY_SHEET and a[3] in ("STORE_JPR_MEERAKI","STORE_AMD_CGROAD") else a for a in LA]
 UNRESOLVED = [u for u in UNRESOLVED if u[2] not in billed_at and u[2] != "BAG/DC"]
 UNRESOLVED.append(("ERP_RETAIL_SALES","CONTACTNAME","Dileep Essentials Pvt Ltd Mumbai PPOB / Delhi",
                    "FY25-26 retail sales billed at DEPL Mumbai PPOB / DEPL Delhi","Which sales channel are these (own store? B2B?) Location is known; channel left Unknown"))
@@ -258,6 +279,7 @@ def loc_rule(code):
     if code in ("BAGRU_WH","HEAD_OFFICE"): return "BR-016"
     if code.startswith("FBA_"): return "BR-019"
     if code == "EMPLOYEE_EXHIBITION": return "BR-029"
+    if code.startswith("CONSIGN_FR_") or code.startswith("CONSIGN_SIS_"): return "BR-035"
     if code.startswith("CONSIGN_"): return "BR-022"
     return ""
 def loc_alias_rule(src, field, code):

@@ -35,6 +35,7 @@
 | The six Instamart billing accounts are one quick-commerce partner with pooled stock (BR-034) | The business confirmed the list; Instamart's facilities can't be told apart in our invoices |
 | Instamart rows pasted one column left are dropped only when the same order exists correctly elsewhere; otherwise the normaliser refuses the file | July 2025 showed 59,550 units instead of 310; a silent drop could hide real orders |
 | Goods receipts come from the ERP MRN Register when it is loaded (2.14); the Pending PO export's receipts are used only without it | The register has every GRN with its own date, including closed POs the Pending PO export drops; the memo-repeated item rows are kept once |
+| Franchise and SIS partners come from the business's store status sheet (BR-035): one partner stock location per franchise account, Shoppers Stop pooled (one billing account for 14 counters); return-PO receipts from partners are not taken off partner stock until D-089 is answered | The sheet's franchise names match the ERP billing names exactly; subtracting both return routes could count the same goods twice |
 | Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
 | Whole folder is one git repo pushed to `ellementry01/data-analysis_zohoreverse` (public, by the user's choice); `exports/` and `reports/` stay out | One place for the product; customer data is never committed |
 | ERP reports are downloaded only by the agent in the built-in browser, in the user's own signed-in session; nothing in the ERP is changed | The user authorised downloads only |
@@ -51,7 +52,7 @@
 - The README and QA_REPORT test counts (328 and 363) are stale; the current count is **406**.
 - The README "Quick start" still mentions "Load demo workspace". The button still works.
 - **Port 8000 can be taken** by another app (a uvicorn from another project once held it). Start the stack with `APP_PORT=8001` temporarily, or stop the other app.
-- **Migration numbers can clash with another session's.** Check `warehouse/sql/` and `meta.schema_version` before naming one; the next free number is 230 (schema 2.15).
+- **Migration numbers can clash with another session's.** Check `warehouse/sql/` and `meta.schema_version` before naming one; the next free number is 240 (schema 2.16).
 - **New `source_table` or `source_system` values hit CHECK constraints** (`fact_stock_movement_source_table_check`, the source_system check). The migration must drop and re-add the constraint.
 - **A new mart view used by a DQ check must exist before step 50**; the stock check view lives in `45_stock_check.sql` for that reason.
 - **The test database `dw_test_po` must get every new migration too**; otherwise the transform tests fail at setup (see 07).

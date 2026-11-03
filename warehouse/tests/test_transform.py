@@ -75,7 +75,8 @@ def test_reconciliation_gate_catches_duplication(tmp_path):
 def test_safety_switch_keeps_unlisted_domestic_names_unclassified():
     rows = dict(q("SELECT partner_name, partner_type FROM core.dim_partner WHERE partner_role = 'CUSTOMER' "
                   "AND partner_name IN ('Shoppers Stop Limited', 'Ayush Baid', 'Dileep Crafts Private Limited', 'Shopify_Customer')"))
-    assert rows["Shoppers Stop Limited"] == "UNCLASSIFIED" and rows["Ayush Baid"] == "UNCLASSIFIED"
+    assert rows["Ayush Baid"] == "UNCLASSIFIED"
+    assert rows["Shoppers Stop Limited"] == "SIS_PARTNER"                   # listed from the store status sheet (BR-035)
     assert rows["Dileep Crafts Private Limited"] == "GROUP_EXPORT"          # listed (BR-007)
     assert rows["Shopify_Customer"] == "D2C_CHANNEL_ACCOUNT"                # retail default, always applies (BR-005)
     assert q("SELECT count(*) FROM core.fact_stock_movement m JOIN core.dim_movement_type t USING (movement_type_key) "
@@ -230,7 +231,7 @@ def test_shipment_sku_quantities_are_never_guessed():
              "GROUP BY 1 HAVING count(*) > 1) x")[0][0] == 0
     assert q("SELECT count(*) FROM core.bridge_shipment_sku b JOIN core.fact_shipment f USING (shipment_id) "
              "WHERE b.quantity_source = 'INVOICE_LINE' AND NOT EXISTS (SELECT 1 FROM core.fact_sales_line s "
-             "WHERE s.bill_number = f.invoice_number)")[0][0] == 0
+             "WHERE s.bill_number = f.sales_bill_number)")[0][0] == 0   # linked bills (2.5), not the WMS invoice no
 
 
 def test_dispatch_personal_data_stays_in_raw():

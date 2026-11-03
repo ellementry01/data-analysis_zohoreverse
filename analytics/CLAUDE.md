@@ -35,4 +35,4 @@ TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 npm run typecheck && npm run build
 ```
 
-Last updated: 2026-11-02 (warehouse schema 2.14, ten dashboards). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
+Last updated: 2026-11-02 (warehouse schema 2.15, ten dashboards). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.

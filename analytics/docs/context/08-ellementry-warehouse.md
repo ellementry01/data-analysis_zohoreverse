@@ -1,6 +1,6 @@
 # 08 — Ellementry warehouse and its connection (workspace 34)
 
-*Updated 2026-11-02: schema 2.14, ten dashboards.*
+*Updated 2026-11-02: schema 2.15, ten dashboards.*
 
 ## Where things are
 - **Warehouse code:** `warehouse/` in this repo (moved from `ellementry_source_code/ellementry_data/ellementry_dw` on 2026-10-22, history kept).
@@ -11,12 +11,12 @@
   - Normalised files (Blinkit/Instamart sell-out, GRN register) have a `NORMALISE_LOG.tsv` next to them.
 - **Working reports:** `reports/` (not in git): `S2_mrp_differences_by_location.csv`, `bagru_unexplained_stock.csv`, `bagru_unexplained_stock_explained.csv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.14**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.15**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy; every migration and load is tried here first.
   - `dw_test_po`: the disposable, loaded test database (see 07).
-- **Backups:** `C:\Users\Dileep\Desktop\ellementry_backups\ellementry_dw_<date>_<time>.dump`, taken by `python dw.py backup` before every change (the latest is from 2 Nov 2026, before 2.14).
+- **Backups:** `C:\Users\Dileep\Desktop\ellementry_backups\ellementry_dw_<date>_<time>.dump`, taken by `python dw.py backup` before every change (the latest is from 2 Nov 2026, before 2.15).
 
 ## Layers (one-way flow)
 `exports → raw (exact text, contract-checked) → stg (typed) → core (dims, facts, stock ledger) → quality gate → coverage → mart`
@@ -67,6 +67,7 @@
 | 2.12 | 200 | PO export dates recorded (26 Sep 2026); Instamart July 2025 shifted-rows fix |
 | 2.13 | 210 | Amazon return reasons (`v_return_reasons`); `v_slow_stock`; `v_partner_stock_monthly`; cover bands and cost in `v_days_of_cover`; BR-034 Instamart accounts |
 | 2.14 | 220 | ERP GRN register: `core.fact_grn_line`; receipts in the stock ledger and lead time come from it when loaded |
+| 2.15 | 230 | Store status sheet: 12 franchise accounts and Shoppers Stop (SIS) are sale-or-return partners with partner stock locations (BR-035); own stores' running / closed status |
 
 ## Business rules that matter for every number
 - **Money excludes GST** (BR-001/002/003). **Net sales = invoices − returns** (BR-004).
@@ -74,6 +75,7 @@
 - **Stock is valued at cost** (ERP item master COST). Where MRPs disagree, the higher one is current. Category comes from the ERP item master, else "Uncategorised".
 - **Goods receipts arrive at Bagru** (BR-032). **PO remark Purchase / Return is confirmed** (BR-031).
 - **Instamart (BR-034):** Cloudstore Retail, Cloudkart Ventures, Jupiter Kart (Kerala and Tamil Nadu), PJTJ Technologies and Moksh Enterprises are QUICK_COMMERCE_PARTNER accounts. Their stock is pooled at `CONSIGN_INSTAMART`.
+- **Franchise and SIS (BR-035):** from the business's store status sheet (`exports/_originals/business_2026-11-02/`). 12 franchise accounts (RLS Enterprise ×5, Design Estate, Home Secrets, Shree Nirmal, Adya, Morghade, B Earth, Glimpsess; 6 running) each have a stock location `CONSIGN_FR_*`; Shoppers Stop Limited bills its 14 counters (8 running) on one account, pooled at `CONSIGN_SIS_SHOPPERS_STOP`. Own stores (COCO): C-Scheme, HYD Banjara Hills and Mansarovar (new, first bill 11 Oct 2026) running; Jaipur Meeraki (= "Jaipur Store") and CG Road closed.
 - **Ellementry International = B2C export;** B2B export goes through Dileep.
 - **Partner/employee stock is ledger-based, with no opening balance** (G-028), so it stays off the stock tiles.
 - **Gaps are shown as "no data", never 0.** Products with no MRP or cost are counted on their own tiles, never valued at 0.
@@ -103,8 +105,8 @@
 | 57 | supplier_lead_time | v_supplier_lead_time (from the GRN register) | 2,988 | po_date |
 | 73 | fulfilment | v_fulfilment | 45,246 | order_date |
 | 74 | quick_commerce_sell_out_daily | v_partner_sellout_daily | 6,003 | calendar_date |
-| 60–62, 66–71 | partner_review, data_coverage, data_quality_latest, sources, load_batches, transform_runs, business_rules (34), data_gaps (28), source_notes | portal / data-health views | | |
-| 63, 64, 65 | products (4,512), locations (77), channels (23) | lookup dimensions | | |
+| 60–62, 66–71 | partner_review, data_coverage, data_quality_latest, sources, load_batches, transform_runs, business_rules (35), data_gaps (28), source_notes | portal / data-health views | | |
+| 63, 64, 65 | products (4,512), locations (90, incl. 13 franchise / SIS partner stock locations), channels (23) | lookup dimensions | | |
 
 **Relationships (18).** Fact datasets join to products by `sku_code`, to locations by `location_code` and to channels by `channel_code`.
 
@@ -120,7 +122,7 @@
 **Calculated label columns** (made by `configure_warehouse_workspace.py`; the dashboards expect them): `sales_segment` (with "B2C export" for EXPORT_B2C and "B2B & partners (classification pending)" instead of Unknown), `channel` ("Classification pending"), `stock_position_latest.location_group`, `returns_to_sale.return_window`, `transfer_in_transit.route`.
 
 ## Dashboards (10, built by `scripts/build_executive_dashboards.py`)
-Current ids are 162–171; they change on every rebuild because dashboards with the same names are replaced. The script runs every widget and reports any that come back empty.
+Current ids are 172–181; they change on every rebuild because dashboards with the same names are replaced. The script runs every widget and reports any that come back empty.
 
 | Dashboard | Main datasets | Notes |
 |---|---|---|
@@ -140,14 +142,15 @@ Choices that keep tiles honest:
 - Stock tiles exclude partner ledger balances (no opening balance). The Blinkit consignment balance (−5,749 units) is hidden.
 - "In transit" counts transfers sent in the last 60 days; older unreceived transfers are a separate exception tile.
 
-## Still open (full list in `warehouse/docs/ISSUE_LOG.md`: 89 solved, 38 unsolved)
+## Still open (full list in `warehouse/docs/ISSUE_LOG.md`: 90 solved, 37 unsolved)
 - **Stock (15 open):**
   - Rest of the Bagru gap (D-124): scrap, stock adjustments, inventory transfers and subcontractor movements are not loaded by date and location. The ERP's detailed movement report fails ("Divide by zero"); the Summary could be run month by month. The Purchase Register needs the ERP login linked to a department.
   - Partner opening stock (D-080, G-028); Instamart opening stock and daily inventory (D-125, the business is on it).
   - Transfer locations only in the document prefix (D-038); daily stock saving from now on (D-004).
   - Decisions: negative ERP stock (D-118, the business is on it), Amazon FBA inventory report (D-052), what DFAL is (D-073).
-  - Confirmations of evidence-based location mappings: D-071, D-072, D-074, D-075, D-127; as-of dates D-103, D-106.
-- **Partner list (D-019):** about ₹10.5 Cr of domestic B2B is unclassified until the franchise, SIS and QC billing names arrive. The factory list (G-005) is also still needed.
+  - Confirmations of evidence-based location mappings: D-071 (partly answered by the store sheet), D-072, D-075 (Lucknow only), D-127; as-of dates D-103, D-106.
+- **Partner list (D-019):** franchise, SIS and Instamart accounts are now classified; ₹5.89 Cr (4,566 lines) is still unclassified, top names Expo Digital India, Blink Commerce, Titan, Natures Basket. Needed: confirm the rest are outright B2B, then switch on `partner_list_complete`. The factory list (G-005) is also still needed.
+- **Partner returns on two routes (D-089):** Shoppers Stop and closed franchises send goods back on credit notes (GIR) and on return POs (GRN). Both add stock at Bagru; only credit notes reduce the partner's stock. Partner balances (sent minus credit notes, no opening, no sell-out) are therefore not real stock and stay off the tiles.
 - **Fulfilment:** the WMS dispatch report is the OMS report. Missing delivery dates and marketplace RTO must come from seller-panel or courier exports (D-112, D-113); courier codes need confirming (D-111).
 - **Blinkit is parked** (D-005, D-050, D-051, D-092) until data from the new seller arrangement arrives. **Zepto** has no data yet.
 - **Mappings added from data evidence are `is_confirmed = false`**, with the evidence in the notes, until the business confirms them.

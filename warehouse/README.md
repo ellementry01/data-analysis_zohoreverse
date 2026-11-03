@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.14
+# Ellementry Data Warehouse — v2.15
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -117,6 +117,13 @@ ERP's own GRN movement for 1,694 of 1,698 products). `core.fact_grn_line` (own d
 the PO export's receipts are used only when no register is loaded. Purchase vs return-inward: the PO's remark, else
 the supplier's POs, else purchase. Stock check after 2.14: arrived without a document 1,44,152 -> 54,541 units.
 
+2.15 (`sql/230_store_status.sql` + seeds): the business's **store status sheet** (2 Nov 2026: every store with type COCO /
+Franchise / SIS and Running / Closed). Its 12 franchise accounts and Shoppers Stop Limited (14 SIS counters on one billing
+account) are sale-or-return partners in `ref.partner_list` (BR-035), each with a partner stock location
+(`CONSIGN_FR_*`, `CONSIGN_SIS_SHOPPERS_STOP`; `operated_by` gains 'SIS'). Own stores' status from the sheet: C-Scheme,
+HYD and Mansarovar (new, first bill 11 Oct 2026) running; Jaipur Meeraki ('Jaipur Store') and CG Road closed. Unclassified
+domestic sales fell from about Rs 10.5 Cr to Rs 5.89 Cr; franchise net sales Rs 2.91 Cr, SIS Rs 0.84 Cr.
+
 ## Layout
 
 ```
@@ -149,6 +156,7 @@ sql/190_stock_history.sql     schema 2.11: month-end stock history, opening stoc
 sql/200_po_export_date.sql    schema 2.12: Pending PO exports dated 26 Sep 2026 (file metadata)
 sql/210_return_reasons.sql    schema 2.13: Amazon FBA customer returns (return reasons)
 sql/220_grn_register.sql      schema 2.14: ERP goods-receipt register (receipts with their own dates)
+sql/230_store_status.sql      schema 2.15: store status sheet; 'SIS' operator for partner stock locations
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)
