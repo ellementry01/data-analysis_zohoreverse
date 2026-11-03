@@ -126,7 +126,7 @@ Current ids are 172–181; they change on every rebuild because dashboards with 
 
 | Dashboard | Main datasets | Notes |
 |---|---|---|
-| Executive overview | net_sales_daily, sales_orders_daily, stock, fulfilment | FY 26-27 to 15 Sep vs the same period last year; stock at cost |
+| Executive overview | net_sales_daily, sales_orders_daily, stock_position_latest, fulfilment | FY 26-27 to 15 Sep vs the same period last year; stock at cost |
 | Sales & channels | net_sales_daily, sales_orders_daily | |
 | Returns | returns_daily, returns_to_sale, return_reasons | Amazon FBA reasons and "not delivered" |
 | Stock | stock_position_latest, stock_position_daily, stock_movement_check | Snapshot 15 Sep 2026 at cost, month-end history, unexplained-stock check |
@@ -141,6 +141,27 @@ Choices that keep tiles honest:
 - Periods are explicit dates, because the data ends on 15 Sep 2026.
 - Stock tiles exclude partner ledger balances (no opening balance). The Blinkit consignment balance (−5,749 units) is hidden.
 - "In transit" counts transfers sent in the last 60 days; older unreceived transfers are a separate exception tile.
+
+### COO readiness review (2026-11-03, live data, schema 2.15)
+Every widget was run through the API (`POST /api/workspaces/34/dashboards/{id}/widgets/{wid}/data`) and the numbers checked.
+The user chose **not to fix yet** ("Not now"); the fixes below are the next job when asked.
+
+| Dashboard | Verdict | Why |
+|---|---|---|
+| Fulfilment | Show | 45,246 deliveries, RTO 7.8% (website), late 10.7%, ~25 h order-to-ship; caveats are in the description |
+| Discontinued & slow stock | Show | ₹3.86 Cr at cost (matches Stock); ₹53 L not sold 180+ days; partners excluded |
+| Stock | Show, with caveats | Month-end line: Bagru falls ~₹1 Cr in May 2025 (71,449 → 55,185 units; the stock check shows 16,677 units left with no document, part of D-124, not yet explained). "Sellable units" = "Units on hand" (the ERP report has no damaged split) |
+| Instamart | Show, with caveats | Stock with Instamart (3,229) is rebuilt, no opening balance; city chart lists "Bangalore" and "bangalore" separately (city case not normalised) |
+| Purchasing & transfers | Show, with caveats | FY 25-26 PO export date assumed, so overdue days are a minimum; very old open lines may just be unclosed in the ERP |
+| Executive overview, Sales & channels | **Fix first** | Totals right, segment labels wrong (see fix 1) |
+| Days of cover | **Fix first** | Includes partner ledger balances (see fix 2): headline ₹5.41 Cr, real ~₹3.80 Cr |
+| Returns | **Fix first** | See fix 3 |
+| Data health | Team only | Not for management |
+
+**Fixes waiting (all in the app layer, no warehouse change needed):**
+1. **`sales_segment` calculated column** on `net_sales_daily` and `sales_orders_daily` (set in `scripts/configure_warehouse_workspace.py`, which patches it in place): `QUICK_COMMERCE_PARTNER` is labelled "Quick-commerce partner returns" but it is Instamart / Blinkit *net sales* (₹35.6 L in FY 26-27 to date); `FRANCHISE_PARTNER` and `SIS_PARTNER` (new in 2.15) fall into "B2B - other". Add "Quick commerce (sale-or-return)", "Franchise stores" and "Shoppers Stop (SIS)". The configure script only adds the B2C-export branch when missing, so the patch logic must also replace the old labels. Then rerun `build_executive_dashboards.py`.
+2. **Days of cover:** `mart.v_days_of_cover` now has `PARTNER_CONSIGNMENT` rows (₹1.60 Cr: Shoppers Stop ₹38 L, RLS Gurugram ₹32 L, …), which are sent-minus-credit-notes balances, not stock (D-089, G-028). Add a `location_type neq PARTNER_CONSIGNMENT` filter to every Days of cover widget in `build_executive_dashboards.py` (like `OWN_STOCK` on Stock), or a calculated location group.
+3. **Returns:** `returns_value` and `sales_return_rate` mix partner credit notes (franchise ₹74 L, Blinkit ₹53 L, unclassified ₹81 L) with customer returns, so the 11% headline is not a customer return rate; "Return rate by retail channel" shows Exports 98% and Flipkart 57% on tiny volumes (returns of sales before the period). Use a retail-only (`D2C_CHANNEL_ACCOUNT`) return rate for the headline, show partner returns separately, and drop or minimum-volume-filter the tiny channels.
 
 ## Still open (full list in `warehouse/docs/ISSUE_LOG.md`: 90 solved, 37 unsolved)
 - **Stock (15 open):**

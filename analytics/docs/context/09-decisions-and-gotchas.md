@@ -36,6 +36,7 @@
 | Instamart rows pasted one column left are dropped only when the same order exists correctly elsewhere; otherwise the normaliser refuses the file | July 2025 showed 59,550 units instead of 310; a silent drop could hide real orders |
 | Goods receipts come from the ERP MRN Register when it is loaded (2.14); the Pending PO export's receipts are used only without it | The register has every GRN with its own date, including closed POs the Pending PO export drops; the memo-repeated item rows are kept once |
 | Franchise and SIS partners come from the business's store status sheet (BR-035): one partner stock location per franchise account, Shoppers Stop pooled (one billing account for 14 counters); return-PO receipts from partners are not taken off partner stock until D-089 is answered | The sheet's franchise names match the ERP billing names exactly; subtracting both return routes could count the same goods twice |
+| The COO-readiness fixes (segment labels, partner stock out of days of cover, retail-only return rate) were found on 2026-11-03 and deliberately left for later | The user said "Not now"; see the review in 08 |
 | Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
 | Whole folder is one git repo pushed to `ellementry01/data-analysis_zohoreverse` (public, by the user's choice); `exports/` and `reports/` stay out | One place for the product; customer data is never committed |
 | ERP reports are downloaded only by the agent in the built-in browser, in the user's own signed-in session; nothing in the ERP is changed | The user authorised downloads only |
@@ -64,6 +65,9 @@
 - **Warehouse commands go through `python dw.py …`** from `warehouse/`, so the admin login never appears in a command line. Tests: `DW_DATABASE=<disposable db> python dw.py pytest`; the script refuses `ellementry_dw`.
 - **Windows Python writes CRLF line endings** unless told otherwise. The generators now write LF. Check `git diff --stat` for whole-file diffs.
 - **Relative dates in the app are measured from today, but the warehouse period ends on 15 Sep 2026.** "Last 30 days" is empty until the as-of anchor (dashboard plan, item A2) is built or the period is moved.
+- **New partner types reach the app's calculated columns silently.** `sales_segment` and `location_group` are CASE expressions in the app; a new `partner_type` or `location_type` in the warehouse falls into their ELSE branch (2.15's franchise / SIS went to "B2B - other"). Check them after every warehouse release that adds a type.
+- **Warehouse tests can be stale, not the data.** In 2.15 two failed only because a test used Shoppers Stop as its "unlisted" example and another still joined shipments on the WMS invoice number (shipments link by `sales_bill_number` since 2.5). Read the assertion before changing data.
+- **Checking numbers through the app:** `POST /api/workspaces/34/query` takes a QuerySpec (dimensions, measures, filters, sort, limit); sorting needs an alias. Dataset names in `GET /datasets` are display names ("Net sales daily"), while fields use the table name (`net_sales_daily.x`).
 - **Dashboard ids change on every rebuild** (`build_executive_dashboards.py` replaces by name). Don't hard-code them.
 
 ## Known functional limitations
@@ -74,7 +78,8 @@
 - Excel, PNG and PDF exports run client-side (PDF via print).
 
 ## Sensible next steps (none in progress; ask the user before starting)
-Done since 2026-10-22: real facts loaded, stock history (month-ends), ten dashboards.
+Done since 2026-10-22: real facts loaded, stock history (month-ends), ten dashboards, store status sheet (2.15).
+0. **Make the dashboards COO-ready** (when the user asks): the three fixes listed under "COO readiness review" in 08. Then also normalise the Instamart city case and explain Bagru's May 2025 drop (16,677 units with no document).
 1. Load the rest of Bagru's stock movements (scrap, adjustments, inventory transfers, subcontract) by running the ERP Document Wise Stock Movement *Summary* month by month (18 downloads), or the Purchase Register once the ERP login has a department (D-124).
 2. Get the business's answers to the open confirmations in `warehouse/docs/ISSUE_LOG.md` (locations, courier codes, partner list, negative stock) and apply them through seeds.
 3. Start the daily stock save (D-004) and the Instamart daily inventory download (D-125) into `exports/_inbox/`.
