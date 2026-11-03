@@ -73,6 +73,7 @@ class Compiled:
     warnings: list[str]
     date_range: tuple[date, date] | None
     measures: list[MeasureDef]
+    time_columns: list[tuple[str, str]] = field(default_factory=list)  # (dataset slug, column) the date range filters on
 
 
 # ----------------------------------------------------------------------------------------------- helpers
@@ -250,7 +251,7 @@ class _FactBuilder:
 
 
 def _build_fact_cte(cat: Catalog, spec: QuerySpec, base: DS, mds: list[MeasureDef], dims: list[tuple[Dimension, str]],
-                    params: dict, warnings: list[str], idx: int, date_range) -> str:
+                    params: dict, warnings: list[str], idx: int, date_range, time_cols: list | None = None) -> str:
     fb = _FactBuilder(cat, base, params, warnings, f"f{idx}")
     semi = mds[0].semi_additive
     time = fb.time_column(mds[0], spec)
@@ -295,6 +296,8 @@ def _build_fact_cte(cat: Catalog, spec: QuerySpec, base: DS, mds: list[MeasureDe
             k = fb._pk()
             params[f"{k}_lo"], params[f"{k}_hi"] = date_range
             where.append(f"{time[0]} >= :{k}_lo AND {time[0]} < :{k}_hi")
+            if time_cols is not None and time[0].startswith("b."):
+                time_cols.append((base.slug, time[1].name))
         else:
             warnings.append(f"{base.name} has no date column, so the date range was not applied to it")
 
@@ -371,6 +374,7 @@ def compile_query(cat: Catalog, spec: QuerySpec, today: date | None = None, max_
         mdefs.append(MeasureDef(alias="_rows", label="Rows", base=base, agg_sql="COUNT(*)", hidden=True))
 
     date_range = resolve_date_range(spec.time_range, today) if spec.time_range else None
+    time_cols: list[tuple[str, str]] = []
 
     # group physical measures by fact (semi-additive measures get their own CTE)
     groups: dict[tuple, list[MeasureDef]] = {}
@@ -379,7 +383,7 @@ def compile_query(cat: Catalog, spec: QuerySpec, today: date | None = None, max_
             groups.setdefault((md.base.id, md.semi_additive, md.time_col if md.semi_additive else None), []).append(md)
     ctes, cte_of = [], {}
     for i, ((ds_id, _, _), mds) in enumerate(groups.items()):
-        sql = _build_fact_cte(cat, spec, cat.datasets[ds_id], mds, dims, params, warnings, i, date_range)
+        sql = _build_fact_cte(cat, spec, cat.datasets[ds_id], mds, dims, params, warnings, i, date_range, time_cols)
         ctes.append((f"f{i}", sql))
         for md in mds:
             cte_of[md.alias] = f"f{i}"
@@ -446,4 +450,4 @@ def compile_query(cat: Catalog, spec: QuerySpec, today: date | None = None, max_
     if order:
         sql += " ORDER BY " + ", ".join(order)
     sql += f" LIMIT {int(limit)}"
-    return Compiled(sql, params, out_cols, warnings, date_range, mdefs)
+    return Compiled(sql, params, out_cols, warnings, date_range, mdefs, time_cols)

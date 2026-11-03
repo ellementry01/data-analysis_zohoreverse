@@ -12,6 +12,7 @@ from ..config import get_settings
 from .catalog import Catalog
 from .executor import QueryExecutionError, log_query, run_readonly
 from .filters import describe_range, previous_period
+from .naming import q
 from .query_engine import Compiled, QueryError, compile_query
 from .spec import QuerySpec
 from .sql_safety import UnsafeSQLError, validate_select
@@ -74,6 +75,12 @@ def _attach_comparison(db, cat, spec: QuerySpec, compiled: Compiled, out: dict, 
         return
     lo, hi = compiled.date_range
     plo, phi = previous_period(lo, hi, spec.compare)
+    start = _data_start(cat, compiled)
+    if start and plo < start:
+        # The previous period reaches back before the data begins: comparing would set a full period against a part
+        # of one (e.g. 12 months vs 5½), so no comparison is shown rather than a misleading change.
+        _blank_comparison(out, spec, plo, phi, lo, hi, start)
+        return
     prev_spec = spec.model_copy(deep=True)
     prev_spec.time_range = {"from": plo.isoformat(), "to": (phi - timedelta(days=1)).isoformat()}
     prev_spec.compare = None
@@ -139,6 +146,35 @@ def _attach_comparison(db, cat, spec: QuerySpec, compiled: Compiled, out: dict, 
                              f"{'the same period last year' if spec.compare == 'previous_year' else 'the previous period'}")
         if parts:
             out["comparison"]["summary"] = "Overall: " + "; ".join(parts) + "."
+
+
+def _data_start(cat: Catalog, compiled: Compiled) -> date | None:
+    """Earliest date in the datasets the date range filters on (the latest such start when there are several)."""
+    starts = []
+    for slug, col in dict.fromkeys(compiled.time_columns):
+        sql = f"SELECT MIN({q(col)}) AS d FROM {q(cat.schema)}.{q(slug)}"
+        validate_select(sql, cat.schema, {slug})
+        v = run_readonly(sql, {}, cat.schema).rows[0][0]
+        if v is not None:
+            starts.append(date.fromisoformat(str(v)[:10]))
+    return max(starts) if starts else None
+
+
+def _blank_comparison(out: dict, spec: QuerySpec, plo: date, phi: date, lo: date, hi: date, start: date) -> None:
+    cols = out["columns"]
+    meas = [c for c in cols if c["role"] == "measure"]
+    for c in meas:
+        cols.append({**c, "name": c["name"] + "__prev", "label": c["label"] + " (previous)", "role": "measure", "compare_of": c["name"]})
+    for c in meas:
+        cols.append({**c, "name": c["name"] + "__change_pct", "label": c["label"] + " change %", "role": "measure",
+                     "format": "percent", "compare_of": c["name"]})
+    for r in out["rows"]:
+        r.extend([None] * (2 * len(meas)))
+    note = (f"Not compared: the {'same period last year' if spec.compare == 'previous_year' else 'previous period'} "
+            f"({describe_range(plo, phi)}) starts before the data, which begins on {start.isoformat()}.")
+    out["comparison"] = {"mode": spec.compare, "previous_range": describe_range(plo, phi), "current_range": describe_range(lo, hi),
+                         "incomplete": True, "data_start": start.isoformat(), "note": note}
+    out["warnings"].append(note)
 
 
 # ----------------------------------------------------------------------------------------------- charts

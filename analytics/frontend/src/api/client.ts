@@ -116,7 +116,7 @@ export interface Insight { type: string; text: string; x?: string; value?: numbe
 export interface QueryResult {
   columns: ResultColumn[]; rows: any[][]; row_count: number; truncated: boolean; duration_ms: number; sql: string;
   warnings: string[]; date_range: [string, string] | null; suggested_chart: string; insights: Insight[];
-  comparison?: { mode: string; previous_range: string; current_range: string; summary?: string };
+  comparison?: { mode: string; previous_range: string; current_range: string; summary?: string; incomplete?: boolean; data_start?: string; note?: string };
   applied_spec?: QuerySpec;
 }
 export interface Report { id: number; name: string; description: string; chart_type: string; spec: QuerySpec; options: any; updated_at: string }

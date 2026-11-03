@@ -50,7 +50,7 @@ docker compose ps
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **406 passed** (2026-11-02), in about 2 minutes. About 80 s of that is building the demo workspace once.
+- Current result: **407 passed** (2026-11-03), in about 2 minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)

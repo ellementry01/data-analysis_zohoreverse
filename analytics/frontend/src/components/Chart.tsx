@@ -213,6 +213,9 @@ export function KpiCard({ res }: { res: QueryResult }) {
           {fmtNumber(Math.abs(ch), "percent")} <span className="font-normal text-slate-400">vs {fmtNumber(row[prevIdx], m.format)} previous</span>
         </div>
       )}
+      {res.comparison?.incomplete && (
+        <div className="mt-1 text-xs text-slate-400" title={res.comparison.note}>Not compared: data starts {fmtDateLabel(res.comparison.data_start, "day")}</div>
+      )}
       {meas.slice(1, 3).map((x) => (
         <div key={x.name} className="mt-1 text-xs text-slate-500">{x.label}: <b className="text-slate-700">{fmtNumber(row[cols.indexOf(x)], x.format)}</b></div>
       ))}
@@ -310,8 +313,16 @@ export function PivotTable({ res }: { res: QueryResult }) {
 }
 
 /** Renders any result as the requested visualization. */
-export function ChartView({ type, res, onPoint, onReady, height = "100%" }:
+/** When the previous period reaches back before the data begins, the server leaves the comparison empty: drop those columns. */
+function withoutIncompleteComparison(res: QueryResult): QueryResult {
+  if (!res.comparison?.incomplete) return res;
+  const keep = res.columns.map((c, i) => (c.compare_of ? -1 : i)).filter((i) => i >= 0);
+  return { ...res, columns: keep.map((i) => res.columns[i]), rows: res.rows.map((r) => keep.map((i) => r[i])) };
+}
+
+export function ChartView({ type, res: raw, onPoint, onReady, height = "100%" }:
   { type: string; res: QueryResult; onPoint?: (p: PointClick) => void; onReady?: (c: echarts.ECharts) => void; height?: string | number }) {
+  const res = useMemo(() => withoutIncompleteComparison(raw), [raw]);
   const option = useMemo(() => buildOption(type, res, res.insights), [type, res]);
   if (!res.rows.length) return <div className="flex h-full items-center justify-center text-sm text-slate-400">No data for the current filters</div>;
   if (type === "kpi") return <KpiCard res={res} />;

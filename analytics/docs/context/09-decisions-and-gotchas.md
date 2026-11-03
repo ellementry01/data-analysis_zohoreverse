@@ -37,6 +37,7 @@
 | Goods receipts come from the ERP MRN Register when it is loaded (2.14); the Pending PO export's receipts are used only without it | The register has every GRN with its own date, including closed POs the Pending PO export drops; the memo-repeated item rows are kept once |
 | Franchise and SIS partners come from the business's store status sheet (BR-035): one partner stock location per franchise account, Shoppers Stop pooled (one billing account for 14 counters); return-PO receipts from partners are not taken off partner stock until D-089 is answered | The sheet's franchise names match the ERP billing names exactly; subtracting both return routes could count the same goods twice |
 | The COO-readiness fixes (segment labels, partner stock out of days of cover, retail-only return rate) were found on 2026-11-03 and deliberately left for later | The user said "Not now"; see the review in 08 |
+| Compare is left empty when the previous period starts before the data (tiles say "Not compared: data starts …") | 15 Sep 2025 - 15 Sep 2026 vs "previous period" set 12 months against the 5½ months of data before it and showed +94% orders. The data start is the earliest date of the dataset(s) the date range filters on (`analytics._data_start`) |
 | Dashboard descriptions are shown on the dashboard (under the title, and in the PDF) | Caveats such as "RTO is website-only" were only in the API; a COO reading the screen never saw them |
 | Dashboard values filters use shared lookup fields (`locations.*`, `products.*`) when widgets come from several datasets | A filter on a field of one dataset is applied to every widget and gave wrong month-end figures on the other dataset |
 | Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
@@ -52,7 +53,7 @@
 - Importing `claude` from `config` causes a circular import. That is why `check_model` lives in `config.py`.
 - Tests import with `from conftest import …`.
 - Prompt caches are per model, so the first Sonnet question pays its own cache write.
-- The README and QA_REPORT test counts (328 and 363) are stale; the current count is **406**.
+- The README and QA_REPORT test counts (328 and 363) are stale; the current count is **407**.
 - The README "Quick start" still mentions "Load demo workspace". The button still works.
 - **Port 8000 can be taken** by another app (a uvicorn from another project once held it). Start the stack with `APP_PORT=8001` temporarily, or stop the other app.
 - **Migration numbers can clash with another session's.** Check `warehouse/sql/` and `meta.schema_version` before naming one; the next free number is 240 (schema 2.16).
@@ -76,7 +77,8 @@
 
 ## Known functional limitations
 - "By warehouse" on a sales register can group by the warehouse code instead of the name. This is a demo-data quirk.
-- "This month vs previous period" compares with the same number of days immediately before it, not the same days of the previous month.
+- "Previous period" compares with the same number of days immediately before the range (whole months shift by months), not the same days of the previous month. Ranges whose previous period starts before 1 Apr 2025 get no comparison (see the decision log).
+- Compare changes KPI tiles (arrow and %), adds "(previous)" bars to single-level bar charts and columns to tables; stacked two-level charts ignore it.
 - The offline engine understands only semantic-layer vocabulary. Open-ended phrasing needs Claude.
 - Scheduled refresh applies to connectors only; files are refreshed by Replace or Append.
 - Excel, PNG and PDF exports run client-side (PDF via print).

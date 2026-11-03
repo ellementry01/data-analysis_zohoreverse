@@ -311,17 +311,38 @@ def test_compare_previous_period_total(client, mini):
     assert any(i["type"] == "comparison" for i in res["insights"])
 
 
-def test_compare_previous_period_by_month_and_dimension(client, mini):
+def test_compare_previous_period_by_month_and_dimension(client, mini, monkeypatch):
+    # Aug-Sep vs Jun-Jul reaches back before the data (it starts 10 Jul), so the coverage check is switched off here
+    # to test the month alignment on its own
+    monkeypatch.setattr("app.services.analytics._data_start", lambda cat, compiled: None)
     res = run(client, mini, {"dimensions": [{"field": "@time", "grain": "month"}], "measures": [AMOUNT],
                              "time_range": {"last": 2, "unit": "months"}, "compare": "previous_period"})
     # Aug-Sep vs Jun-Jul: months line up by offset
     assert table(res) == {"2026-08-01": (550.0, None, None), "2026-09-01": (1110.0, 200.0, 4.55)}
+    monkeypatch.undo()
     res = run(client, mini, {"dimensions": [{"field": "sales.channel"}], "measures": [AMOUNT],
                              "time_range": "last_month", "compare": "previous_period"})
     t = table(res)
     assert t["Amazon"] == pytest.approx((550.0, 100.0, 4.5))
     assert t["Shopify"] == pytest.approx((560.0, 450.0, round(110 / 450, 4)))
     assert "Overall" in res["comparison"]["summary"]
+
+
+def test_compare_is_left_empty_when_the_previous_period_starts_before_the_data(client, mini):
+    # Aug-Sep vs Jun-Jul: sales start on 10 Jul, so June and early July are missing from the previous period.
+    # Comparing would set two full months against three weeks; the comparison is left empty and says why.
+    res = run(client, mini, {"dimensions": [{"field": "@time", "grain": "month"}], "measures": [AMOUNT],
+                             "time_range": {"last": 2, "unit": "months"}, "compare": "previous_period"})
+    assert [c["name"] for c in res["columns"]] == ["time_month", "total_amount", "total_amount__prev", "total_amount__change_pct"]
+    assert table(res) == {"2026-08-01": (550.0, None, None), "2026-09-01": (1110.0, None, None)}
+    cmp = res["comparison"]
+    assert cmp["incomplete"] is True and cmp["data_start"] == "2026-07-10" and "2026-07-10" in cmp["note"]
+    assert cmp["note"] in res["warnings"] and "summary" not in cmp
+    res = run(client, mini, {"measures": [AMOUNT], "time_range": {"from": "2026-09-01", "to": "2026-10-31"}, "compare": "previous_year"})
+    assert res["rows"][0][1:] == [None, None] and res["comparison"]["incomplete"] is True
+    # a previous period inside the data is compared as before
+    res = run(client, mini, {"measures": [AMOUNT], "time_range": "last_month", "compare": "previous_period"})
+    assert res["rows"][0][1] == 550.0 and not res["comparison"].get("incomplete")
 
 
 def test_compare_needs_range(client, mini):
