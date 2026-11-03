@@ -73,6 +73,7 @@
 - **Checking numbers through the app:** `POST /api/workspaces/34/query` takes a QuerySpec (dimensions, measures, filters, sort, limit); sorting needs an alias. Dataset names in `GET /datasets` are display names ("Net sales daily"), while fields use the table name (`net_sales_daily.x`).
 - **A dashboard values filter applies to every widget.** Pick a field every widget's dataset can reach (a shared lookup such as `locations.location_name` or `products.category`), and check each widget with the filter set; a field from one fact dataset silently distorts widgets on another.
 - **Measure and dimension `label`s override column headers** in widget specs; use them rather than renaming metrics.
+- **Keep the Stock (195) and Fulfilment (196) ids stable:** the user shares these with the COO. After changing their definitions in `build_executive_dashboards.py`, run `python scripts/update_dashboard_widgets.py Stock Fulfilment` (updates in place). A full `build_executive_dashboards.py` run deletes and recreates all ten, so tell the user the new ids if you must run it.
 - **Dashboard ids change on every rebuild** (`build_executive_dashboards.py` replaces by name). Don't hard-code them.
 
 ## Known functional limitations
@@ -85,7 +86,7 @@
 
 ## Sensible next steps (none in progress; ask the user before starting)
 Done since 2026-10-22: real facts loaded, stock history (month-ends), ten dashboards, store status sheet (2.15).
-0. **Make the dashboards COO-ready** (when the user asks): the three fixes listed under "COO readiness review" in 08. Then also normalise the Instamart city case and explain Bagru's May 2025 drop (16,677 units with no document).
+0. **Make the other dashboards COO-ready** (when the user asks). Stock and Fulfilment are done (2026-11-03) and are what the user shows the COO; the remaining work is the three fixes listed under "COO readiness review" in 08 (Executive overview / Sales & channels, Days of cover, Returns). Then also normalise the Instamart city case and explain Bagru's May 2025 drop (16,677 units with no document).
 1. Load the rest of Bagru's stock movements (scrap, adjustments, inventory transfers, subcontract) by running the ERP Document Wise Stock Movement *Summary* month by month (18 downloads), or the Purchase Register once the ERP login has a department (D-124).
 2. Get the business's answers to the open confirmations in `warehouse/docs/ISSUE_LOG.md` (locations, courier codes, partner list, negative stock) and apply them through seeds.
 3. Start the daily stock save (D-004) and the Instamart daily inventory download (D-125) into `exports/_inbox/`.

@@ -78,6 +78,7 @@ Then, from `analytics/` on the host (the scripts call the app's API on :8000), s
 ```bash
 python scripts/configure_warehouse_workspace.py   # sync datasets, import new views, metrics, calculated columns
 python scripts/build_executive_dashboards.py      # rebuild the 10 dashboards (ids change), flag empty widgets
+python scripts/update_dashboard_widgets.py Stock Fulfilment   # update named dashboards in place (ids kept)
 ```
 Each dataset also has a Sync button (`POST /api/workspaces/34/datasets/{id}/sync`), and the hourly scheduler syncs too.
 
