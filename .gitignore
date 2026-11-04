@@ -1,6 +1,8 @@
-# customer data and generated reports: never committed
+# customer data, generated reports, database backups and archived old folders: never committed
 exports/
 reports/
+backups/
+archive/
 # secrets
 **/.env
 **/.env.*

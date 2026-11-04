@@ -41,6 +41,7 @@
 | Dashboard descriptions are shown on the dashboard (under the title, and in the PDF) | Caveats such as "RTO is website-only" were only in the API; a COO reading the screen never saw them |
 | Dashboard values filters use shared lookup fields (`locations.*`, `products.*`) when widgets come from several datasets | A filter on a field of one dataset is applied to every widget and gave wrong month-end figures on the other dataset |
 | Focus on Instamart; Blinkit kept but parked; Zepto later | The business's priority; Blinkit has a new seller arrangement, so the old data is set aside |
+| Everything in one folder `Desktop\ellementry-analytics` (2026-11-04): backups and archived old folders inside it, both git-ignored; the live databases stay where their servers run them | The user asked for all info, code, warehouse and database in one folder and the unrelated folders gone; moving PostgreSQL's data directory was judged too risky, so the folder holds verified dumps instead |
 | Whole folder is one git repo pushed to `ellementry01/data-analysis_zohoreverse` (public, by the user's choice); `exports/` and `reports/` stay out | One place for the product; customer data is never committed |
 | ERP reports are downloaded only by the agent in the built-in browser, in the user's own signed-in session; nothing in the ERP is changed | The user authorised downloads only |
 | The project moved off the scratch workspace to the Desktop | The scratch path was a redirected AppData folder that broke mkdir, Alembic, npm/esbuild and Vite |
@@ -64,6 +65,7 @@
 - **ERP (Expand smERP) reports:** widen the browser to 1400×900 first (the size resets every turn). With Consolidated ticked the channel list doesn't open. See 07 for the download steps and the reports that fail inside the ERP.
 
 - **After a hard shutdown**, the app's PostgreSQL container runs a long crash-recovery sync (about 10 minutes). The app can exit first; once the db is healthy, run `docker compose restart app`.
+- **After a reboot `Get-Service postgresql-x64-18` can say Stopped while the warehouse runs** (port 5432 answers). Check with `python dw.py psql -c "select 1"`; starting the service needs administrator rights.
 - **Docker Desktop doesn't start by itself after a reboot.** Launch `%LOCALAPPDATA%/Programs/DockerDesktop/Docker Desktop.exe`.
 - **Warehouse commands go through `python dw.py …`** from `warehouse/`, so the admin login never appears in a command line. Tests: `DW_DATABASE=<disposable db> python dw.py pytest`; the script refuses `ellementry_dw`.
 - **Windows Python writes CRLF line endings** unless told otherwise. The generators now write LF. Check `git diff --stat` for whole-file diffs.

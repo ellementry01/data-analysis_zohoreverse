@@ -16,7 +16,7 @@
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy; every migration and load is tried here first.
   - `dw_test_po`: the disposable, loaded test database (see 07).
-- **Backups:** `C:\Users\Dileep\Desktop\ellementry_backups\ellementry_dw_<date>_<time>.dump`, taken by `python dw.py backup` before every change (the latest is from 2 Nov 2026, before 2.15).
+- **Backups:** `backups/ellementry_dw_<date>_<time>.dump` in the project folder, taken by `python dw.py backup` before every change (latest 4 Nov 2026, schema 2.15). The app's own database is dumped there too (`ellementry_analytics_<date>.dump`, see 07).
 
 ## Layers (one-way flow)
 `exports → raw (exact text, contract-checked) → stg (typed) → core (dims, facts, stock ledger) → quality gate → coverage → mart`

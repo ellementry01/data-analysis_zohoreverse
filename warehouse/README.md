@@ -13,7 +13,7 @@ The admin login lives in `.env` (git-ignored) as `ADMIN_DATABASE_URL`; `dw.py` r
 `DW_DATABASE=<name>` points any command at another database (e.g. a trial copy).
 
 ```bash
-python dw.py backup                                   # pg_dump to ../../ellementry_backups, verified
+python dw.py backup                                   # pg_dump to ../backups (in the project folder), verified
 python load_manifest.py ../exports                    # load every new file listed in ../exports/MANIFEST.tsv
 python dw.py transform run                            # rebuild stg -> core -> marts (all or nothing)
 python reconcile.py ../exports                        # totals from the files vs the warehouse

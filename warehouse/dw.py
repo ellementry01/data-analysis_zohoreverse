@@ -69,7 +69,7 @@ def main(argv: list[str]) -> int:
     elif cmd == "psql":
         args = [str(PG_BIN / "psql"), "-v", "ON_ERROR_STOP=1", *rest]
     elif cmd == "backup":
-        out = rest[0] if rest else str(HERE.parent.parent / "ellementry_backups" / f"{db}_{dt.datetime.now():%Y-%m-%d_%H%M}.dump")
+        out = rest[0] if rest else str(HERE.parent / "backups" / f"{db}_{dt.datetime.now():%Y-%m-%d_%H%M}.dump")
         Path(out).parent.mkdir(parents=True, exist_ok=True)
         r = subprocess.run([str(PG_BIN / "pg_dump"), "--format=custom", "--file", out, db], env=env)
         if r.returncode == 0:

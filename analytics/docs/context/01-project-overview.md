@@ -11,19 +11,21 @@
 The product is **Ellementry Analytics**; the name is used throughout, from the UI to the database, schema, Docker project and environment variables (renamed from an earlier working name on 2026-10-26; see [09-decisions-and-gotchas.md](09-decisions-and-gotchas.md)).
 
 - **Owner:** the user, `ea@ellementry.com`, on a Windows 10 PC. They are building it for their company, Ellementry, a home and kitchen brand.
-- **Location:** `C:\Users\Dileep\Desktop\lumen-analytics\` (the folder name is old; the user may rename it later; nothing inside uses it).
+- **Location:** `C:\Users\Dileep\Desktop\ellementry-analytics\` (renamed from `lumen-analytics` on 2026-11-04). Everything for the project is in this one folder: code, warehouse, exports, database backups and archived old folders.
 - **Git:** one repository at the folder root, pushed to GitHub `ellementry01/data-analysis_zohoreverse` (public, branch `main`). `exports/` and `reports/` are not in git.
 
 ```
-lumen-analytics/   (repo root)
+ellementry-analytics/   (repo root)
   analytics/   the application
   warehouse/   the ellementry_dw warehouse code (moved here 2026-10-22, see 08)
   research/    the Zoho Analytics study (public pages only), made with the REA tool
   exports/     the company's source exports + MANIFEST.tsv (not in git: customer data)
   reports/     working CSV reports from the warehouse (not in git)
+  backups/     dumps of the warehouse (ellementry_dw_*.dump) and the app database (ellementry_analytics_*.dump) (not in git)
+  archive/     superseded folders kept for reference: ellementry_source_code, early design docs (not in git)
 ```
 
-The old project `C:\Users\Dileep\Desktop\ellementry_source_code\` is superseded: its warehouse code now lives in `warehouse/`. The PostgreSQL 18 database `ellementry_dw` on the host is what Ellementry Analytics reads through a read-only connector. See [08-ellementry-warehouse.md](08-ellementry-warehouse.md).
+The old project `ellementry_source_code` is superseded: its warehouse code lives in `warehouse/`, and a copy of the old folder (with its git history) is in `archive/`. The live databases run outside the folder (warehouse in PostgreSQL 18 on the host, app database in Docker); `backups/` holds their dumps. `Desktop\ellementry-intelligence\` is a different app, not part of this project. The PostgreSQL 18 database `ellementry_dw` on the host is what Ellementry Analytics reads through a read-only connector. See [08-ellementry-warehouse.md](08-ellementry-warehouse.md).
 
 ## Origin: the master prompt
 The user pasted a "master prompt" asking for the following:
@@ -47,7 +49,7 @@ The research output is in `research/`: `DISCOVERY.md`, `FEATURE_MATRIX.md` (each
 
 ## Timeline (October – November 2026)
 1. **Research and build.** REA study of Zoho's public site, followed by the full build: backend, frontend, demo data with ground truth, and tests.
-2. **Move to the Desktop.** The project moved to the Desktop (today `Desktop\lumen-analytics`). The user also asked why some features are only partly built; the answer is in `research/FEATURE_MATRIX.md` and README §6.
+2. **Move to the Desktop.** The project moved to the Desktop (`Desktop\lumen-analytics`, renamed `ellementry-analytics` on 2026-11-04). The user also asked why some features are only partly built; the answer is in `research/FEATURE_MATRIX.md` and README §6.
 3. **Docker and QA.** Dockerised with a hardened compose file, followed by a senior-QA security and quality audit. The findings and fixes are in `QA_REPORT.md`; the critical one was SEC-1, a cross-workspace leak through CTE shadowing, now fixed.
 4. **Connected the Ellementry warehouse.** Connected `ellementry_dw` (schema `mart`) through a read-only connector. This created workspace **34, "Ellementry (live warehouse)"**: 19 datasets, 11 relationships, 11 metrics and hourly sync.
 5. **Rebrand and demo removal.** Rebranded to Ellementry in the UI and docs, and deleted the **demo workspace in the app**. The bundled demo generator and the "Load demo workspace" button still exist.
@@ -70,6 +72,7 @@ The research output is in `research/`: `DISCOVERY.md`, `FEATURE_MATRIX.md` (each
 18. **Store status sheet (2026-11-02), schema 2.15.** The business sent the list of all stores (own / franchise / SIS, running / closed): franchise and Shoppers Stop accounts classified as sale-or-return partners; own-store status applied.
 19. **COO readiness review (2026-11-03).** All 10 dashboards checked on live data: six can be shown, three need app-side fixes first (segment labels, partner stock in days of cover, return rate), Data health is for the team. Fixes deferred by the user; details in 08.
 20. **Stock and Fulfilment made COO-ready (2026-11-03).** The user will show these two. Descriptions now appear on dashboards; readable order status; COD vs prepaid RTO; monthly RTO / late trend; Stock filters by location and category; closed stores marked; top products table. Compare no longer shows a change when the previous period starts before the data.
+21. **One folder (2026-11-04).** The folder was renamed `ellementry-analytics`; the backups moved into `backups/` (plus fresh dumps of both databases); the old `ellementry_source_code` and the design folders were copied to `archive/` and deleted from the Desktop; new return exports went into `exports/_originals/return_data_2026-11-03/`. The other app that had the name `ellementry-analytics` is now `Desktop\ellementry-intelligence`.
 
 ## Current status (2026-11-03)
 - Docker stack (`ellementry-db-1`, `ellementry-app-1`) is running and healthy on http://localhost:8000, with Claude enabled.
