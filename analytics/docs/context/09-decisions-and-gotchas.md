@@ -92,7 +92,7 @@
 
 ## Sensible next steps (none in progress; ask the user before starting)
 Done since 2026-10-22: real facts loaded, stock history (month-ends), ten dashboards, store status sheet (2.15).
-- **AI assistants:** Phase 0 (Groundwork) of `docs/AI_ASSISTANTS_PLAN.md` is built (2026-11-07) and awaits the owner's sign-off; Phase 1 (dashboard chat) is next when the user says go. A data-watchdog plan and a production-foundation plan run alongside it and are not written yet.
+- **AI assistants:** Phase 0 (Groundwork) of `docs/AI_ASSISTANTS_PLAN.md` is done (signed off and merged 2026-11-07); the spend caps are still placeholders until the owner sets the budget. Phase 1 (dashboard chat) is next when the user says go. A data-watchdog plan and a production-foundation plan run alongside it and are not written yet.
 0. **Make the other dashboards COO-ready** (when the user asks). Stock and Fulfilment are done (2026-11-03) and are what the user shows the COO; the remaining work is the three fixes listed under "COO readiness review" in 08 (Executive overview / Sales & channels, Days of cover, Returns). Then also normalise the Instamart city case and explain Bagru's May 2025 drop (16,677 units with no document).
 1. Load the rest of Bagru's stock movements (scrap, adjustments, inventory transfers, subcontract) by running the ERP Document Wise Stock Movement *Summary* month by month (18 downloads), or the Purchase Register once the ERP login has a department (D-124).
 2. Get the business's answers to the open confirmations in `warehouse/docs/ISSUE_LOG.md` (locations, courier codes, partner list, negative stock) and apply them through seeds.
