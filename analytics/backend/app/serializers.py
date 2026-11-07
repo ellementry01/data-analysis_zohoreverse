@@ -65,7 +65,7 @@ def widget_out(w: m.DashboardWidget) -> dict:
 
 
 def dashboard_out(d: m.Dashboard, full: bool = True) -> dict:
-    out = {"id": d.id, "name": d.name, "description": d.description, "filters": d.filters or [], "is_template": d.is_template,
+    out = {"id": d.id, "key": d.key, "domain": d.domain, "name": d.name, "description": d.description, "filters": d.filters or [], "is_template": d.is_template,
            "created_at": iso(d.created_at), "updated_at": iso(d.updated_at), "widget_count": len(d.widgets)}
     if full:
         out["widgets"] = [widget_out(w) for w in d.widgets]

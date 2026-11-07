@@ -26,9 +26,15 @@ class MemberIn(BaseModel):
 
 @router.get("/me")
 def me(user: str = Depends(current_user)):
+    s = get_settings()
+    features = {"dashboard_chat": s.assistant_dashboard_chat, "agent_loop": s.assistant_agent_loop,
+                "memory": s.assistant_memory, "global_assistant": s.assistant_global, "scheduled_agents": s.assistant_scheduled}
+    return {**_me(user, s), "features": features}
+
+
+def _me(user: str, s) -> dict:
     from ..services.nlq import claude
 
-    s = get_settings()
     if claude.enabled():
         return {"email": user, "llm": {"enabled": True, "provider": "anthropic",
                                        "model": f"{claude.label(s.anthropic_simple_model)} / {claude.label(s.anthropic_complex_model)}",

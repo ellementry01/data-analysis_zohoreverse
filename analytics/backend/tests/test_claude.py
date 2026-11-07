@@ -9,28 +9,8 @@ from app.services.nlq import claude
 
 from conftest import api, build_mini
 
-ALLOWED = {"claude-haiku-5-5", "claude-sonnet-5-5"}
-
-
-class FakeMessages:
-    def __init__(self, replies):
-        self.replies = list(replies)
-        self.calls = []
-
-    def create(self, **kw):
-        self.calls.append(kw)
-        assert kw["model"] in ALLOWED, f"disallowed model {kw['model']}"
-        assert "temperature" not in kw and "fallbacks" not in kw
-        r = self.replies.pop(0)
-        if isinstance(r, Exception):
-            raise r
-        if isinstance(r, tuple):  # (stop_reason, text)
-            stop, text = r
-        else:
-            stop, text = "end_turn", r if isinstance(r, str) else json.dumps(r)
-        return SimpleNamespace(stop_reason=stop, content=[SimpleNamespace(type="text", text=text)],
-                               usage=SimpleNamespace(input_tokens=100, output_tokens=20, cache_read_input_tokens=0,
-                                                     cache_creation_input_tokens=0))
+from fakes import ALLOWED_MODELS as ALLOWED  # noqa: F401  (kept for older assertions)
+from fakes import FakeMessages
 
 
 def plan_json(kind="spec", spec=None, sql="", clarification="", title="t", chart="auto"):

@@ -11,18 +11,19 @@
 | connectors | `kind` and a `config` JSON (host, port, database, user, schema, `password_env` or an encrypted password) |
 | metrics | name, label, `expression`, `dataset_id`, `filters` (business rules), `time_column`, `semi_additive`, `synonyms`, `format`, `higher_is_better` |
 | glossary_terms, business_rules | Word → column/value/metric mappings; dataset-level rules |
-| reports, dashboards, dashboard_widgets | Saved charts; dashboards hold layout, filters and drill paths |
+| reports, dashboards, dashboard_widgets | Saved charts; dashboards hold layout, filters and drill paths. Each dashboard has a stable **`key`** (unique per workspace, e.g. `stock`; survives renames and rebuilds, unlike the id) and a **`domain`** (`stock`, `operations`, `sales`, `executive`, `data`, …) |
 | saved_queries | SQL console saves |
 | query_history (`QueryLog`) | Every chart, dashboard, SQL and AI query, including rejected ones |
-| conversations, messages | Ask AI threads; each message stores its spec for follow-ups |
+| conversations, messages | Assistant threads. `scope_type` says where a thread lives: `workspace` (the Ask page), `dashboard` (+ `dashboard_key`) or `global`; also `summary` (compacted older turns) and `archived`. Each message stores its spec for follow-ups, plus `screen_state`, `tool_trace`, `model`, `usage` and `feedback` (filled from Phase 1 of the assistants plan) |
+| ai_usage (`AIUsage`) | One row per Claude call: user, workspace, conversation, purpose (`chat`, `explain`, …), model, tokens, estimated cost in rupees. The spend caps read it |
 | refresh_schedules | Per-dataset sync interval, with last run and status |
 
-There is a single Alembic migration, `0001_initial.py`, and migrations run automatically on app start.
+Migrations run automatically on app start: `0001_initial.py`, then `0002_assistant_groundwork.py` (dashboard keys backfilled from names, conversation scopes, message details, `ai_usage`).
 
 ## API (all under `/api`; workspace routes are `/api/workspaces/{ws_id}/…`)
 - **Auth:** the user comes from the `X-User-Email` header, defaulting to `DEFAULT_USER=owner@local`. Each route declares the role it needs through `deps.viewer/editor/admin`. A dataset id is always checked against the workspace (`dataset_of`).
 - **workspaces.py:**
-  - `GET /me` returns the user and LLM info: provider, simple/complex model labels and the base-URL host.
+  - `GET /me` returns the user and LLM info: provider, simple/complex model labels and the base-URL host, plus `features` (the assistant feature flags, all off until their phase is signed off).
   - `POST /demo` builds the demo workspace.
   - Workspaces have CRUD, members (`PUT/DELETE members`) and `GET history`.
 - **data.py:**
@@ -38,7 +39,8 @@ There is a single Alembic migration, `0001_initial.py`, and migrations run autom
   - `GET /model`.
   - `POST /query` and `/query/export`.
   - CRUD for `reports` and `dashboards`.
-  - Dashboard extras: widgets CRUD, layout, `widgets/{wid}/data`, `duplicate` and `values`.
+  - Dashboard extras: widgets CRUD, layout, `widgets/{wid}/data`, `duplicate` and `values`; `GET /dashboards/key/{key}` finds a dashboard by its stable key. Create and update take optional `key` and `domain` (create derives the key from the name when omitted; update keeps it).
+  - `GET /conversations` lists only the user's Ask-page threads (`scope_type = workspace`), and Ask never continues a dashboard or global thread.
   - `POST /sql` (the console), plus `saved-queries`.
   - CRUD for `metrics`, `glossary` and `rules`.
   - `POST /assistant/ask` with `{question, conversation_id?, engine: auto|semantic|llm}`, and `GET /assistant/suggestions`.

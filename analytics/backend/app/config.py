@@ -56,6 +56,22 @@ class Settings(BaseSettings):
     def _only_haiku_or_sonnet(cls, v: str) -> str:
         return check_model(v)
 
+    # AI spend caps, in rupees (0 = no cap). When a cap is reached Claude is not called and the offline engine
+    # answers with a note. Placeholder values until the owner sets the budget (AI_ASSISTANTS_PLAN.md, open question 5).
+    ai_daily_limit_user_inr: float = 100.0
+    ai_monthly_limit_inr: float = 3000.0
+    usd_inr_rate: float = 88.0
+    # Optional JSON overriding the per-model prices in services/ai_usage.py (USD per million tokens), e.g.
+    # {"claude-haiku-5-5": {"input": 0.1, "output": 0.5, "cache_read": 0.01, "cache_write": 0.125}}
+    ai_prices_json: str | None = None
+
+    # Assistant features, switched on phase by phase after each phase's gate (docs/AI_ASSISTANTS_PLAN.md).
+    assistant_dashboard_chat: bool = False
+    assistant_agent_loop: bool = False
+    assistant_memory: bool = False
+    assistant_global: bool = False
+    assistant_scheduled: bool = False
+
     default_user: str = "owner@local"
     # Pin "today" (YYYY-MM-DD) for reproducible relative date ranges in tests/demos; empty = real date.
     today_override: str | None = None

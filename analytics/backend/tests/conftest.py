@@ -55,6 +55,17 @@ def demo(client):
     return build_demo(client, SAMPLE_DIR, name="demo-under-test", log=lambda *a, **k: None)
 
 
+@pytest.fixture()
+def fake_claude(monkeypatch):
+    """Install a scripted Claude: fake_claude(reply, reply, ..., usage={...}) -> FakeMessages (see tests/fakes.py)."""
+    from fakes import install
+
+    from app.services.nlq import claude
+
+    yield lambda *replies, usage=None: install(monkeypatch, *replies, usage=usage)
+    claude._client = None
+
+
 def api(ws_id: int, path: str = "") -> str:
     return f"/api/workspaces/{ws_id}{path}"
 

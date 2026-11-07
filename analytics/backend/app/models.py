@@ -177,8 +177,13 @@ class Report(Base):
 
 class Dashboard(Base):
     __tablename__ = "dashboards"
+    __table_args__ = (UniqueConstraint("workspace_id", "key", name="uq_dashboards_workspace_key"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    # Stable identity: survives renames and rebuilds (ids change when a dashboard is recreated), so assistant
+    # threads and memories are keyed by it, never by id.
+    key: Mapped[str] = mapped_column(String(80))
+    domain: Mapped[str] = mapped_column(String(30), default="")  # sales | stock | operations | executive | data | ...
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     filters: Mapped[list] = mapped_column(JSON, default=list)  # global filter definitions
@@ -230,6 +235,13 @@ class Conversation(Base):
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(String(300))
     user_email: Mapped[str] = mapped_column(String(200))
+    # Where the thread lives: the Ask page (workspace), one dashboard's chat (dashboard + dashboard_key), or the
+    # global assistant (global).
+    scope_type: Mapped[str] = mapped_column(String(20), default="workspace")
+    dashboard_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    summary: Mapped[str] = mapped_column(Text, default="")  # compacted older turns
+    summary_upto_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
     messages: Mapped[list["Message"]] = relationship(cascade="all, delete-orphan", order_by="Message.id")
@@ -242,7 +254,30 @@ class Message(Base):
     role: Mapped[str] = mapped_column(String(20))  # user | assistant
     content: Mapped[str] = mapped_column(Text)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    screen_state: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # filters / drill state the user was looking at
+    tool_trace: Mapped[list | None] = mapped_column(JSON, nullable=True)  # agent steps behind an answer
+    model: Mapped[str] = mapped_column(String(60), default="")
+    usage: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    feedback: Mapped[str | None] = mapped_column(String(10), nullable=True)  # up | down
+    feedback_note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AIUsage(Base):
+    """One row per Claude call: who, what for, which model, tokens and estimated cost (spend caps read this)."""
+    __tablename__ = "ai_usage"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int | None] = mapped_column(ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_email: Mapped[str] = mapped_column(String(200), index=True)
+    conversation_id: Mapped[int | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(20))  # chat | explain | memory | briefing | eval
+    model: Mapped[str] = mapped_column(String(60))
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cache_read_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cache_write_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cost_inr: Mapped[float] = mapped_column(Float, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
 class RefreshSchedule(Base):

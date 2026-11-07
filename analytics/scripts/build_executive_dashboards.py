@@ -64,6 +64,21 @@ def top(field, metric, n, filters=None, extra=None):
             "filters": filters or [], "sort": [{"field": alias, "dir": "desc"}], "limit": n}
 
 
+# Stable key and domain of each dashboard. The key never changes (assistant threads and memories hang off it), even
+# when the dashboard is renamed or rebuilt; the domain groups dashboards for the domain assistants.
+DASHBOARD_META = {
+    "Executive overview": ("executive-overview", "executive"),
+    "Sales & channels": ("sales-channels", "sales"),
+    "Returns": ("returns", "operations"),
+    "Stock": ("stock", "stock"),
+    "Fulfilment": ("fulfilment", "operations"),
+    "Purchasing & transfers": ("purchasing-transfers", "operations"),
+    "Discontinued & slow stock": ("discontinued-slow-stock", "stock"),
+    "Days of cover": ("days-of-cover", "stock"),
+    "Instamart": ("instamart", "sales"),
+    "Data health": ("data-health", "data"),
+}
+
 DASHBOARDS = [
     ("Executive overview",
      "Company performance at a glance. Retail = website, marketplaces, own stores and quick commerce. "
@@ -370,12 +385,16 @@ def main() -> int:
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read() or b"null")
 
-    existing = {d["name"]: d["id"] for d in call("GET", "/dashboards")[1]}
+    live = call("GET", "/dashboards")[1]
+    by_key = {d.get("key"): d["id"] for d in live}
+    by_name = {d["name"]: d["id"] for d in live}
     failures = 0
     for name, desc, filters, widgets in DASHBOARDS:
-        if name in existing:
-            call("DELETE", f"/dashboards/{existing[name]}")
-        s, d = call("POST", "/dashboards", {"name": name, "description": desc, "filters": filters})
+        key, domain = DASHBOARD_META[name]
+        old = by_key.get(key) or by_name.get(name)
+        if old:
+            call("DELETE", f"/dashboards/{old}")
+        s, d = call("POST", "/dashboards", {"name": name, "description": desc, "filters": filters, "key": key, "domain": domain})
         if s != 201:
             print(f"FAILED dashboard {name}: {d}"); failures += 1; continue
         for title, ct, spec, layout, options in widgets:

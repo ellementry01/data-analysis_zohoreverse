@@ -9,6 +9,7 @@ from ..db import get_session
 from ..deps import current_user, editor, viewer
 from ..serializers import dashboard_out, glossary_out, iso, metric_out, report_out, rule_out, widget_out
 from ..services.analytics import QueryExecutionError, QueryError, UnsafeSQLError, insights, run_spec, suggest_chart
+from ..services import dashboards as dash_svc
 from ..services.catalog import load_catalog
 from ..services.executor import log_query, run_readonly
 from ..services.expressions import ExpressionError, validate_expression
@@ -131,6 +132,9 @@ class DashboardIn(BaseModel):
     description: str = ""
     filters: list[dict] = Field(default_factory=list)
     is_template: bool = False
+    # Stable key: derived from the name when omitted on create; kept as is when omitted on update (a rename keeps it).
+    key: str | None = Field(default=None, max_length=80)
+    domain: str | None = Field(default=None, max_length=30)
 
 
 class WidgetIn(BaseModel):
@@ -157,8 +161,13 @@ def list_dashboards(ws: m.Workspace = Depends(viewer), db: Session = Depends(get
 
 @router.post("/dashboards", status_code=201)
 def create_dashboard(body: DashboardIn, ws: m.Workspace = Depends(editor), db: Session = Depends(get_session)):
-    d = m.Dashboard(workspace_id=ws.id, name=body.name, description=body.description, filters=_clean_filters(body.filters),
-                    is_template=body.is_template)
+    try:
+        key = dash_svc.new_key(db, ws.id, body.name, body.key)
+        domain = dash_svc.check_domain(body.domain or "")
+    except dash_svc.DashboardKeyError as e:
+        raise HTTPException(400, str(e))
+    d = m.Dashboard(workspace_id=ws.id, name=body.name, key=key, domain=domain, description=body.description,
+                    filters=_clean_filters(body.filters), is_template=body.is_template)
     db.add(d)
     db.commit()
     return dashboard_out(d)
@@ -169,6 +178,14 @@ def _dashboard(db, ws, did) -> m.Dashboard:
     if not d or d.workspace_id != ws.id:
         raise HTTPException(404, "Dashboard not found")
     return d
+
+
+@router.get("/dashboards/key/{key}")
+def get_dashboard_by_key(key: str, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session)):
+    d = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=key).one_or_none()
+    if not d:
+        raise HTTPException(404, "Dashboard not found")
+    return dashboard_out(d)
 
 
 def _clean_filters(filters: list[dict]) -> list[dict]:
@@ -189,6 +206,16 @@ def get_dashboard(did: int, ws: m.Workspace = Depends(viewer), db: Session = Dep
 @router.put("/dashboards/{did}")
 def update_dashboard(did: int, body: DashboardIn, ws: m.Workspace = Depends(editor), db: Session = Depends(get_session)):
     d = _dashboard(db, ws, did)
+    try:
+        if body.key is not None and body.key != d.key:
+            dash_svc.check_key(body.key)
+            if body.key in dash_svc.taken_keys(db, ws.id, exclude_id=d.id):
+                raise dash_svc.DashboardKeyError(f"Dashboard key '{body.key}' is already used in this workspace")
+            d.key = body.key
+        if body.domain is not None:
+            d.domain = dash_svc.check_domain(body.domain)
+    except dash_svc.DashboardKeyError as e:
+        raise HTTPException(400, str(e))
     d.name, d.description, d.filters, d.is_template = body.name, body.description, _clean_filters(body.filters), body.is_template
     db.commit()
     return dashboard_out(d)
@@ -304,8 +331,9 @@ def widget_data(did: int, wid: int, body: WidgetRunIn, ws: m.Workspace = Depends
 def duplicate_dashboard(did: int, name: str | None = None, ws: m.Workspace = Depends(editor), db: Session = Depends(get_session)):
     """Also used to create a dashboard from a template."""
     src = _dashboard(db, ws, did)
-    d = m.Dashboard(workspace_id=ws.id, name=name or f"{src.name} (copy)", description=src.description,
-                    filters=src.filters, is_template=False)
+    new_name = name or f"{src.name} (copy)"
+    d = m.Dashboard(workspace_id=ws.id, name=new_name, key=dash_svc.new_key(db, ws.id, new_name), domain=src.domain,
+                    description=src.description, filters=src.filters, is_template=False)
     for w in src.widgets:
         d.widgets.append(m.DashboardWidget(title=w.title, chart_type=w.chart_type, spec=w.spec, options=w.options,
                                            layout=w.layout, report_id=w.report_id))
@@ -616,7 +644,8 @@ def ask_suggestions(ws: m.Workspace = Depends(viewer), db: Session = Depends(get
 def conversations(ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
     return [{"id": c.id, "title": c.title, "created_at": iso(c.created_at), "updated_at": iso(c.updated_at),
              "message_count": len(c.messages)}
-            for c in db.query(m.Conversation).filter_by(workspace_id=ws.id, user_email=user).order_by(m.Conversation.updated_at.desc()).limit(100)]
+            for c in db.query(m.Conversation).filter_by(workspace_id=ws.id, user_email=user, scope_type="workspace", archived=False)
+            .order_by(m.Conversation.updated_at.desc()).limit(100)]
 
 
 @router.get("/conversations/{cid}")

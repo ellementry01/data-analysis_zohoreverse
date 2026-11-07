@@ -59,6 +59,12 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 - `EXPLAIN_PROMPT` says to quote only the rows or computed_facts and **never do arithmetic**. This was added because the model once wrote "75 locations" when the true total was 76.
 - If the explanation fails, `template_explanation` builds the text deterministically instead.
 
+## Usage ledger and spend caps (`services/ai_usage.py`, 2026-11-07)
+- Every Claude call goes through `claude._call`, which first runs `ai_usage.check_budget()` and afterwards `ai_usage.record()`.
+- `record()` writes one `ai_usage` row: user, workspace, conversation and purpose come from `ai_usage.ai_context(...)`, set by `assistant.answer` (`chat`) and `claude.explain` (`explain`). The estimated cost (rupees) is also returned in the answer's `usage.cost_inr`. A ledger failure is logged and never loses the answer.
+- Prices are USD per million tokens in `ai_usage.PRICES` (Haiku 5.5: $0.10 in / $0.50 out up to a 100K-token prompt, $0.50 / $2.50 above; Sonnet 5.5: $2 / $10; cache reads 0.1×, cache writes 1.25× input), converted with `USD_INR_RATE`, overridable with `AI_PRICES_JSON`.
+- Caps: `AI_DAILY_LIMIT_USER_INR` (per user, Indian calendar day) and `AI_MONTHLY_LIMIT_INR` (everyone). At the cap `check_budget` raises, `_call` turns that into `ClaudeUnavailable`, and the offline engine answers with "AI spend limit reached …".
+
 ## Engine selection (the Ask box dropdown)
 - `auto` and `llm` use Claude when a key is set. Without a key they use the OpenAI-compatible LLM if `LLM_BASE_URL` is set, and otherwise the offline engine.
 - `semantic` forces the offline engine.

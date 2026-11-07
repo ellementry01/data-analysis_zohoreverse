@@ -12,6 +12,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from ... import models as m
+from .. import ai_usage
 from ..analytics import fmt, insights, run_spec, suggest_chart
 from ..catalog import Catalog, load_catalog
 from ..executor import QueryExecutionError, log_query, run_readonly
@@ -145,7 +146,8 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     if not question:
         raise ValueError("Ask a question")
     conv = db.get(m.Conversation, conversation_id) if conversation_id else None
-    if conv and (conv.workspace_id != ws.id or conv.user_email != user):  # never continue someone else's conversation
+    # never continue someone else's conversation, nor a thread that belongs to a dashboard or the global assistant
+    if conv and (conv.workspace_id != ws.id or conv.user_email != user or conv.scope_type != "workspace"):
         conv = None
     if not conv:
         conv = m.Conversation(workspace_id=ws.id, title=question[:200], user_email=user)
@@ -160,7 +162,8 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     cat = load_catalog(db, ws)
     payload: dict = {"engine": None}
     try:
-        payload = _answer(db, ws, cat, user, question, prev, history, engine, today)
+        with ai_usage.ai_context(user=user, workspace_id=ws.id, conversation_id=conv_id, purpose="chat"):
+            payload = _answer(db, ws, cat, user, question, prev, history, engine, today)
     except Exception as e:  # never leave the user without a truthful message
         log.exception("assistant failure")
         db.rollback()
@@ -385,7 +388,10 @@ def _infer_columns(names: list[str], rows: list[list]) -> list[dict]:
 
 
 def _make_dashboard(db, ws, cat, user, interp: Interpretation, today) -> dict:
-    dash = m.Dashboard(workspace_id=ws.id, name=interp.title[:200] or "AI dashboard",
+    from ..dashboards import new_key
+
+    name = interp.title[:200] or "AI dashboard"
+    dash = m.Dashboard(workspace_id=ws.id, name=name, key=new_key(db, ws.id, name),
                        description="Created by the AI assistant",
                        filters=[{"id": "date", "type": "date_range", "label": "Date range", "field": "@time", "value": None}])
     x_kpi, y = 0, 0

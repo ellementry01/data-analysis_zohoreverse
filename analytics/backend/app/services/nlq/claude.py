@@ -20,6 +20,7 @@ import re
 from dataclasses import dataclass, field
 
 from ...config import check_model, get_settings, today as _today
+from .. import ai_usage
 from ..catalog import Catalog
 from .llm import schema_context
 
@@ -213,6 +214,10 @@ def _call(model: str, effort: str, system: list[dict], messages: list[dict], max
     if schema:
         kwargs["output_config"]["format"] = {"type": "json_schema", "schema": schema}
     try:
+        ai_usage.check_budget()
+    except ai_usage.BudgetExceeded as e:
+        raise ClaudeUnavailable(f"AI spend limit reached: {e}") from e
+    try:
         resp = _get_client().messages.create(**kwargs)
     except (anthropic.APIConnectionError, anthropic.AuthenticationError, anthropic.PermissionDeniedError,
             anthropic.RateLimitError, anthropic.NotFoundError) as e:
@@ -228,6 +233,7 @@ def _call(model: str, effort: str, system: list[dict], messages: list[dict], max
     usage = {"input_tokens": getattr(u, "input_tokens", 0), "output_tokens": getattr(u, "output_tokens", 0),
              "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0,
              "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0}
+    usage["cost_inr"] = ai_usage.record(model, usage)
     log.info("claude %s effort=%s usage=%s", model, effort, usage)
     return text, usage
 
@@ -277,6 +283,7 @@ def explain(question: str, columns: list[dict], rows: list[list], assumptions: l
     s = get_settings()
     payload = json.dumps({"question": question, "columns": [c["label"] for c in columns], "rows": rows[:40],
                           "total_rows": len(rows), "computed_facts": _facts(columns, rows), "assumptions": assumptions}, default=str)
-    text, _ = _call(s.anthropic_simple_model, "low", [{"type": "text", "text": EXPLAIN_PROMPT}],
-                    [{"role": "user", "content": payload}], 1000, None)
+    with ai_usage.ai_context(purpose="explain"):
+        text, _ = _call(s.anthropic_simple_model, "low", [{"type": "text", "text": EXPLAIN_PROMPT}],
+                        [{"role": "user", "content": payload}], 1000, None)
     return text.strip()

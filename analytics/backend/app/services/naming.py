@@ -29,6 +29,25 @@ def slugify(value: str, fallback: str = "col") -> str:
     return value[:60]
 
 
+DASHBOARD_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
+
+
+def dashboard_key(name: str) -> str:
+    """Kebab-case key for a dashboard name ("Sales & channels" -> "sales-channels"). Keys never change with a rename."""
+    value = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().lower()
+    value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")
+    return value[:80].rstrip("-") or "dashboard"
+
+
+def unique_dashboard_key(base: str, taken: set[str]) -> str:
+    key, i = base, 2
+    while key in taken:
+        suffix = f"-{i}"
+        key = base[:80 - len(suffix)] + suffix
+        i += 1
+    return key
+
+
 def unique_names(names: list[str], fallback: str = "col") -> list[str]:
     seen: dict[str, int] = {}
     out = []

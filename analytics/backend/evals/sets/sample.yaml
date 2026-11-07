@@ -1,0 +1,13 @@
+# Phase 0 sample set for workspace 34: proves the runner end to end (expected values from the database, an answer from
+# the assistant, scoring). The real sets (dashboard_basic, dashboard_deep, ...) arrive with their phases.
+- id: locations-count
+  question: How many locations are there?
+  expect:
+    sql: SELECT COUNT(*) AS n FROM locations
+  must_mention: [[location, locations]]
+
+- id: channels-count
+  question: How many channels are there?
+  expect:
+    sql: SELECT COUNT(*) AS n FROM channels
+  must_mention: [[channel, channels]]
