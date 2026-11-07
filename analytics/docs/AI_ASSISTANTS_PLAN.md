@@ -71,7 +71,7 @@ Every phase follows the same cycle, and the next phase starts only after its exi
 |---|---|---|
 | 0 | Groundwork | Done: signed off by the owner and merged 2026-11-07 |
 | 1 | Dashboard chat (single question) | Done: signed off by the owner and merged 2026-11-07 (live eval 78/80, 69/69 numbers right); on for admins |
-| 2 | Agent loop with tools | Built 2026-11-07, on for admins. Live eval 50/50 (every number right, Rs 12.25); awaiting sign-off |
+| 2 | Agent loop with tools | Done: signed off by the owner and merged 2026-11-07 (live eval 50/50, every number right); on for admins |
 | 3 | Identity and access | Not started |
 | 4 | Memory | Not started |
 | 5 | Data issues and "worth a look" | Not started |
