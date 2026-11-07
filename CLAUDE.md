@@ -12,4 +12,6 @@ Everything for this project lives in this one folder, `C:\Users\Dileep\Desktop\e
 
 The live databases run outside the folder: the warehouse in PostgreSQL 18 on this PC (`C:\Program Files\PostgreSQL\18\data`), the app's database in Docker volume `ellementry_pgdata`. The folder holds their backups.
 
-`C:\Users\Dileep\Desktop\ellementry-intelligence\` is a **different** app (Ellementry Intelligence, GitHub `quickmonk_reverse`); it is not part of this project.
+`C:\Users\Dileep\Desktop\quicmonk_reverse\` is a **different** app (Ellementry Intelligence, GitHub `quickmonk_reverse`); it is not part of this project. Don't work in it unless the user asks.
+
+If this folder is still called `lumen-analytics`, the rename to `ellementry-analytics` has not been done yet. Nothing inside depends on the folder name (all paths are relative), so work normally.

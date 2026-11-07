@@ -11,7 +11,7 @@
 The product is **Ellementry Analytics**; the name is used throughout, from the UI to the database, schema, Docker project and environment variables (renamed from an earlier working name on 2026-10-26; see [09-decisions-and-gotchas.md](09-decisions-and-gotchas.md)).
 
 - **Owner:** the user, `ea@ellementry.com`, on a Windows 10 PC. They are building it for their company, Ellementry, a home and kitchen brand.
-- **Location:** `C:\Users\Dileep\Desktop\ellementry-analytics\` (renamed from `lumen-analytics` on 2026-11-04). Everything for the project is in this one folder: code, warehouse, exports, database backups and archived old folders.
+- **Location:** `C:\Users\Dileep\Desktop\ellementry-analytics\` (renamed from `lumen-analytics`; if it is still called that, the rename is pending and nothing breaks, as all paths inside are relative). Everything for the project is in this one folder: code, warehouse, exports, database backups and archived old folders.
 - **Git:** one repository at the folder root, pushed to GitHub `ellementry01/data-analysis_zohoreverse` (public, branch `main`). `exports/` and `reports/` are not in git.
 
 ```
@@ -25,7 +25,7 @@ ellementry-analytics/   (repo root)
   archive/     superseded folders kept for reference: ellementry_source_code, early design docs (not in git)
 ```
 
-The old project `ellementry_source_code` is superseded: its warehouse code lives in `warehouse/`, and a copy of the old folder (with its git history) is in `archive/`. The live databases run outside the folder (warehouse in PostgreSQL 18 on the host, app database in Docker); `backups/` holds their dumps. `Desktop\ellementry-intelligence\` is a different app, not part of this project. The PostgreSQL 18 database `ellementry_dw` on the host is what Ellementry Analytics reads through a read-only connector. See [08-ellementry-warehouse.md](08-ellementry-warehouse.md).
+The old project `ellementry_source_code` is superseded: its warehouse code lives in `warehouse/`, and a copy of the old folder (with its git history) is in `archive/`. The live databases run outside the folder (warehouse in PostgreSQL 18 on the host, app database in Docker); `backups/` holds their dumps. `Desktop\quicmonk_reverse\` is a different app (Ellementry Intelligence, GitHub `quickmonk_reverse`), not part of this project. The PostgreSQL 18 database `ellementry_dw` on the host is what Ellementry Analytics reads through a read-only connector. See [08-ellementry-warehouse.md](08-ellementry-warehouse.md).
 
 ## Origin: the master prompt
 The user pasted a "master prompt" asking for the following:
@@ -72,10 +72,11 @@ The research output is in `research/`: `DISCOVERY.md`, `FEATURE_MATRIX.md` (each
 18. **Store status sheet (2026-11-02), schema 2.15.** The business sent the list of all stores (own / franchise / SIS, running / closed): franchise and Shoppers Stop accounts classified as sale-or-return partners; own-store status applied.
 19. **COO readiness review (2026-11-03).** All 10 dashboards checked on live data: six can be shown, three need app-side fixes first (segment labels, partner stock in days of cover, return rate), Data health is for the team. Fixes deferred by the user; details in 08.
 20. **Stock and Fulfilment made COO-ready (2026-11-03).** The user will show these two. Descriptions now appear on dashboards; readable order status; COD vs prepaid RTO; monthly RTO / late trend; Stock filters by location and category; closed stores marked; top products table. Compare no longer shows a change when the previous period starts before the data.
-21. **One folder (2026-11-04).** The folder was renamed `ellementry-analytics`; the backups moved into `backups/` (plus fresh dumps of both databases); the old `ellementry_source_code` and the design folders were copied to `archive/` and deleted from the Desktop; new return exports went into `exports/_originals/return_data_2026-11-03/`. The other app that had the name `ellementry-analytics` is now `Desktop\ellementry-intelligence`.
+21. **One folder (2026-11-04).** The folder was renamed `ellementry-analytics`; the backups moved into `backups/` (plus fresh dumps of both databases); the old `ellementry_source_code` and the design folders were copied to `archive/` and deleted from the Desktop; new return exports went into `exports/_originals/return_data_2026-11-03/`. The other app that had the name `ellementry-analytics` was renamed; the user later named its folder `Desktop\quicmonk_reverse`. The project folder rename (from `lumen-analytics`) is done by the user after closing the session, because Windows locks a folder a running session uses.
 
-## Current status (2026-11-03)
-- Docker stack (`ellementry-db-1`, `ellementry-app-1`) is running and healthy on http://localhost:8000, with Claude enabled.
+## Current status (2026-11-07)
+- Docker stack (`ellementry-db-1`, `ellementry-app-1`) serves the app on http://localhost:8000, with Claude enabled. After a PC restart Docker Desktop must be started by hand (see 09); the warehouse PostgreSQL starts by itself.
+- **The user is showing the Stock (id 195) and Fulfilment (id 196) dashboards to the COO.** Keep those ids stable (see 09).
 - Backend test suite: **407 passed**. Warehouse suite: **85 passed, 7 skipped** (see 07). The README and QA_REPORT counts are older (328 and 363).
 - Only one workspace exists in the Docker app: **34 Ellementry (live warehouse)**, with 29 datasets, 45 metrics, 18 relationships and **10 dashboards** (ids 192–201; Stock 195, Fulfilment 196). Not all are ready for management: see "COO readiness review" in 08.
 - The warehouse (`ellementry_dw`, **schema 2.15**) holds **real data for 1 Apr 2025 – 15 Sep 2026**: sales, returns, transfers, POs, goods receipts, shipments, Instamart sell-out, Amazon return reasons, and stock for **19 days** (31 Mar 2025, every month-end to 31 Aug 2026, and 15 Sep 2026). `reconcile.py` agrees on **28 of 28** checks.

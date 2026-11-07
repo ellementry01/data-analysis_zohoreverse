@@ -1,6 +1,6 @@
 # 08 — Ellementry warehouse and its connection (workspace 34)
 
-*Updated 2026-11-02: schema 2.15, ten dashboards.*
+*Updated 2026-11-04: schema 2.15, ten dashboards (Stock and Fulfilment COO-ready), backups in the project's `backups/` folder.*
 
 ## Where things are
 - **Warehouse code:** `warehouse/` in this repo (moved from `ellementry_source_code/ellementry_data/ellementry_dw` on 2026-10-22, history kept).
