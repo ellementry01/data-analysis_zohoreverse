@@ -134,27 +134,46 @@ def metric_fingerprint(mt) -> str:
     return hashlib.sha1(body.encode()).hexdigest()[:12]
 
 
-def dependencies(cat, text: str) -> list[dict]:
-    """The metrics a memory talks about (by name or label), with their definition fingerprints."""
-    if cat is None:
-        return []
-    low = f" {(text or '').lower()} "
+def issue_map(db: Session, ws_id: int) -> dict[str, str]:
+    """Issue code -> status, for memories that name a data issue (Phase 5)."""
+    return {code: status for code, status in db.query(m.DataIssue.code, m.DataIssue.status).filter_by(workspace_id=ws_id)}
+
+
+def dependencies(cat, text: str, issues: dict[str, str] | None = None) -> list[dict]:
+    """What a memory relies on: the metrics it names (by name or label) with their definition fingerprints, and the
+    data issues it names (by code) with their status when it was saved."""
     out = []
+    for code in sorted(set(re.findall(r"\b([A-Z]{1,4}-\d{1,5})\b", text or ""))):
+        if issues and code in issues:
+            out.append({"type": "issue", "name": code, "status": issues[code]})
+    if cat is None:
+        return out
+    low = f" {(text or '').lower()} "
     for name, mt in cat.metrics.items():
         words = {name.lower(), name.lower().replace("_", " ")}
         if mt.label and len(mt.label) >= 4:
             words.add(mt.label.lower())
         if any(re.search(rf"(?<![\w]){re.escape(w)}(?![\w])", low) for w in words):
             out.append({"type": "metric", "name": name, "fingerprint": metric_fingerprint(mt)})
-    return out[:10]
+    return out[:12]
 
 
-def stale_reason(cat, mem: m.Memory, full_catalog: bool = True) -> str:
+def stale_reason(cat, mem: m.Memory, full_catalog: bool = True, issues: dict[str, str] | None = None) -> str:
     """Why a memory needs review, or "". With a person's catalog (full_catalog=False) a metric they can't see is not
     treated as deleted: only the background check, which sees every metric, decides that."""
     for dep in mem.depends_on or []:
+        if dep.get("type") == "issue":
+            if issues is None:
+                continue
+            now = issues.get(dep.get("name"))
+            if now is None:
+                return f"The data issue {dep.get('name')} it mentions is no longer in the register."
+            if now != dep.get("status") and "solved" in (now, dep.get("status")):
+                return (f"The data issue {dep.get('name')} it mentions was "
+                        f"{'solved' if now == 'solved' else 'reopened'} since this was saved.")
+            continue
         if dep.get("type") != "metric":
-            continue   # issue dependencies arrive with the issue register (Phase 5)
+            continue
         mt = cat.metrics.get(dep.get("name")) if cat is not None else None
         if mt is None:
             if not full_catalog:
@@ -177,9 +196,10 @@ def refresh_staleness(db: Session, ws: m.Workspace, cat=None) -> int:
     if acting(ws)[0] is not None:
         raise RuntimeError("refresh_staleness must run without an acting user")
     cat = cat or load_catalog(db, ws)
+    issues = issue_map(db, ws.id)
     n = 0
     for x in mems:
-        why = stale_reason(cat, x)
+        why = stale_reason(cat, x, issues=issues)
         if why:
             x.status, x.review_reason = "needs_review", why
             n += 1
@@ -246,7 +266,7 @@ def save(db: Session, ws: m.Workspace, user: str, text: str, kind: str, scope: s
                    rationale=(rationale or "").strip()[:MAX_TEXT], status=status, origin=origin,
                    share_status="pending" if share and layer == "personal" and kind in ("fact", "caveat") else "none",
                    source_conversation_id=conversation_id, source_message_id=message_id,
-                   source_excerpt=(excerpt or "")[:600], depends_on=dependencies(cat, f"{text} {rationale}"),
+                   source_excerpt=(excerpt or "")[:600], depends_on=dependencies(cat, f"{text} {rationale}", issue_map(db, ws.id)),
                    created_by=user)
     if status == "active":
         mem.approved_by, mem.approved_at = user, _now()
@@ -279,7 +299,7 @@ def act(db: Session, ws: m.Workspace, user: str, mem: m.Memory, action: str, cat
         if not own or mem.status != "proposed":
             raise MemoryInputError("Only your own suggestions can be accepted")
         mem.status, mem.approved_by, mem.approved_at = "active", user, _now()
-        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}") if cat is not None else mem.depends_on
+        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}", issue_map(db, ws.id)) if cat is not None else mem.depends_on
         _count_approval(db, ws.id, user)
     elif action == "reject":
         if not own or mem.status != "proposed":
@@ -293,12 +313,12 @@ def act(db: Session, ws: m.Workspace, user: str, mem: m.Memory, action: str, cat
         if not can_edit(ws, user, mem) or mem.status != "retired":
             raise MemoryInputError("Only a retired memory can be restored")
         mem.status, mem.review_reason = "active", ""
-        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}") if cat is not None else mem.depends_on
+        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}", issue_map(db, ws.id)) if cat is not None else mem.depends_on
     elif action == "keep":
         if not can_edit(ws, user, mem) or mem.status != "needs_review":
             raise MemoryInputError("Only a memory that needs review can be kept")
         mem.status, mem.review_reason = "active", ""
-        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}") if cat is not None else []
+        mem.depends_on = dependencies(cat, f"{mem.text} {mem.rationale}", issue_map(db, ws.id)) if cat is not None else []
     elif action == "share":
         if not own:
             raise MemoryInputError("Only its owner can share a memory")
@@ -359,11 +379,12 @@ def retrieve(db: Session, ws: m.Workspace, user: str, dashboard_key: str | None,
     rows = (visible_query(db, ws, user).filter(m.Memory.status == "active", m.Memory.scope.in_(scopes))
             .add_columns(rank).order_by(m.Memory.id.desc()).limit(500).all())
     now, flagged, scored = _now(), False, []
+    issues = issue_map(db, ws.id)
     for mem, r in rows:
         if mem.owner_email != user and not _scope_visible(db, ws, mem.scope):
             continue
-        if cat is not None and mem.depends_on:
-            why = stale_reason(cat, mem, full_catalog=False)
+        if mem.depends_on:
+            why = stale_reason(cat, mem, full_catalog=False, issues=issues)
             if why:
                 mem.status, mem.review_reason, flagged = "needs_review", why, True
                 continue

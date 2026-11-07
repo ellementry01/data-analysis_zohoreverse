@@ -266,13 +266,22 @@ def _coverage(cat: Catalog, ds_ids: set[int]) -> list[str]:
     return lines
 
 
+def _issues_state(db: Session, ws_id: int) -> list:
+    from ...config import get_settings
+
+    if not get_settings().assistant_data_issues:
+        return []
+    return sorted([i.code, i.status, i.severity, i.title, i.summary, i.affects]
+                  for i in db.query(m.DataIssue).filter_by(workspace_id=ws_id))
+
+
 def _fingerprint(db: Session, dash: m.Dashboard, cat: Catalog) -> str:
     refreshed = [str(d.last_refreshed_at) for d in db.query(m.Dataset).filter_by(workspace_id=dash.workspace_id)]
     payload = {"d": [dash.name, dash.description, dash.filters, dash.key, dash.domain],
                "w": [[w.id, w.title, w.chart_type, w.spec, w.options] for w in dash.widgets],
                "m": sorted([mt.name, mt.label, mt.expression, mt.filters, mt.description, mt.time_column, mt.semi_additive,
                             mt.format, mt.higher_is_better] for mt in cat.metrics.values()),
-               "r": sorted(refreshed)}
+               "r": sorted(refreshed), "i": _issues_state(db, dash.workspace_id)}
     return hashlib.sha256(json.dumps(payload, default=str, sort_keys=True).encode()).hexdigest()
 
 
@@ -325,6 +334,12 @@ def build_dashboard_pack(db: Session, dash: m.Dashboard, cat: Catalog) -> str:
                 lines.append("(more metrics left out for length)")
                 break
             lines.append(line)
+    from ...config import get_settings
+
+    if get_settings().assistant_data_issues:
+        from ..data_issues import pack_lines
+
+        lines += pack_lines(db, dash, cat)
     cov = _coverage(cat, ds_ids)
     if cov:
         lines.append("DATA BEHIND THE WIDGETS (relative periods like 'last month' must be read against these dates, "

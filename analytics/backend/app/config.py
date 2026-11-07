@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     assistant_dashboard_chat: bool = False
     assistant_agent_loop: bool = False   # Phase 2: multi-step answers with tools in the dashboard chat
     assistant_memory: bool = False
+    assistant_data_issues: bool = False   # Phase 5: issue register, tile notes, worth a look
     assistant_global: bool = False
     assistant_scheduled: bool = False
 

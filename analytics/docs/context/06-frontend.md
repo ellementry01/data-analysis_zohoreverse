@@ -21,6 +21,7 @@
 | `ask`, `ask/:convId` | AskPage | Ask AI chat. Engine dropdown (Claude auto-routed / Semantic engine), model badge with "(escalated)", routing reason, a "governed metrics" vs "validated SQL" tag, and SQL, data and insights tabs |
 | `lineage` | LineagePage | Source → dataset → query table → report/dashboard |
 | `history` | HistoryPage | Query history |
+| `data-issues` | DataIssuesPage | Phase 5 (shown with `features.data_issues`): Open / Parked / Solved / All, search, filter by dashboard; admins add and edit issues (note for tiles, severity, status, the dashboards and metrics it touches), mark solved, park, reopen |
 | `memory` | MemoryPage | Phase 4 (shown when `/api/me` reports `memory`, `agent_loop` and `dashboard_chat`): tabs Remembered / Suggestions / Needs review / Retired / Team facts to approve (admins); search and filters by layer and dashboard; add a memory (decisions with "why", facts can be suggested to the team); edit, retire, restore, share, keep, delete; the acceptance rate of learned suggestions; the profile card (edit, rewrite from memories) |
 | `settings` | SettingsPage | User switcher (sets `X-User-Email`), members, Claude card showing the provider and models |
 
@@ -33,6 +34,7 @@
 - **`components/ChatMessage.tsx`:** one chat message (question, or answer with chart, assumptions, engine/model badge and thumbs up/down). Shared by AskPage and the dashboard chat.
 - **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback. With `features.agent_loop` it uses the streaming endpoint (`api.stream`) and shows each step live; answers carry a collapsible "How I worked this out" list (`StepList`) with each step's query.
 - **`components/MemoryNotes.tsx` (Phase 4):** `MemoryChips` under an answer ("Saved to memory" with Undo, "Suggested for memory", "Remembered: #12 ..."), `ProposalCard` ("Remember this?" with Remember / Edit / No). The dashboard panel shows up to 3 suggestions at the top and a Memory link in its header.
+- **`components/DataNotes.tsx` (Phase 5):** `IssueStrip` ("Known data issues on this dashboard: N", collapsible, most severe first), `TileIssueBadge` (amber codes on an affected tile's header, the note in the tooltip), `WorthALook` (up to 5 items with "Ask why", which opens the chat with that question in a new thread via `AssistantPanel`'s `pendingQuestion`), `NotificationsBell` (sidebar, workspace admins, polls every 2 minutes).
 - **`components/ui.tsx`:** Button, Empty, toast and similar primitives.
 - **`lib/format.ts`:** number, currency and percent formatting. The INR format uses lakh/crore grouping.
 

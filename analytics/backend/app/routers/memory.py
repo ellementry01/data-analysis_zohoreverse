@@ -158,7 +158,7 @@ def edit_memory(mid: int, body: MemoryPatch, ws: m.Workspace = Depends(viewer), 
     if body.rationale is not None:
         x.rationale = body.rationale.strip()
     if x.status == "active":
-        x.depends_on = memory.dependencies(load_catalog(db, ws), f"{x.text} {x.rationale}")
+        x.depends_on = memory.dependencies(load_catalog(db, ws), f"{x.text} {x.rationale}", memory.issue_map(db, ws.id))
     db.commit()
     audit.record(user, "memory_edited", ws.id, f"memory:{x.id}", {"before": before})
     return _out(db, ws, user, x, _names(db, ws))
