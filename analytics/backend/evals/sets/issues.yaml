@@ -60,7 +60,7 @@
   dashboard: purchasing-transfers
   question: How many units are in transit to our own sites?
   expect: {widget: In transit to own sites (recent)}
-  must_mention: [[D-039]]
+  must_mention: [[D-039, not been received, not received, unreceived, never received]]
   check_issue_codes: true
 - id: is-pt-po
   dashboard: purchasing-transfers

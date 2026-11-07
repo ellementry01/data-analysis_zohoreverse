@@ -300,10 +300,15 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
             answer = t.post(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/assistant/ask", body)
         else:
             answer = t.post(f"/api/workspaces/{ws}/assistant/ask", body)
+        issues = []
+        if case.get("check_issue_codes") and case.get("dashboard"):
+            issues = t.get(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/insights")["issues"]
+            # numbers quoted from the issue register ("99-100% discount") are sourced, not invented
+            context = context + parse_numbers(" ".join(f"{i['title']} {i['note']} {i['what_is_needed']}" for i in issues))
         r = score(case, answer, expected, context)
         if case.get("check_issue_codes") and case.get("dashboard"):
             # Phase 5: an answer may cite only issues the register has for this dashboard
-            known = {i["code"] for i in t.get(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/insights")["issues"]}
+            known = {i["code"] for i in issues}
             cited = set(re.findall(r"\b[A-Z]{1,4}-\d{1,5}\b", answer.get("text") or ""))
             if cited - known:
                 r.problems.append(f"cites issues not recorded for this dashboard: {', '.join(sorted(cited - known))}")
