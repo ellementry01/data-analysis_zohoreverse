@@ -418,6 +418,58 @@ class UserProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class DataIssue(Base):
+    """A known data problem (Phase 5): imported once from warehouse/docs/ISSUE_LOG.md, then kept here (edited on the
+    Data issues page; the data watchdog will add its own). `affects` says what it touches: dashboards (a note on the
+    whole dashboard), metrics and datasets (a badge on each tile that uses them)."""
+    __tablename__ = "data_issues"
+    __table_args__ = (UniqueConstraint("workspace_id", "code"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(30))            # D-124
+    title: Mapped[str] = mapped_column(String(300))
+    area: Mapped[str] = mapped_column(String(80), default="")
+    status: Mapped[str] = mapped_column(String(20), default="open")  # open | awaiting | parked | solved
+    status_detail: Mapped[str] = mapped_column(String(120), default="")  # as written in the log ("Open - business")
+    severity: Mapped[str] = mapped_column(String(10), default="medium")  # high | medium | low
+    summary: Mapped[str] = mapped_column(Text, default="")   # what is needed to solve it / how it is handled meanwhile
+    note: Mapped[str] = mapped_column(Text, default="")      # one line for management, shown on badges
+    affects: Mapped[dict] = mapped_column(JSON, default=dict)  # {dashboards: [key], metrics: [name], datasets: [slug]}
+    owner: Mapped[str] = mapped_column(String(120), default="")
+    source: Mapped[str] = mapped_column(String(20), default="manual")  # manual | import | watchdog
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[str] = mapped_column(String(200), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class Notification(Base):
+    """In-app notices for the owner (workspace admins): data issues opened, solved or reopened; later the watchdog's
+    freshness and held-back alerts. Read state is per person."""
+    __tablename__ = "notifications"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(40))            # issue_opened | issue_solved | issue_reopened | ...
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text, default="")
+    issue_code: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    read_by: Mapped[list] = mapped_column(JSON, default=list)  # emails
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class DashboardInsight(Base):
+    """"Worth a look" items of one dashboard, computed in code after the data changes (fingerprint), so opening a
+    dashboard costs nothing."""
+    __tablename__ = "dashboard_insights"
+    __table_args__ = (UniqueConstraint("workspace_id", "dashboard_key"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    dashboard_key: Mapped[str] = mapped_column(String(80))
+    fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    items: Mapped[list] = mapped_column(JSON, default=list)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class Job(Base):
     """Background work kept in the database (memory extraction, profile rewrites, conversation summaries): it survives
     restarts, is retried with back-off, and several workers can share the queue (rows are claimed with SKIP LOCKED)."""

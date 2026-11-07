@@ -17,8 +17,8 @@ DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|"
                    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
                    r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
 
-# references, not values: "(memory #12)", "#3"
-REFS = re.compile(r"#\s*\d+(?!\d)")
+# references, not values: "(memory #12)", "#3", data issue codes "D-112"
+REFS = re.compile(r"#\s*\d+(?!\d)|\b[A-Z]{1,4}-\d{1,5}\b")
 
 
 @dataclass

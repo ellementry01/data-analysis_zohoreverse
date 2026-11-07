@@ -54,6 +54,8 @@ backend/
       audit.py                     audit log writer
       memory.py                    assistant memory: save, visibility, retrieval, staleness, extraction/profile jobs (Phase 4)
       jobs.py                      background job queue in the app database (Phase 4); app/worker.py runs it on its own
+      data_issues.py               the data issue register: what an issue touches, pack lines, status changes (Phase 5)
+      worth_a_look.py              "worth a look" items computed in code and cached per dashboard (Phase 5)
       agent/context.py             dashboard pack, screen state, filter inheritance (Phase 1)
       agent/tools.py, engine.py    read-only tools and the tool loop with limits and number check (Phase 2)
       agent/numbers.py             number finding/matching shared with the eval runner
@@ -64,7 +66,7 @@ backend/
   tests/                  pytest, real PostgreSQL DB ellementry_analytics_test (see 07)
 frontend/src/
   App.tsx (routes), api/client.ts, components/{Chart,ResultPanel,SpecBuilder,ui,ChatMessage,AssistantPanel,
-  UserMenu,AccessRulesCard,MemoryNotes}.tsx, pages/AdminPage.tsx, pages/MemoryPage.tsx,
+  UserMenu,AccessRulesCard,MemoryNotes,DataNotes}.tsx, pages/AdminPage.tsx, pages/MemoryPage.tsx, pages/DataIssuesPage.tsx,
   lib/format.ts, pages/*.tsx (see 06)
 ```
 
@@ -124,4 +126,4 @@ after (jobs):      thread summary when long; memory extraction once the chat has
 ## Background jobs
 `scheduler.py` runs APScheduler in-process when `ENABLE_SCHEDULER=true`. It re-syncs connector datasets on `refresh_schedules`; workspace 34 has every dataset scheduled every 60 minutes. Prep transforms and calculated columns are replayed after every refresh or replace.
 
-Since Phase 4 it also works through the **job queue** (`services/jobs.py`, table `jobs`) every 30 seconds (unless `ENABLE_WORKER=false`): conversation summaries, memory extraction and profile rewrites run there, never in a request. A job is claimed with `SELECT ... FOR UPDATE SKIP LOCKED` (so a separate `python -m app.worker` process can share the queue), retried after 2, 4 ... minutes up to 3 attempts, then kept as `failed` with its error; a job left `running` by a dead process is picked up again after 10 minutes; finished jobs are deleted after 14 days. Hourly (memory on): the staleness check and due weekly profile rewrites are queued.
+Since Phase 4 it also works through the **job queue** (`services/jobs.py`, table `jobs`) every 30 seconds (unless `ENABLE_WORKER=false`): conversation summaries, memory extraction and profile rewrites run there, never in a request. A job is claimed with `SELECT ... FOR UPDATE SKIP LOCKED` (so a separate `python -m app.worker` process can share the queue), retried after 2, 4 ... minutes up to 3 attempts, then kept as `failed` with its error; a job left `running` by a dead process is picked up again after 10 minutes; finished jobs are deleted after 14 days. Hourly (memory on): the staleness check and due weekly profile rewrites are queued. After a sync that ran (Phase 5, data issues on), a `worth_a_look` job per workspace recomputes the dashboards whose fingerprint (definitions, metric definitions, row counts, today) changed.

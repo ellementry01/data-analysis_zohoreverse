@@ -5,6 +5,7 @@ import type * as echarts from "echarts";
 import { ArrowLeft, ChevronLeft, Copy, Download, Filter, GripHorizontal, Image, LayoutTemplate, Maximize2, MessageSquareText, Pencil, Plus, Printer, RefreshCw, Settings2, Trash2, X } from "lucide-react";
 import { api, Dashboard, DashFilter, emptySpec, QueryResult, QuerySpec, Report, SpecFilter, Widget } from "../api/client";
 import { AssistantPanel, DrillState } from "../components/AssistantPanel";
+import { Insights, IssueBrief, IssueStrip, TileIssueBadge, WorthALook } from "../components/DataNotes";
 import { ChartView, CHART_TYPES, PointClick } from "../components/Chart";
 import { exportPng } from "../components/ResultPanel";
 import { addToSpec, DateRangePicker, fieldMap, FieldList, fieldOptions, SpecShelves, withAliases } from "../components/SpecBuilder";
@@ -21,11 +22,21 @@ export default function DashboardView() {
   const { ws, base, canEdit, model } = useWs();
   const toast = useToast();
   const q = useAsync(() => api.get<Dashboard>(`/workspaces/${ws.id}/dashboards/${dashId}`), [ws.id, dashId]);
-  const me = useAsync(() => api.get<{ features?: { dashboard_chat?: boolean; agent_loop?: boolean; memory?: boolean } }>("/me"), []);
+  const me = useAsync(() => api.get<{ features?: { dashboard_chat?: boolean; agent_loop?: boolean; memory?: boolean; data_issues?: boolean } }>("/me"), []);
   // Dashboard chat: switched on per phase, and admins only until real sign-in exists (AI_ASSISTANTS_PLAN.md Phase 3)
   const chatAvailable = !!me.data?.features?.dashboard_chat && ws.role === "admin";
   const [chatOpen, setChatOpen] = useState(false);
   const [focus, setFocus] = useState<Widget | null>(null);
+  const [pending, setPending] = useState<{ text: string; n: number } | null>(null);
+  // Phase 5: known data issues on this dashboard and "worth a look" (computed after the data changed; no AI)
+  const insights = useAsync(() => (me.data?.features?.data_issues && q.data?.key
+    ? api.get<Insights>(`/workspaces/${ws.id}/dashboards/key/${encodeURIComponent(q.data.key)}/insights`)
+    : Promise.resolve(null)), [ws.id, q.data?.key, me.data?.features?.data_issues]);
+  const issuesByWidget = useMemo(() => {
+    const out: Record<number, IssueBrief[]> = {};
+    for (const i of insights.data?.issues || []) for (const w of i.widget_ids) (out[w] ||= []).push(i);
+    return out;
+  }, [insights.data]);
   const [drills, setDrills] = useState<DrillState>({});
   const onDrill = useCallback((wid: number, steps: { field: string; value: any }[]) => setDrills((d) => ({ ...d, [wid]: steps })), []);
   const [edit, setEdit] = useState(false);
@@ -105,6 +116,9 @@ export default function DashboardView() {
       </div>
       <h1 className="mb-2 hidden text-xl font-semibold print:block">{d.name}</h1>
       {d.description && <p className="mb-3 max-w-6xl whitespace-pre-line text-xs leading-relaxed text-slate-500">{d.description}</p>}
+      {insights.data && <IssueStrip issues={insights.data.issues} widgetTitles={Object.fromEntries(d.widgets.map((w) => [w.id, w.title]))} />}
+      {insights.data && !edit && <div className="no-print"><WorthALook data={insights.data.worth_a_look}
+        onAsk={chatAvailable ? (text) => { setFocus(null); setChatOpen(true); setPending((p) => ({ text, n: (p?.n || 0) + 1 })); } : undefined} /></div>}
 
       <div className="no-print mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-card">
         <Filter className="h-4 w-4 text-slate-400" />
@@ -137,7 +151,7 @@ export default function DashboardView() {
           draggableHandle=".drag-handle" onLayoutChange={onLayout} compactType="vertical">
           {d.widgets.map((w) => (
             <div key={String(w.id)}>
-              <WidgetCard w={w} dashId={d.id} filters={activeFilters} compare={compare} tick={tick} edit={edit}
+              <WidgetCard w={w} dashId={d.id} filters={activeFilters} compare={compare} tick={tick} edit={edit} issues={issuesByWidget[w.id] || []}
                 onEdit={() => setEditing(w)} onRemove={() => removeWidget(w)} onFull={() => setFull(w)}
                 onAsk={chatAvailable ? () => { setFocus(w); setChatOpen(true); } : undefined} onDrill={onDrill} />
             </div>
@@ -156,7 +170,8 @@ export default function DashboardView() {
     {chatOpen && d.key && (
       <AssistantPanel wsId={ws.id} base={base} dash={d} filters={activeFilters} drill={drills} focus={focus}
         onClearFocus={() => setFocus(null)} onClose={() => { setChatOpen(false); setFocus(null); }}
-        streaming={!!me.data?.features?.agent_loop} memory={!!me.data?.features?.agent_loop && !!me.data?.features?.memory} />
+        streaming={!!me.data?.features?.agent_loop} memory={!!me.data?.features?.agent_loop && !!me.data?.features?.memory}
+        pendingQuestion={pending} />
     )}
     </div>
   );
@@ -249,9 +264,9 @@ function WidgetBody({ w, dashId, filters, compare, tick, drill = [], onPoint, on
   );
 }
 
-function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove, onFull, onAsk, onDrill }:
+function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove, onFull, onAsk, onDrill, issues = [] }:
   { w: Widget; dashId: number; filters: DashFilter[]; compare: string; tick: number; edit: boolean; onEdit: () => void; onRemove: () => void; onFull: () => void;
-    onAsk?: () => void; onDrill?: (wid: number, steps: { field: string; value: any }[]) => void }) {
+    onAsk?: () => void; onDrill?: (wid: number, steps: { field: string; value: any }[]) => void; issues?: IssueBrief[] }) {
   const { ws, model } = useWs();
   const [drill, setDrill] = useState<DrillStep[]>([]);
   useEffect(() => {
@@ -278,6 +293,7 @@ function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove,
         <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700" title={w.title}>
           {w.title}{drill.map((s, i) => <span key={i} className="font-normal text-brand-600"> › {s.label}</span>)}
         </div>
+        <TileIssueBadge issues={issues} />
         <div className="no-print flex items-center gap-0.5 text-slate-400">
           {!["kpi", "table", "pivot"].includes(w.chart_type) && <button onClick={() => exportPng(chart.current, w.title)} title="Download PNG" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Image className="h-3.5 w-3.5" /></button>}
           <button onClick={csv} title="Export data to Excel" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Download className="h-3.5 w-3.5" /></button>

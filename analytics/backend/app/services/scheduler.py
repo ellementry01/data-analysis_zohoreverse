@@ -19,6 +19,7 @@ def run_due_schedules() -> int:
     get_engine()
     db = SessionLocal()
     ran = 0
+    synced: set[int] = set()
     try:
         now = datetime.now(timezone.utc)
         for s in db.query(m.RefreshSchedule).filter_by(enabled=True).all():
@@ -29,6 +30,7 @@ def run_due_schedules() -> int:
             try:
                 res = sync_dataset(db, ws, ds)
                 s.last_status = f"ok: {res['rows']} rows"
+                synced.add(s.workspace_id)
             except Exception as e:  # keep scheduling other datasets
                 db.rollback()
                 s = db.get(m.RefreshSchedule, s.id)
@@ -37,9 +39,27 @@ def run_due_schedules() -> int:
             s.last_run_at = now
             db.commit()
             ran += 1
+        _after_sync(db, synced)
     finally:
         db.close()
     return ran
+
+
+def _after_sync(db, ws_ids: set[int]) -> None:
+    """Phase 5: after a sync, "worth a look" is recomputed for dashboards whose data changed (the job compares
+    fingerprints, so an unchanged re-sync costs one cheap check)."""
+    from ..config import get_settings
+
+    if not ws_ids or not get_settings().assistant_data_issues:
+        return
+    from . import worth_a_look
+
+    try:
+        for ws_id in ws_ids:
+            worth_a_look.queue(db, ws_id)
+    except Exception:  # noqa: BLE001
+        log.exception("could not queue worth-a-look")
+        db.rollback()
 
 
 def run_jobs() -> int:

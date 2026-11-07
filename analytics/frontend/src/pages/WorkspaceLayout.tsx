@@ -1,7 +1,8 @@
 import { createContext, useContext } from "react";
 import { UserMenu } from "../components/UserMenu";
+import { NotificationsBell } from "../components/DataNotes";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
-import { BarChart3, BookOpen, Brain, Database, FileUp, GitBranch, History, Home, LayoutDashboard, MessageSquareText, Network, Settings, TerminalSquare } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, Brain, Database, FileUp, GitBranch, History, Home, LayoutDashboard, MessageSquareText, Network, Settings, TerminalSquare } from "lucide-react";
 import { api, Model, Workspace } from "../api/client";
 import { cx, ErrorBox, Spinner, useAsync } from "../components/ui";
 
@@ -27,6 +28,7 @@ const NAV = [
   { to: "model", label: "Relationships", icon: Network },
   { to: "semantic", label: "Semantic layer", icon: BookOpen },
   { to: "sql", label: "SQL & query tables", icon: TerminalSquare },
+  { to: "data-issues", label: "Data issues", icon: AlertTriangle, issues: true },
   { sep: "Admin" },
   { to: "lineage", label: "Lineage", icon: GitBranch },
   { to: "history", label: "Query history", icon: History },
@@ -37,7 +39,8 @@ export default function WorkspaceLayout() {
   const { wsId } = useParams();
   const wsQ = useAsync(() => api.get<Workspace>(`/workspaces/${wsId}`), [wsId]);
   const modelQ = useAsync(() => api.get<Model>(`/workspaces/${wsId}/model`), [wsId]);
-  const me = useAsync(() => api.get<{ features?: { memory?: boolean; agent_loop?: boolean; dashboard_chat?: boolean } }>("/me"), []);
+  const me = useAsync(() => api.get<{ features?: { memory?: boolean; agent_loop?: boolean; dashboard_chat?: boolean; data_issues?: boolean } }>("/me"), []);
+  const issuesOn = !!me.data?.features?.data_issues;
   const memoryOn = !!(me.data?.features?.memory && me.data?.features?.agent_loop && me.data?.features?.dashboard_chat);
   if (wsQ.error) return <div className="p-8"><ErrorBox error={wsQ.error} /><Link className="mt-3 inline-block text-sm text-brand-600" to="/">← All workspaces</Link></div>;
   if (!wsQ.data || !modelQ.data) return <Spinner />;
@@ -57,7 +60,7 @@ export default function WorkspaceLayout() {
             <div className="text-[11px] text-slate-400">{ctx.model.datasets.length} datasets · role: {ctx.ws.role}</div>
           </div>
           <nav className="flex-1 overflow-y-auto px-2 py-2">
-            {NAV.filter((n) => !("memory" in n) || memoryOn).map((n, i) =>
+            {NAV.filter((n) => (!("memory" in n) || memoryOn) && (!("issues" in n) || issuesOn)).map((n, i) =>
               "sep" in n ? (
                 <div key={i} className="mt-3 px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{n.sep}</div>
               ) : (
@@ -68,6 +71,7 @@ export default function WorkspaceLayout() {
               ),
             )}
           </nav>
+          {issuesOn && ctx.ws.role === "admin" && <div className="flex justify-end border-t border-slate-100 px-3 pt-1.5"><NotificationsBell wsId={ctx.ws.id} /></div>}
           <UserMenu compact />
         </aside>
         <main className="print-full min-w-0 flex-1 overflow-y-auto">

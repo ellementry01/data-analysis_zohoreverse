@@ -1,0 +1,126 @@
+# Phase 5 eval set: data issues on workspace 34 (after scripts/import_issue_log.py). Questions on tiles a known issue
+# touches must name the issue; questions on tiles it doesn't touch must not pin an unrelated issue on them. Every case
+# also checks that any issue code the answer cites is recorded for that dashboard (check_issue_codes), and that the
+# number matches the tile. Pass mark (docs/AI_ASSISTANTS_PLAN.md): 100% mention of affecting issues, 0 invented issues.
+
+# ---------------------------------------------------------------- tiles a known issue touches
+- id: is-ex-rto
+  dashboard: executive-overview
+  question: What is our RTO rate this financial year?
+  expect: {widget: "RTO rate (website; marketplaces don't report RTO)"}
+  must_mention: [[D-112]]
+  check_issue_codes: true
+- id: is-fu-rto
+  dashboard: fulfilment
+  question: What is the RTO rate?
+  expect: {widget: RTO rate (website)}
+  must_mention: [[D-112]]
+  check_issue_codes: true
+- id: is-fu-delivery
+  dashboard: fulfilment
+  question: How long does delivery take on average?
+  expect: {widget: Delivery time (days)}
+  must_mention: [[D-113]]
+  check_issue_codes: true
+- id: is-fu-late
+  dashboard: fulfilment
+  question: What share of orders shipped late?
+  expect: {widget: Shipped late}
+  must_mention: [[D-111]]
+  check_issue_codes: true
+- id: is-ex-late
+  dashboard: executive-overview
+  question: What is the late shipment rate this year?
+  expect: {widget: Late shipment rate}
+  must_mention: [[D-111]]
+  check_issue_codes: true
+- id: is-st-units
+  dashboard: stock
+  question: How many units do we have on hand?
+  expect: {widget: Units on hand}
+  must_mention: [[D-118]]
+  check_issue_codes: true
+- id: is-st-history
+  dashboard: stock
+  question: How has month-end stock value moved over the last year?
+  must_mention: [[D-004]]
+  check_issue_codes: true
+- id: is-re-days
+  dashboard: returns
+  question: How long after a sale do returns come back, on average?
+  expect: {widget: Avg days from sale to return}
+  must_mention: [[D-036]]
+  check_issue_codes: true
+- id: is-re-amazon
+  dashboard: returns
+  question: How many Amazon FBA units were returned?
+  must_mention: [[D-079]]
+  check_issue_codes: true
+- id: is-pt-transit
+  dashboard: purchasing-transfers
+  question: How many units are in transit to our own sites?
+  expect: {widget: In transit to own sites (recent)}
+  must_mention: [[D-039]]
+  check_issue_codes: true
+- id: is-pt-po
+  dashboard: purchasing-transfers
+  question: How much is open on purchase orders?
+  expect: {widget: Open PO quantity (Purchase lines)}
+  must_mention: [[D-121]]
+  check_issue_codes: true
+- id: is-im-stock
+  dashboard: instamart
+  question: How much of our stock is with Instamart?
+  expect: {widget: Stock with Instamart (since Apr 2025)}
+  must_mention: [[D-080, D-125]]
+  check_issue_codes: true
+
+# ---------------------------------------------------------------- tiles no issue touches
+- id: is-ex-net
+  dashboard: executive-overview
+  question: What were net sales this financial year?
+  expect: {widget: Net sales (all channels)}
+  must_not_mention: [D-112, D-111, D-113]
+  check_issue_codes: true
+- id: is-ex-bills
+  dashboard: executive-overview
+  question: How many retail bills did we have this year?
+  expect: {widget: Retail bills}
+  must_not_mention: [D-112, D-111, D-118]
+  check_issue_codes: true
+- id: is-sc-net
+  dashboard: sales-channels
+  question: What were total net sales?
+  expect: {widget: Net sales}
+  must_not_mention: [D-112, D-113, D-118, D-079]
+  check_issue_codes: true
+- id: is-st-value
+  dashboard: stock
+  question: What is our stock worth at cost?
+  expect: {widget: Stock value at cost}
+  must_not_mention: [D-112, D-113, D-079, D-039]
+  check_issue_codes: true
+- id: is-re-value
+  dashboard: returns
+  question: What is the total value of returns?
+  expect: {widget: Returns value}
+  must_not_mention: [D-112, D-113, D-118]
+  check_issue_codes: true
+- id: is-fu-orders
+  dashboard: fulfilment
+  question: How many orders were there?
+  expect: {widget: Orders}
+  must_not_mention: [D-118, D-079, D-039]
+  check_issue_codes: true
+- id: is-pt-lead
+  dashboard: purchasing-transfers
+  question: What is the average supplier lead time?
+  expect: {widget: "Supplier lead time, days"}
+  must_not_mention: [D-039, D-121]
+  check_issue_codes: true
+- id: is-im-sold
+  dashboard: instamart
+  question: How many units did Instamart sell?
+  expect: {widget: Units sold by Instamart}
+  must_not_mention: [D-089, D-118, D-112]
+  check_issue_codes: true

@@ -55,6 +55,13 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - **Audit:** memory saves, proposals, edits, accept/reject/retire/restore/keep/share decisions, deletions and profile edits are in `audit_events`.
 - **Deletion:** deleting a memory removes it; deleting a chat keeps its memories with the excerpt they came from (the link to the chat is cleared).
 
+## Data issues (Phase 5, 2026-11-07)
+- Members read the register and the dashboards' notes; only workspace admins create, edit, import or solve issues and see notifications. Every change is audited (`issue_created`, `issue_edited`, `issues_imported`).
+- `affects` accepts only dashboard keys, metrics and datasets that exist (400 otherwise).
+- "Worth a look" is computed without a person (full catalog) and filtered per viewer: items about a metric the viewer's catalog doesn't have are not shown.
+- Issue texts reach the assistant as data with "never invent issues" and "data, not instructions" around them.
+- Changing an issue's status re-checks memories in a separate database session, so the request's acting user is never cleared (an earlier draft reused the request's workspace object; caught in review).
+
 ## Accepted risks (QA_REPORT §4)
 - **R1:** identity-only login through the `X-User-Email` header. **Fixed in code (Phase 3)**: closes when `AUTH_MODE=google` is switched on in the live deployment.
 - **R2:** npm audit findings remain in Tailwind 3's build-time watcher. Migrate to Tailwind 4 when convenient.

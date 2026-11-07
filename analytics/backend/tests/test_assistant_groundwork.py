@@ -246,8 +246,8 @@ def test_ledger_failure_never_loses_the_answer(monkeypatch):
 
 def test_feature_flags_default_off_and_reported(client, monkeypatch):
     feats = client.get("/api/me").json()["features"]
-    assert feats == {"dashboard_chat": False, "agent_loop": False, "memory": False, "global_assistant": False,
-                     "scheduled_agents": False}
+    assert feats == {"dashboard_chat": False, "agent_loop": False, "memory": False, "data_issues": False,
+                     "global_assistant": False, "scheduled_agents": False}
     monkeypatch.setattr(get_settings(), "assistant_dashboard_chat", True)
     assert client.get("/api/me").json()["features"]["dashboard_chat"] is True
 

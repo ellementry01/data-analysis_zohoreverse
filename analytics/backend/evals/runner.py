@@ -301,6 +301,13 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
         else:
             answer = t.post(f"/api/workspaces/{ws}/assistant/ask", body)
         r = score(case, answer, expected, context)
+        if case.get("check_issue_codes") and case.get("dashboard"):
+            # Phase 5: an answer may cite only issues the register has for this dashboard
+            known = {i["code"] for i in t.get(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/insights")["issues"]}
+            cited = set(re.findall(r"\b[A-Z]{1,4}-\d{1,5}\b", answer.get("text") or ""))
+            if cited - known:
+                r.problems.append(f"cites issues not recorded for this dashboard: {', '.join(sorted(cited - known))}")
+                r.passed = False
         if answer.get("conversation_id") and hasattr(t, "delete"):
             try:  # eval threads must not clutter the user's own conversation lists
                 t.delete(f"/api/workspaces/{ws}/conversations/{answer['conversation_id']}")

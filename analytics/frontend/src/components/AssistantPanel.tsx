@@ -14,9 +14,10 @@ interface Thread { id: number; title: string; updated_at: string; message_count:
 const STARTERS = ["What does this dashboard show?", "What stands out on this dashboard?", "Which caveats should I keep in mind here?"];
 
 /** The dashboard's own assistant: it already knows the dashboard and what is on screen, so questions need no context. */
-export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose, streaming = false, memory = false }:
+export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose, streaming = false, memory = false, pendingQuestion = null }:
   { wsId: number; base: string; dash: Dashboard; filters: DashFilter[]; drill: DrillState; focus: Widget | null;
-    onClearFocus: () => void; onClose: () => void; streaming?: boolean; memory?: boolean }) {
+    onClearFocus: () => void; onClose: () => void; streaming?: boolean; memory?: boolean;
+    pendingQuestion?: { text: string; n: number } | null }) {
   const toast = useToast();
   const root = `/workspaces/${wsId}/dashboards/key/${encodeURIComponent(dash.key)}/assistant`;
   const threads = useAsync(() => api.get<Thread[]>(`${root}/conversations`), [root]);
@@ -47,14 +48,25 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
     }
   };
   const fresh = () => { setConv(null); setMsgs([]); setShowThreads(false); };
+  // a "worth a look" item asked from the dashboard: ask it once, in a new conversation
+  const asked = useRef(0);
+  useEffect(() => {
+    if (pendingQuestion && pendingQuestion.n !== asked.current && !busy) {
+      asked.current = pendingQuestion.n;
+      setConv(null);
+      setMsgs([]);
+      askRef.current?.(pendingQuestion.text, true);
+    }
+  }, [pendingQuestion?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   const remove = async (id: number) => {
     await api.del(`/workspaces/${wsId}/conversations/${id}`);
     threads.reload();
     if (id === conv) fresh();
   };
 
-  const ask = async (question: string) => {
+  const ask = async (question: string, newThread = false) => {
     if (!question.trim() || busy) return;
+    const thread = newThread ? null : conv;
     setInput("");
     setMsgs((m) => [...m, { role: "user", content: focus ? `About “${focus.title}”: ${question}` : question }]);
     setBusy(true);
@@ -65,7 +77,7 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
     };
     const done = (a: Answer) => {
       setMsgs((m) => [...m, { id: a.message_id, role: "assistant", content: a.text, payload: a }]);
-      if (a.conversation_id && a.conversation_id !== conv) setConv(a.conversation_id);
+      if (a.conversation_id && a.conversation_id !== thread) setConv(a.conversation_id);
       threads.reload();
       if (a.memories_saved?.some((x) => x.status === "proposed")) proposals.reload();
     };
@@ -75,7 +87,7 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
         setLive([]);
         let answered = false;
         let failure: string | null = null;
-        await api.stream(`${root}/ask/stream`, { question, conversation_id: conv, screen_state }, (e) => {
+        await api.stream(`${root}/ask/stream`, { question, conversation_id: thread, screen_state }, (e) => {
           if (e.type === "step") setLive((s) => [...s, { n: e.n, tool: e.tool, label: e.label }]);
           else if (e.type === "step_done") setLive((s) => s.map((x) => (x.n === e.n ? { ...x, ok: e.ok, label: e.label, row_count: e.rows } : x)));
           else if (e.type === "checking") setLive((s) => [...s, { n: 99, tool: "check", label: e.label }]);
@@ -85,7 +97,7 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
         if (failure) throw new Error(failure);
         if (!answered) throw new Error("The answer was interrupted; please ask again.");
       } else {
-        done(await api.post<Answer>(`${root}/ask`, { question, conversation_id: conv, screen_state }));
+        done(await api.post<Answer>(`${root}/ask`, { question, conversation_id: thread, screen_state }));
       }
     } catch (e: any) {
       setMsgs((m) => [...m, { role: "assistant", content: e.message, payload: { type: "error", text: e.message } }]);
@@ -94,6 +106,9 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
       setLive([]);
     }
   };
+
+  const askRef = useRef(ask);
+  askRef.current = ask;
 
   const rate = async (i: number, m: Msg, feedback: "up" | "down" | null) => {
     if (!conv || !m.id) return;

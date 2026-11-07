@@ -29,7 +29,7 @@ class MemberIn(BaseModel):
 def me(user: str = Depends(current_user), db: Session = Depends(get_session)):
     s = get_settings()
     features = {"dashboard_chat": s.assistant_dashboard_chat, "agent_loop": s.assistant_agent_loop,
-                "memory": s.assistant_memory, "global_assistant": s.assistant_global, "scheduled_agents": s.assistant_scheduled}
+                "memory": s.assistant_memory, "data_issues": s.assistant_data_issues, "global_assistant": s.assistant_global, "scheduled_agents": s.assistant_scheduled}
     u = db.get(m.User, user)
     admins = {e.strip().lower() for e in s.bootstrap_admins.split(",") if e.strip()}
     is_admin = bool(u and u.is_platform_admin) if s.auth_mode == "google" else (user in admins or user == s.default_user.lower())
