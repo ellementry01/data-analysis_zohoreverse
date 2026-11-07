@@ -96,7 +96,11 @@ def do_import(body: ImportIn, ws: m.Workspace = Depends(editor), db: Session = D
 
 @router.get("/datasets")
 def list_datasets(ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session)):
-    return [dataset_out(d, full=True) for d in db.query(m.Dataset).filter_by(workspace_id=ws.id).order_by(m.Dataset.name)]
+    from ..services.permissions import hidden_dataset_ids
+
+    hidden = hidden_dataset_ids(db, ws)
+    return [dataset_out(d, full=True) for d in db.query(m.Dataset).filter_by(workspace_id=ws.id).order_by(m.Dataset.name)
+            if d.id not in hidden]
 
 
 @router.get("/datasets/{ds_id}")

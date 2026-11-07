@@ -10,6 +10,7 @@ from ..deps import admin, current_user, editor, viewer
 from ..serializers import dashboard_out, glossary_out, iso, metric_out, report_out, rule_out, widget_out
 from ..services.analytics import QueryExecutionError, QueryError, UnsafeSQLError, insights, run_spec, suggest_chart
 from ..services import dashboards as dash_svc
+from ..services import audit, permissions
 from ..services.catalog import load_catalog
 from ..services.executor import log_query, run_readonly
 from ..services.expressions import ExpressionError, validate_expression
@@ -156,7 +157,8 @@ class LayoutItem(BaseModel):
 
 @router.get("/dashboards")
 def list_dashboards(ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session)):
-    return [dashboard_out(d, full=False) for d in db.query(m.Dashboard).filter_by(workspace_id=ws.id).order_by(m.Dashboard.updated_at.desc())]
+    q = db.query(m.Dashboard).filter_by(workspace_id=ws.id).order_by(m.Dashboard.updated_at.desc())
+    return [dashboard_out(d, full=False) for d in permissions.visible_dashboards(db, ws, q)]
 
 
 @router.post("/dashboards", status_code=201)
@@ -175,7 +177,7 @@ def create_dashboard(body: DashboardIn, ws: m.Workspace = Depends(editor), db: S
 
 def _dashboard(db, ws, did) -> m.Dashboard:
     d = db.get(m.Dashboard, did)
-    if not d or d.workspace_id != ws.id:
+    if not d or d.workspace_id != ws.id or not permissions.can_see_dashboard(db, ws, d):
         raise HTTPException(404, "Dashboard not found")
     return d
 
@@ -183,7 +185,7 @@ def _dashboard(db, ws, did) -> m.Dashboard:
 @router.get("/dashboards/key/{key}")
 def get_dashboard_by_key(key: str, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session)):
     d = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=key).one_or_none()
-    if not d:
+    if not d or not permissions.can_see_dashboard(db, ws, d):
         raise HTTPException(404, "Dashboard not found")
     return dashboard_out(d)
 
@@ -333,6 +335,8 @@ def duplicate_dashboard(did: int, name: str | None = None, ws: m.Workspace = Dep
 def filter_values(did: int, field: str, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
     """Distinct values for a dashboard 'values' filter."""
     from ..services.spec import Dimension
+
+    _dashboard(db, ws, did)   # the dashboard must exist and be visible to this user
     res = _run(db, ws, QuerySpec(dimensions=[Dimension(field=field)], limit=500), user, source="dashboard")
     return [r[0] for r in res["rows"] if r[0] is not None]
 
@@ -618,6 +622,7 @@ class AskIn(BaseModel):
 
 @router.post("/assistant/ask")
 def ask(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
+    audit.record(user, "assistant_ask", ws.id, "ask", {"conversation_id": body.conversation_id})
     return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine)
 
 
@@ -683,7 +688,7 @@ def _dashboard_chat_on():
 
 def _dashboard_by_key(db, ws, key) -> m.Dashboard:
     d = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=key).one_or_none()
-    if not d:
+    if not d or not permissions.can_see_dashboard(db, ws, d):
         raise HTTPException(404, "Dashboard not found")
     return d
 
@@ -694,6 +699,7 @@ def dashboard_ask(key: str, body: DashboardAskIn, ws: m.Workspace = Depends(admi
                   user: str = Depends(current_user)):
     _dashboard_chat_on()
     scope = _dashboard_scope(db, ws, key, body.screen_state, user)
+    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id})
     return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
 
 
@@ -727,13 +733,16 @@ def dashboard_ask_stream(key: str, body: DashboardAskIn, ws: m.Workspace = Depen
 
     _dashboard_chat_on()
     scope = _dashboard_scope(db, ws, key, body.screen_state, user)   # validation errors are plain 400s, before streaming
-    ws_id = ws.id
+    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "stream": True})
+    ws_id, acting_role = ws.id, permissions.acting(ws)[1]
     events: queue.Queue = queue.Queue()
 
     def work():
         own = SessionLocal()   # the request's session closes when the handler returns; the stream outlives it
         try:
-            out = assistant.answer(own, own.get(m.Workspace, ws_id), user, body.question, body.conversation_id,
+            # the thread's own copy of the workspace must carry who is asking, or the assistant would see everything
+            own_ws = permissions.set_acting(own.get(m.Workspace, ws_id), user, acting_role)
+            out = assistant.answer(own, own_ws, user, body.question, body.conversation_id,
                                    engine=body.engine, scope=scope, on_event=events.put)
             events.put({"type": "answer", "answer": out})
         except Exception as e:  # noqa: BLE001

@@ -50,6 +50,11 @@ class Transport:
         headers = {"Content-Type": "application/json"}
         if self.user:
             headers["X-User-Email"] = self.user
+        import os
+
+        token = os.environ.get("ELLEMENTRY_API_TOKEN", "").strip()   # needed once company sign-in is on
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(self.base + path, data=data, headers=headers, method=method)
         try:

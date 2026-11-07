@@ -28,6 +28,7 @@
 - **`components/Chart.tsx`:** the ECharts renderer for kpi, line, area, bar, hbar, stacked, combo, pie, donut, scatter, heatmap, table and pivot. It escapes HTML in tooltips with `escapeHtml`.
   - `useEffect` bodies must be **block bodies**. An expression-bodied effect once returned a non-function and crashed with "r is not a function".
 - **`components/ResultPanel.tsx`:** chart, table, SQL, insights and exports (CSV/Excel/PNG).
+- **Sign-in:** any 401 sends the browser to `/api/auth/login?next=<this page>` (`api/client.ts`). `components/UserMenu.tsx` (sidebar and home page) shows who is signed in, Sign out (google mode) and an Administration link for platform admins. `/admin` -> `pages/AdminPage.tsx`: Users (switch on/off, make admin), API tokens (create once-shown tokens, revoke), Audit log (filter by action or email). Workspace Settings gets `components/AccessRulesCard.tsx` for admins; the "Local user" switcher shows only in dev mode.
 - **`components/ChatMessage.tsx`:** one chat message (question, or answer with chart, assumptions, engine/model badge and thumbs up/down). Shared by AskPage and the dashboard chat.
 - **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback. With `features.agent_loop` it uses the streaming endpoint (`api.stream`) and shows each step live; answers carry a collapsible "How I worked this out" list (`StepList`) with each step's query.
 - **`components/ui.tsx`:** Button, Empty, toast and similar primitives.

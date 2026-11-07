@@ -17,6 +17,14 @@ export class ApiError extends Error {
   }
 }
 
+
+/** A session that ended (or never started) sends the browser to company sign-in, then back to this page. */
+function toSignIn(): never {
+  const next = window.location.pathname + window.location.search;
+  window.location.href = `/api/auth/login?next=${encodeURIComponent(next)}`;
+  throw new ApiError(401, "Signing in…");
+}
+
 async function request<T>(method: string, path: string, body?: unknown, isForm = false): Promise<T> {
   const headers: Record<string, string> = { "X-User-Email": currentUser() };
   if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
@@ -26,6 +34,7 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
     body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
   });
   if (res.status === 204) return undefined as T;
+  if (res.status === 401 && !path.startsWith("/auth/")) toSignIn();
   const text = await res.text();
   let data: any = null;
   try {
@@ -59,6 +68,7 @@ export const api = {
       headers: { "X-User-Email": currentUser(), "Content-Type": "application/json", Accept: "text/event-stream" },
       body: JSON.stringify(body),
     });
+    if (res.status === 401) toSignIn();
     if (!res.ok || !res.body) {
       let msg = res.statusText;
       try {

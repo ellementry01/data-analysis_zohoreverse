@@ -10,7 +10,8 @@ from sqlalchemy import text
 
 from .config import get_settings
 from .db import get_engine, init_db
-from .routers import analysis, data, workspaces
+from .routers import analysis, auth as auth_router, data, workspaces
+from .services import auth as auth_svc
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 settings = get_settings()
@@ -18,6 +19,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    auth_svc.check_startup(settings)   # refuses an unsafe sign-in configuration before serving anything
     init_db()
     if settings.enable_scheduler:
         from .services import scheduler
@@ -31,6 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Ellementry Analytics", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.include_router(auth_router.router)
 app.include_router(workspaces.router)
 app.include_router(data.router)
 app.include_router(analysis.router)

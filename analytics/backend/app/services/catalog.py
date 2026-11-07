@@ -96,15 +96,35 @@ class Catalog:
 
 
 def load_catalog(db: Session, workspace: m.Workspace) -> Catalog:
+    """The semantic catalog of a workspace, as the person acting on it may see it (access rules hide datasets, and the
+    metrics, relationships and rules that depend on them)."""
+    from .permissions import hidden_dataset_ids
+
+    hidden = hidden_dataset_ids(db, workspace)
     datasets = {}
     for d in db.query(m.Dataset).filter_by(workspace_id=workspace.id).all():
+        if d.id in hidden:
+            continue
         cols = {c.name: Col(c.name, c.display_name, c.data_type, c.is_derived, c.description) for c in d.columns if not c.hidden}
         datasets[d.id] = DS(d.id, d.slug, d.name, d.kind, cols, d.default_date_column, d.row_count, d.description)
     edges = [Edge(r.from_dataset_id, r.from_column, r.to_dataset_id, r.to_column, r.id)
-             for r in db.query(m.Relationship).filter_by(workspace_id=workspace.id).all()]
-    metrics = {x.name: x for x in db.query(m.Metric).filter_by(workspace_id=workspace.id).all()}
+             for r in db.query(m.Relationship).filter_by(workspace_id=workspace.id).all()
+             if r.from_dataset_id not in hidden and r.to_dataset_id not in hidden]
+    metrics = {x.name: x for x in db.query(m.Metric).filter_by(workspace_id=workspace.id).all()
+               if x.dataset_id is None or x.dataset_id not in hidden}
+    if hidden:  # composites built on a hidden metric go too
+        import re
+
+        changed = True
+        while changed:
+            changed = False
+            for name, mt in list(metrics.items()):
+                if mt.kind == "composite" and any(ref not in metrics for ref in re.findall(r"\{(\w+)\}", mt.expression or "")):
+                    del metrics[name]
+                    changed = True
     rules: dict[int, list[m.BusinessRule]] = {}
     for r in db.query(m.BusinessRule).filter_by(workspace_id=workspace.id, enabled=True).all():
-        rules.setdefault(r.dataset_id, []).append(r)
+        if r.dataset_id not in hidden:
+            rules.setdefault(r.dataset_id, []).append(r)
     glossary = db.query(m.GlossaryTerm).filter_by(workspace_id=workspace.id).all()
     return Catalog(workspace.id, workspace.schema_name, datasets, edges, metrics, rules, glossary)

@@ -142,16 +142,19 @@ def _dashboard(ctx: ToolContext, key: str | None) -> m.Dashboard:
             raise ToolError("There is no current dashboard; pass dashboard_key.")
         return ctx.dashboard
     d = ctx.db.query(m.Dashboard).filter_by(workspace_id=ctx.ws.id, key=str(key)).one_or_none()
-    if not d:
-        keys = [k for (k,) in ctx.db.query(m.Dashboard.key).filter_by(workspace_id=ctx.ws.id)]
+    if not d or not can_see_dashboard(ctx, d):
+        from ..permissions import visible_dashboards
+
+        keys = [x.key for x in visible_dashboards(ctx.db, ctx.ws)]
         raise ToolError(f"No dashboard with key '{key}'. Keys: {', '.join(sorted(keys))}")
     return d
 
 
 def can_see_dashboard(ctx: ToolContext, d: m.Dashboard) -> bool:
-    """Per-dashboard access arrives with sign-in (Phase 3); until then every dashboard of the workspace is visible to
-    its members, and the route has already checked membership."""
-    return d.workspace_id == ctx.ws.id
+    """The same check as the dashboard routes: the assistant never sees more than the person asking."""
+    from ..permissions import can_see_dashboard as allowed
+
+    return allowed(ctx.db, ctx.ws, d)
 
 
 # ----------------------------------------------------------------------------------------------- the tools

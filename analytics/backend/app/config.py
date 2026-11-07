@@ -72,6 +72,26 @@ class Settings(BaseSettings):
     assistant_global: bool = False
     assistant_scheduled: bool = False
 
+    # Sign-in (Phase 3). "dev": identity from the X-User-Email header or DEFAULT_USER, for local development and tests
+    # only (refused unless PUBLIC_BASE_URL is localhost). "google": Google Workspace sign-in (OIDC), sessions in a
+    # secure cookie, scripts use API tokens (Authorization: Bearer).
+    auth_mode: str = "dev"
+    public_base_url: str = "http://localhost:8000"   # where users reach the app; Google redirects back here
+    google_client_id: str | None = None
+    google_client_secret: str | None = None          # secret: env only, never printed
+    google_allowed_domain: str | None = None         # e.g. ellementry.com; required in google mode
+    session_hours: int = 12                          # absolute session length
+    session_idle_hours: int = 4                      # signed out after this long without a request
+    bootstrap_admins: str = ""                       # comma-separated emails made platform admins (and workspace admins) on sign-in
+
+    @field_validator("auth_mode")
+    @classmethod
+    def _auth_mode(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        if v not in ("dev", "google"):
+            raise ValueError("AUTH_MODE must be 'dev' or 'google'")
+        return v
+
     default_user: str = "owner@local"
     # Pin "today" (YYYY-MM-DD) for reproducible relative date ranges in tests/demos; empty = real date.
     today_override: str | None = None

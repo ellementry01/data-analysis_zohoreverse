@@ -43,10 +43,27 @@ docker compose ps
 | `USD_INR_RATE` | 88 | Converts the per-token prices (USD) into the rupee estimates in `ai_usage` |
 | `AI_PRICES_JSON` | unset | Overrides the built-in model prices in `services/ai_usage.py` (USD per million tokens) |
 | `ASSISTANT_DASHBOARD_CHAT`, `ASSISTANT_AGENT_LOOP`, `ASSISTANT_MEMORY`, `ASSISTANT_GLOBAL`, `ASSISTANT_SCHEDULED` | false | Assistant features, switched on phase by phase (`docs/AI_ASSISTANTS_PLAN.md`); reported in `/api/me`. `ASSISTANT_DASHBOARD_CHAT=true` and `ASSISTANT_AGENT_LOOP=true` are set in `analytics/.env` since 2026-11-07 (admins only); a copy of the `.env` from before is in `backups/` |
-| `DEFAULT_USER` | `owner@local` | Identity when there is no `X-User-Email` header |
+| `AUTH_MODE` | `dev` | `dev` (header identity, localhost only) or `google` (company sign-in); see "Company sign-in" below |
+| `PUBLIC_BASE_URL` | `http://localhost:8000` | Where users reach the app; Google redirects to `<this>/api/auth/callback`; must be https outside localhost |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_ALLOWED_DOMAIN` | unset | The OAuth client (secret: env only) and the company domain allowed to sign in |
+| `SESSION_HOURS` / `SESSION_IDLE_HOURS` | 12 / 4 | Session lifetime and idle sign-out |
+| `BOOTSTRAP_ADMINS` | empty | Comma-separated emails made platform admins (and workspace admins) when they sign in |
+| `ELLEMENTRY_API_TOKEN` | - | For scripts on the host (not the app): the API token sent as `Authorization: Bearer` |
+| `DEFAULT_USER` | `owner@local` | Identity when there is no `X-User-Email` header (dev mode only) |
 | `TODAY_OVERRIDE` | unset | Pins "today", e.g. `2026-10-17`, for the tests and ground truth |
 | `ENABLE_SCHEDULER` | true | |
 | `CORS_ORIGINS` | the :5173 origins | |
+
+## Company sign-in (Google Workspace): switching it on
+The code is in place (Phase 3); the live app stays in `AUTH_MODE=dev` until these steps are done. Only the owner does steps 1-4 (they need the company Google admin account and produce a secret).
+1. In the Google Cloud console (console.cloud.google.com), signed in with the company Google Workspace account, create a project (e.g. "Ellementry Analytics").
+2. APIs & Services -> OAuth consent screen: user type **Internal** (only company accounts can ever sign in), app name "Ellementry Analytics", support email; scopes `openid`, `email`, `profile`.
+3. APIs & Services -> Credentials -> Create credentials -> OAuth client ID -> **Web application**. Authorised redirect URI: `http://localhost:8000/api/auth/callback` (add the production `https://.../api/auth/callback` when hosting exists). Copy the client ID and client secret.
+4. In `analytics/.env` (never in chat or git) add: `AUTH_MODE=google`, `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`, `GOOGLE_ALLOWED_DOMAIN=<company domain>`, `BOOTSTRAP_ADMINS=<owner's email>`, `PUBLIC_BASE_URL=http://localhost:8000`.
+5. `docker compose up -d --force-recreate app`, open http://localhost:8000 and sign in. The owner becomes platform admin and admin of every workspace.
+6. Administration -> API tokens: create one for scripts and put it in `ELLEMENTRY_API_TOKEN` where scripts run (dashboard builds, `configure_warehouse_workspace.py`, evals). Without it they get 401.
+7. Add the COO and others as workspace members (company emails) and, where needed, access rules in workspace Settings.
+To go back: remove `AUTH_MODE=google` (or set `dev`) and recreate the app.
 
 ## Tests
 - Location: `backend/tests/`, using pytest against a **real PostgreSQL** database `ellementry_analytics_test`. `conftest.py` defaults to `dw_owner@localhost`; override it with `TEST_DATABASE_URL`.
@@ -54,12 +71,13 @@ docker compose ps
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **492 passed** (2026-11-07), in about 3½ minutes. About 80 s of that is building the demo workspace once.
+- Current result: **517 passed** (2026-11-07), in about 2½ minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)
   - `test_claude` (routing, escalation, safety and fallback, with a fake Anthropic client; it never calls the real API)
-  - `test_agent_loop` (Phase 2: multi-step answers, parallel calls, tool errors, escalation, step/time limits, refusal and outage, the number check and rewrite, every tool, workspace isolation, streaming, thread summaries)
+  - `test_identity` (Phase 3: Google sign-in with a simulated Google - every refusal, forged tokens, single-use state, header spoofing, session expiry, sign-out, cross-site writes, bootstrap admins, switching users off, company-only members, API tokens, unsafe start-up configs; access rules on dashboards, domains and datasets for people and the assistant; lineage; audit)
+- `test_agent_loop` (Phase 2: multi-step answers, parallel calls, tool errors, escalation, step/time limits, refusal and outage, the number check and rewrite, every tool, workspace isolation, streaming, thread summaries)
 - `test_dashboard_chat` (Phase 1: access, the dashboard pack, screen-state validation, recomputed screen numbers, filter inheritance, threads, feedback, the eval runner on dashboards)
 - `test_assistant_groundwork` (dashboard keys and the 0002 migration round trip, conversation scopes, the AI usage ledger and spend caps, feature flags, the test harness itself, the eval runner)
 - **Scripted Claude for tests:** `tests/fakes.py` (`FakeMessages`, `turn`, `say`, `tool_call`) and the `fake_claude` fixture. It also enforces the rules: Haiku/Sonnet only, no `temperature`/`fallbacks`, no forced `tool_choice`, and the tool-loop contract (every `tool_use` answered by a `tool_result` in one user message). Use it for every new test that touches Claude.
