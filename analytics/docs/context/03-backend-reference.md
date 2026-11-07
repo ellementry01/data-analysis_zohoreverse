@@ -19,13 +19,17 @@
 | refresh_schedules | Per-dataset sync interval, with last run and status |
 | users, auth_sessions, login_states, api_tokens | Phase 3 sign-in: people who signed in (active, platform admin), sessions (token hashes, expiry), pending Google sign-ins (state, nonce, PKCE), script tokens (hashes) |
 | access_rules | Restrict a dashboard, a domain or a dataset to a minimum role or named people (see 05) |
-| audit_events | Who did what and when (sign-ins, assistant questions, rule, member, user and token changes) |
+| audit_events | Who did what and when (sign-ins, assistant questions, rule, member, user, token and memory changes) |
+| memories | Phase 4: what the assistants remember. `layer` personal / shared (team fact) / decision; `kind` preference, fact, decision, caveat, open_question; `scope` global, `dashboard:<key>` or `domain:<name>`; `owner_email`; `visibility` (decisions: private/shared); `status` proposed, active, rejected, retired, needs_review (+ `review_reason`); `origin` explicit, inferred, manual; `share_status` (team-fact approval); source conversation, message and excerpt; `depends_on` (metric fingerprints); use count and last use. Full-text index on text + rationale |
+| user_profiles | One "how this person works" note per user and workspace, rewritten from their memories (version, sources, whether the user edited it) |
+| jobs | The background job queue (kind, payload, dedupe key, status, attempts, run_after, error, result) |
 
-Migrations run automatically on app start: `0001_initial.py`, `0002_assistant_groundwork.py` (dashboard keys backfilled from names, conversation scopes, message details, `ai_usage`), `0003_identity_access.py` (users, sessions, login states, API tokens, access rules, audit).
+Migrations run automatically on app start: `0001_initial.py`, `0002_assistant_groundwork.py` (dashboard keys backfilled from names, conversation scopes, message details, `ai_usage`), `0003_identity_access.py` (users, sessions, login states, API tokens, access rules, audit), `0004_memory.py` (memories, user profiles, jobs, `conversations.memory_scanned_upto_message_id`).
 
 ## API (all under `/api`; workspace routes are `/api/workspaces/{ws_id}/…`)
 - **Auth:** `AUTH_MODE=google`: a session cookie from Google sign-in, or an API token (`Authorization: Bearer`); `AUTH_MODE=dev`: the `X-User-Email` header, defaulting to `DEFAULT_USER=owner@local` (see 05). Each route declares the role it needs through `deps.viewer/editor/admin`. A dataset id is always checked against the workspace (`dataset_of`).
 - **auth.py (Phase 3):** `GET /api/auth/config` (public: sign-in mode), `GET /api/auth/login?next=` -> Google, `GET /api/auth/callback`, `POST /api/auth/logout`; platform admins: `GET/POST/DELETE /api/admin/tokens`, `GET /api/admin/users`, `PATCH /api/admin/users/{email}` (`active`, `is_platform_admin`), `GET /api/admin/audit?action=&who=&before=&limit=`; workspace admins: `GET/POST/DELETE /api/workspaces/{ws}/access-rules`.
+- **memory.py (Phase 4, `ASSISTANT_MEMORY`; per person):** `GET /memory?status=&layer=&scope=&q=` (yours plus team facts and shared decisions), `POST /memory` (manual, active), `PATCH /memory/{id}`, `POST /memory/{id}/{accept|reject|retire|restore|keep|share|unshare|approve_share|reject_share}`, `DELETE /memory/{id}`, `GET /memory/proposals?dashboard_key=`, `GET /memory/share-queue` (workspace admins), `GET|PUT /memory/profile`, `POST /memory/profile/rewrite` (queues a job), `GET /memory/stats` (acceptance rate of learned suggestions).
 - **workspaces.py:**
   - `GET /me` returns the user and LLM info: provider, simple/complex model labels and the base-URL host, plus `features` (the assistant feature flags, all off until their phase is signed off).
   - `POST /demo` builds the demo workspace.

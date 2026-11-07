@@ -43,6 +43,14 @@ class ToolContext:
     today: date | None = None
     scope: object = None                 # assistant.AnswerScope (dashboard), or None
     dashboard: m.Dashboard | None = None
+    # Phase 4 memory: on when ASSISTANT_MEMORY is; `explicit` is decided by code from the USER's own words
+    memory_on: bool = False
+    explicit: bool = False
+    conversation_id: int | None = None
+    message_id: int | None = None        # the user's question being answered
+    question: str = ""
+    saved: list = field(default_factory=list)      # memories propose_memory created in this answer
+    found: list = field(default_factory=list)      # memories search_memory returned (may be cited)
 
 
 @dataclass
@@ -103,7 +111,33 @@ TOOLS = [
      "input_schema": {"type": "object", "properties": {
          "about": {"type": "string", "description": "A dashboard key, metric name or dataset name; omit for the current dashboard."}}}},
 ]
-TOOL_NAMES = [t["name"] for t in TOOLS]
+MEMORY_TOOLS = [
+    {"name": "search_memory",
+     "description": "Search what you remember for this user beyond the memories already shown: their preferences, facts, "
+                    "decisions (with reasons and dates) and open questions, plus team facts. Use it when the user asks "
+                    "what they decided or said before, or when a past decision may matter.",
+     "input_schema": {"type": "object", "properties": {"query": {"type": "string", "description": "Words to look for."}},
+                      "required": ["query"]}},
+    {"name": "propose_memory",
+     "description": "Save something for future conversations: call it when the user asks you to remember something, "
+                    "states a preference for how numbers are shown or compared, a business fact, or a decision with its "
+                    "reason. Whether it is saved at once or offered to the user for approval is decided by the app. One "
+                    "short sentence in the user's terms; never numbers from answers (they change).",
+     "input_schema": {"type": "object", "properties": {
+         "text": {"type": "string", "description": "What to remember, one sentence."},
+         "kind": {"type": "string", "enum": ["preference", "fact", "decision", "caveat", "open_question"]},
+         "scope": {"type": "string", "enum": ["this_dashboard", "global"],
+                   "description": "this_dashboard if it only matters here, else global."},
+         "rationale": {"type": "string", "description": "For a decision: the reason the user gave."},
+         "share_with_team": {"type": "boolean", "description": "True only for a business fact everyone should know."}},
+         "required": ["text", "kind", "scope"]}},
+]
+TOOL_NAMES = [t["name"] for t in TOOLS + MEMORY_TOOLS]
+MAX_SAVES_PER_ANSWER = 3
+
+
+def tools_for(ctx: "ToolContext") -> list[dict]:
+    return TOOLS + MEMORY_TOOLS if ctx.memory_on else TOOLS
 
 
 # ----------------------------------------------------------------------------------------------- helpers
@@ -256,16 +290,59 @@ def get_data_issues(ctx: ToolContext, about: str | None = None) -> ToolOutcome:
     return ToolOutcome(text, label="Known data issues")
 
 
+def search_memory(ctx: ToolContext, query: str) -> ToolOutcome:
+    from .. import memory
+
+    found = memory.search(ctx.db, ctx.ws, ctx.user, str(query))
+    ctx.found += [x for x in found if x not in ctx.found]
+    text = json.dumps({"memories": [memory.describe(x, ctx.user)[2:] for x in found]
+                       or "Nothing remembered about that."}, ensure_ascii=False)
+    return ToolOutcome(text, label=f"Searching memory for “{str(query)[:60]}”", numbers=parse_numbers(text))
+
+
+def propose_memory(ctx: ToolContext, text: str, kind: str, scope: str = "global", rationale: str = "",
+                   share_with_team: bool = False) -> ToolOutcome:
+    from .. import memory
+
+    if len(ctx.saved) >= MAX_SAVES_PER_ANSWER:
+        raise ToolError("At most 3 memories per answer.")
+    # saved at once only when the user's own words asked for it; anything else waits for their approval
+    status = "active" if ctx.explicit else "proposed"
+    try:
+        mem_scope = memory.resolve_scope(ctx.ws, ctx.db, scope, ctx.scope.dashboard_key if ctx.scope else None)
+        mem, created = memory.save(ctx.db, ctx.ws, ctx.user, str(text), str(kind), mem_scope, str(rationale or ""),
+                                   origin="explicit" if ctx.explicit else "inferred", status=status, cat=ctx.cat,
+                                   conversation_id=ctx.conversation_id, message_id=ctx.message_id,
+                                   excerpt=ctx.question, share=bool(share_with_team))
+    except memory.MemoryInputError as e:
+        raise ToolError(str(e)) from e
+    from .. import audit
+
+    audit.record(ctx.user, "memory_saved" if mem.status == "active" else "memory_proposed", ctx.ws.id, f"memory:{mem.id}",
+                 {"kind": mem.kind, "scope": mem.scope, "origin": mem.origin, "created": created})
+    if mem not in ctx.saved:
+        ctx.saved.append(mem)
+    said = ("Saved to memory" if mem.status == "active" else "Offered to the user to approve") if created \
+        else "Already remembered"
+    body = {"result": said, "memory_id": mem.id, "status": mem.status}
+    if mem.share_status == "pending":
+        body["team"] = "Suggested as a team fact: a workspace admin approves it."
+    return ToolOutcome(json.dumps(body), label=f"Remembering: {mem.text[:60]}")
+
+
 _IMPL = {"run_query": run_query, "get_widget_data": get_widget_data, "describe_metric": describe_metric,
-         "list_values": list_values, "get_dashboard_context": get_dashboard_context, "get_data_issues": get_data_issues}
+         "list_values": list_values, "get_dashboard_context": get_dashboard_context, "get_data_issues": get_data_issues,
+         "search_memory": search_memory, "propose_memory": propose_memory}
 _ARGS = {"run_query": {"spec", "title"}, "get_widget_data": {"widget", "dashboard_key", "filters", "drill"},
          "describe_metric": {"name"}, "list_values": {"field", "search"}, "get_dashboard_context": {"dashboard_key"},
-         "get_data_issues": {"about"}}
+         "get_data_issues": {"about"}, "search_memory": {"query"},
+         "propose_memory": {"text", "kind", "scope", "rationale", "share_with_team"}}
+_MEMORY_TOOLS = {"search_memory", "propose_memory"}
 
 
 def execute(ctx: ToolContext, name: str, args) -> ToolOutcome:
     """Run one tool call. Problems the model can fix come back as an error result; nothing here raises."""
-    if name not in _IMPL:
+    if name not in _IMPL or (name in _MEMORY_TOOLS and not ctx.memory_on):
         return ToolOutcome(f"Unknown tool '{name}'. Tools: {', '.join(TOOL_NAMES)}", ok=False, label=name)
     if not isinstance(args, dict):
         return ToolOutcome("Tool input must be a JSON object.", ok=False, label=name)

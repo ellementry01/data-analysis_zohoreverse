@@ -289,7 +289,13 @@ def test_long_threads_are_summarised(client, board, agent_on, fake_claude):
     with _session() as db:
         assert db.get(m.Conversation, first).summary == ""
     fm = fake_claude("Answer 6.", "The user asked seven questions; nothing decided yet.")
-    ask(client, board, "question 6", conv=first)     # 14 messages: the oldest 8 are summarised
+    ask(client, board, "question 6", conv=first)     # 14 messages: the oldest 8 are summarised, in the background
+    assert len(fm.calls) == 1                        # the answer never waits for the summary
+    with _session() as db:
+        job = db.query(m.Job).filter_by(dedupe_key=f"summary:{first}").one()
+        assert job.status == "queued" and job.kind == "summarise_conversation"
+    from app.services import jobs
+    assert jobs.run_pending() >= 1
     assert len(fm.calls) == 2 and "question 0" in fm.calls[1]["messages"][0]["content"]
     with _session() as db:
         c = db.get(m.Conversation, first)

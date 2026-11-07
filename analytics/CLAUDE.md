@@ -13,7 +13,7 @@ Ellementry Analytics is a local-first AI analytics platform. It is built with Fa
 8. [08-ellementry-warehouse.md](docs/context/08-ellementry-warehouse.md): the warehouse connection, datasets, metrics, relationships
 9. [09-decisions-and-gotchas.md](docs/context/09-decisions-and-gotchas.md): why things are the way they are, pitfalls, next steps
 
-Also see `README.md` (user guide), `QA_REPORT.md` (security audit), `../research/` (the Zoho Analytics study, from public pages only), `../warehouse/README.md` (the data warehouse feeding workspace 34), and the plans in `docs/` (`AI_ASSISTANTS_PLAN.md`: the phased plan for dashboard assistants, memory, global and scheduled agents, not yet started; `EXECUTIVE_DASHBOARD_PLAN.md`, `WAREHOUSE_SCHEMA_REVIEW.md`, `WAREHOUSE_LOAD_FIX_PLAN.md`).
+Also see `README.md` (user guide), `QA_REPORT.md` (security audit), `../research/` (the Zoho Analytics study, from public pages only), `../warehouse/README.md` (the data warehouse feeding workspace 34), and the plans in `docs/` (`AI_ASSISTANTS_PLAN.md`: the phased plan for dashboard assistants, memory, global and scheduled agents, with its status table; `EXECUTIVE_DASHBOARD_PLAN.md`, `WAREHOUSE_SCHEMA_REVIEW.md`, `WAREHOUSE_LOAD_FIX_PLAN.md`).
 
 ## Non-negotiable rules
 - **Never print or copy secrets** from `.env` or `backend/.env`: the Anthropic key, DB passwords, `ELLEMENTRY_CONN_*`. Never ask the user for passwords, keys or auth codes in chat; tell them which variable to set.
@@ -29,10 +29,10 @@ Also see `README.md` (user guide), `QA_REPORT.md` (security audit), `../research
 # Docker (from analytics/) — app on http://localhost:8000
 docker compose up -d --build
 docker compose up -d --force-recreate app   # after editing .env
-# Backend tests (from analytics/backend) — expect 517 passed
+# Backend tests (from analytics/backend) — expect 555 passed
 TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 # Frontend checks (from analytics/frontend)
 npm run typecheck && npm run build
 ```
 
-Last updated: 2026-11-07 (warehouse schema 2.15, ten dashboards; AI assistants Phases 0-2 merged, Phase 3 sign-in built on branch `phase-3-identity-access` and waiting for the owner's Google OAuth client; resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
+Last updated: 2026-11-07 (warehouse schema 2.15, ten dashboards; AI assistants Phases 0-4 merged (sign-in not yet switched on); resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.

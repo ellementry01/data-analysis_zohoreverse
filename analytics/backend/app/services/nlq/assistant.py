@@ -181,15 +181,17 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     history = _history(conv)
     if conv.summary:
         history = [{"role": "summary", "content": conv.summary}] + history
-    conv.messages.append(m.Message(role="user", content=question, screen_state=scope.screen_json if scope else None))
+    user_msg = m.Message(role="user", content=question, screen_state=scope.screen_json if scope else None)
+    conv.messages.append(user_msg)
     db.commit()
-    conv_id = conv.id
+    conv_id, user_msg_id = conv.id, user_msg.id
 
     cat = load_catalog(db, ws)
     payload: dict = {"engine": None}
     try:
         with ai_usage.ai_context(user=user, workspace_id=ws.id, conversation_id=conv_id, purpose="chat"):
-            payload = _answer(db, ws, cat, user, question, prev, history, engine, today, scope, on_event)
+            payload = _answer(db, ws, cat, user, question, prev, history, engine, today, scope, on_event,
+                              conv_id=conv_id, msg_id=user_msg_id)
     except Exception as e:  # never leave the user without a truthful message
         log.exception("assistant failure")
         db.rollback()
@@ -203,7 +205,7 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     conv.messages.append(msg)
     db.commit()
     if scope is not None and payload.get("steps") is not None:
-        _maybe_compact(db, conv, user, ws.id)
+        _after_answer(db, conv)
     return {**payload, "conversation_id": conv.id, "message_id": msg.id}
 
 
@@ -218,24 +220,40 @@ def _trace(payload: dict) -> list | None:
     return [{k: s.get(k) for k in ("n", "tool", "input", "ok", "label", "error", "notes", "row_count", "sql")} for s in steps]
 
 
-def _maybe_compact(db, conv: m.Conversation, user: str, ws_id: int) -> None:
-    """Long threads: once more than COMPACT_AFTER messages exist since the last summary, summarise all but the last
-    KEEP_RECENT of them into conversations.summary (Haiku)."""
+def _needs_summary(conv: m.Conversation) -> bool:
     since = [x for x in conv.messages if not conv.summary_upto_message_id or x.id > conv.summary_upto_message_id]
-    if len(since) <= COMPACT_AFTER:
-        return
-    older = since[:-KEEP_RECENT]
-    cut = older[-1]
-    try:
-        from ..agent.engine import summarise
+    return len(since) > COMPACT_AFTER
 
-        with ai_usage.ai_context(user=user, workspace_id=ws_id, conversation_id=conv.id):
-            conv.summary = summarise([{"role": x.role, "content": x.content} for x in older], conv.summary)
-        conv.summary_upto_message_id = cut.id
-        db.commit()
-    except Exception:  # noqa: BLE001  (a missing summary only means less history next time)
-        log.exception("could not summarise conversation %s", conv.id)
+
+def _after_answer(db, conv: m.Conversation) -> None:
+    """Background work after a dashboard-chat answer, never in the request (Phase 4): the thread's summary when it has
+    grown long, and memory extraction once the conversation has gone quiet. Never fails the answer."""
+    from .. import jobs, memory
+
+    try:
+        if _needs_summary(conv):
+            jobs.enqueue(db, "summarise_conversation", {"conversation_id": conv.id}, dedupe_key=f"summary:{conv.id}")
+        if memory.enabled():
+            memory.schedule_extraction(db, conv)
+    except Exception:  # noqa: BLE001
+        log.exception("could not queue background work for conversation %s", conv.id)
         db.rollback()
+
+
+def summarise_job(db, payload: dict) -> dict:
+    """Long threads: once more than COMPACT_AFTER messages exist since the last summary, summarise all but the last
+    KEEP_RECENT of them into conversations.summary (Haiku). Runs as a background job."""
+    conv = db.get(m.Conversation, int(payload.get("conversation_id") or 0))
+    if conv is None or not _needs_summary(conv):
+        return {"skipped": True}
+    since = [x for x in conv.messages if not conv.summary_upto_message_id or x.id > conv.summary_upto_message_id]
+    older = since[:-KEEP_RECENT]
+    from ..agent.engine import summarise
+
+    with ai_usage.ai_context(user=conv.user_email, workspace_id=conv.workspace_id, conversation_id=conv.id):
+        conv.summary = summarise([{"role": x.role, "content": x.content} for x in older], conv.summary)
+    conv.summary_upto_message_id = older[-1].id
+    return {"summarised_upto": older[-1].id}
 
 
 READ_ONLY_NOTE = ("I can read and explain this dashboard, but I can't create or change dashboards from here. "
@@ -269,7 +287,7 @@ def _run_scoped(db, cat, spec: QuerySpec, user, today, scope: AnswerScope | None
 
 
 def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: AnswerScope | None = None,
-            on_event=None) -> dict:
+            on_event=None, conv_id: int | None = None, msg_id: int | None = None) -> dict:
     if not cat.datasets:
         return {"type": "clarify", "text": "This workspace has no data yet. Import a file or connect a database first.", "engine": "semantic"}
     values = value_index(cat)
@@ -277,6 +295,16 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
 
     if claude.enabled() and engine in ("auto", "llm"):
         interp = interpret(question, cat, vocab, prev)  # cheap: intent detection + routing hints
+        settings = get_settings()
+        memory_turn = (scope is not None and settings.assistant_agent_loop and settings.assistant_memory
+                       and _is_explicit(question))
+        if memory_turn:   # "remember ...": the agent saves it (and answers any data part)
+            try:
+                return _run_agent(db, ws, cat, user, question, history, today, interp, scope, on_event, conv_id, msg_id)
+            except claude.ClaudeUnavailable as e:
+                return {"type": "clarify", "engine": "semantic",
+                        "text": f"The AI model is unavailable right now ({str(e)[:120]}), so nothing was saved. "
+                                "Try again later, or add it on the Memory page."}
         if interp.kind in ("chitchat", "help"):
             return {"type": "help", "engine": "semantic", "text": "Ask me about your data, for example:" if interp.kind == "help"
                     else "Hi! Ask me a question about your data.", "suggestions": suggest_questions(cat)}
@@ -286,7 +314,7 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
             return _make_dashboard(db, ws, cat, user, interp, today)
         try:
             if scope is not None and get_settings().assistant_agent_loop:
-                return _run_agent(db, ws, cat, user, question, history, today, interp, scope, on_event)
+                return _run_agent(db, ws, cat, user, question, history, today, interp, scope, on_event, conv_id, msg_id)
             return _run_claude(db, cat, user, question, history, values, today, interp, scope)
         except claude.ClaudeUnavailable as e:
             log.warning("Claude unavailable, answering offline: %s", e)
@@ -325,8 +353,16 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
     return _run_llm(db, cat, user, question, history, values, today, fallback=interp)
 
 
-def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretation, scope: AnswerScope, on_event) -> dict:
-    """Phase 2: several tool steps per answer (services/agent/engine.py)."""
+def _is_explicit(question: str) -> bool:
+    from .. import memory
+
+    return memory.is_explicit(question)
+
+
+def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretation, scope: AnswerScope, on_event,
+               conv_id: int | None = None, msg_id: int | None = None) -> dict:
+    """Phase 2: several tool steps per answer (services/agent/engine.py). Phase 4: with what it remembers."""
+    from .. import memory
     from ..agent import engine, tools
     from .parser import _bases
 
@@ -334,13 +370,27 @@ def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretati
     r = claude.route(question, measures=len(hint.measures) if hint else 0, dimensions=len(hint.dimensions) if hint else 0,
                      datasets=len(_bases(cat, hint.measures)) if hint else 0)
     dash = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=scope.dashboard_key).one_or_none() if scope.dashboard_key else None
-    ctx = tools.ToolContext(db=db, ws=ws, cat=cat, user=user, today=today, scope=scope, dashboard=dash)
+    memory_on = get_settings().assistant_memory
+    ctx = tools.ToolContext(db=db, ws=ws, cat=cat, user=user, today=today, scope=scope, dashboard=dash,
+                            memory_on=memory_on, explicit=memory_on and memory.is_explicit(question),
+                            conversation_id=conv_id, message_id=msg_id, question=question)
+    remembered: list = []
+    memory_text = ""
+    if memory_on:
+        remembered = memory.retrieve(db, ws, user, scope.dashboard_key, question, cat)
+        memory_text = memory.prompt_block(remembered, memory.profile_text(db, ws, user), user)
     try:
-        return engine.run(ctx, question, history, r, on_event)
+        out = engine.run(ctx, question, history, r, on_event, memory_text=memory_text)
     except claude.ClaudeError as e:
         return {"type": "error", "engine": "claude", "model": r.model, "model_label": claude.label(r.model),
                 "routing": r.reasons, "escalated": r.escalated,
                 "text": f"I couldn't finish that answer ({e}). Try rephrasing, or ask about one number at a time."}
+    if memory_on:
+        seen = remembered + [x for x in ctx.found if x not in remembered]
+        out["memories_used"] = [memory.brief(x) for x in memory.mark_used(db, seen, out.get("text", ""))]
+        out["memories_saved"] = [memory.brief(x) for x in ctx.saved]
+        out["memories_considered"] = len(remembered)
+    return out
 
 
 def _run_claude(db, cat, user, question, history, values, today, interp: Interpretation,

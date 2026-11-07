@@ -1,0 +1,93 @@
+# Phase 4 eval set: memory stories on workspace 34. Each story runs several steps in separate conversations (as if on
+# different days) and checks that the assistant saves what it is told to, uses what it remembers where it fits, keeps a
+# dashboard's memories on that dashboard, ignores retired and rejected ones, and recalls decisions with their reasons.
+# Stories need Claude: run with --live (and EVAL_LIVE_OK=1 after the owner's OK). Everything a story creates is
+# deleted afterwards. Pass mark (docs/AI_ASSISTANTS_PLAN.md): every story passes.
+
+- id: mem-save-and-apply-last-year
+  story:
+    - dashboard: sales-channels
+      question: "Remember that I always compare sales with the same period last year, not with the previous period."
+      name: last_year
+      expect_saved: {status: active, kind: preference}
+      check_invented: false
+    - dashboard: executive-overview
+      question: "How are net sales doing this financial year?"
+      expect_used: [last_year]
+      expect_last_year: "2025-04"
+      must_mention: [[last year, previous year, same period, 2025-26, fy 25-26, fy 2025-26]]
+
+- id: mem-decision-recalled-elsewhere
+  story:
+    - remember:
+        - name: partner_stock
+          text: "Stop sending more stock to partner warehouses until their sell-through improves"
+          kind: decision
+          scope: global
+          rationale: "Partner stock was sitting unsold for months while D2C ran short"
+    - dashboard: days-of-cover
+      question: "Should we move more stock to the partner warehouses?"
+      expect_used: [partner_stock]
+      must_mention: [[decided, decision], [sell-through, unsold, sitting, sold]]
+      check_invented: false
+
+- id: mem-dashboard-scope-stays-on-its-dashboard
+  story:
+    - remember:
+        - name: sales_only
+          text: "On the Sales & channels dashboard, list marketplaces before own channels"
+          kind: preference
+          scope: "dashboard:sales-channels"
+    - dashboard: fulfilment
+      question: "Which courier had the most late shipments?"
+      expect_not_used: [sales_only]
+      must_not_mention: [marketplaces before]
+
+- id: mem-retired-is-not-used
+  story:
+    - remember:
+        - name: lakhs_old
+          text: "Show every amount in thousands, never in lakhs or crores"
+          kind: preference
+          scope: global
+          status: retired
+    - dashboard: executive-overview
+      question: "What were net sales this financial year?"
+      expect_not_used: [lakhs_old]
+      must_not_mention: [thousand]
+
+- id: mem-rejected-suggestion-is-not-used
+  story:
+    - dashboard: sales-channels
+      question: "These days I only look at Amazon. What were net sales last month?"
+      reject_proposals: true
+    - dashboard: sales-channels
+      question: "What were net sales last month across all channels?"
+      must_not_mention: ["only look at amazon", "as you prefer", "(memory #"]
+
+- id: mem-what-did-i-decide
+  story:
+    - remember:
+        - name: rto_courier
+          text: "Move COD orders in the North off the courier with the highest RTO rate"
+          kind: decision
+          scope: "dashboard:fulfilment"
+          rationale: "RTO there cost more than the courier's lower rate saved"
+    - dashboard: fulfilment
+      question: "What did I decide about couriers and RTO?"
+      expect_used: [rto_courier]
+      must_mention: [[cod, cash-on-delivery, cash on delivery], [north]]
+      check_invented: false
+
+- id: mem-team-fact-explains-a-term
+  story:
+    - remember:
+        - name: dfal
+          text: "DFAL is the code for the Delhi fulfilment warehouse"
+          kind: fact
+          scope: global
+    - dashboard: stock
+      question: "What does DFAL mean?"
+      check_invented: false
+      expect_used: [dfal]
+      must_mention: [[delhi]]

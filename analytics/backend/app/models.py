@@ -241,6 +241,7 @@ class Conversation(Base):
     dashboard_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
     summary: Mapped[str] = mapped_column(Text, default="")  # compacted older turns
     summary_upto_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    memory_scanned_upto_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Phase 4 extraction
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
@@ -365,3 +366,72 @@ class AuditEvent(Base):
     target: Mapped[str] = mapped_column(String(300), default="")
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
     ip: Mapped[str] = mapped_column(String(64), default="")
+
+
+class Memory(Base):
+    """What an assistant remembers (Phase 4). Three layers:
+      * personal: one person's preferences and facts; only they see it (owner_email);
+      * shared:   a business fact for everyone in the workspace, approved by a workspace admin;
+      * decision: a decision with its reason and date; private to its owner unless they mark it shared.
+    Learned memories are proposals until the person accepts them; an explicit "remember ..." is saved at once."""
+    __tablename__ = "memories"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    layer: Mapped[str] = mapped_column(String(20))          # personal | shared | decision
+    kind: Mapped[str] = mapped_column(String(20))           # preference | fact | decision | caveat | open_question
+    scope: Mapped[str] = mapped_column(String(120), default="global")  # global | dashboard:<key> | domain:<name>
+    owner_email: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)  # who it belongs to
+    visibility: Mapped[str] = mapped_column(String(10), default="private")  # decisions: private | shared
+    text: Mapped[str] = mapped_column(Text)
+    rationale: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="proposed", index=True)
+    # proposed | active | rejected | retired | needs_review
+    review_reason: Mapped[str] = mapped_column(Text, default="")
+    origin: Mapped[str] = mapped_column(String(20), default="manual")  # explicit | inferred | manual
+    share_status: Mapped[str] = mapped_column(String(20), default="none")  # none | pending | approved | rejected
+    source_conversation_id: Mapped[int | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True)
+    source_message_id: Mapped[int | None] = mapped_column(ForeignKey("messages.id", ondelete="SET NULL"), nullable=True)
+    source_excerpt: Mapped[str] = mapped_column(Text, default="")   # the words it came from (kept if the chat is deleted)
+    depends_on: Mapped[list] = mapped_column(JSON, default=list)  # [{type: metric|issue, name, fingerprint}]
+    supersedes_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(200))
+    approved_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    use_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class UserProfile(Base):
+    """A short "how this person works" note per user and workspace, rewritten from their memories; they can edit it."""
+    __tablename__ = "user_profiles"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_email"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    user_email: Mapped[str] = mapped_column(String(200))
+    text: Mapped[str] = mapped_column(Text, default="")
+    sources: Mapped[list] = mapped_column(JSON, default=list)   # memory ids it was written from
+    version: Mapped[int] = mapped_column(Integer, default=0)
+    edited_by_user: Mapped[bool] = mapped_column(Boolean, default=False)
+    approvals_since: Mapped[int] = mapped_column(Integer, default=0)  # memories approved since the last rewrite
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Job(Base):
+    """Background work kept in the database (memory extraction, profile rewrites, conversation summaries): it survives
+    restarts, is retried with back-off, and several workers can share the queue (rows are claimed with SKIP LOCKED)."""
+    __tablename__ = "jobs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    dedupe_key: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="queued", index=True)  # queued | running | done | failed
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    run_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -17,6 +17,9 @@ DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|"
                    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
                    r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
 
+# references, not values: "(memory #12)", "#3"
+REFS = re.compile(r"#\s*\d+(?!\d)")
+
 
 @dataclass
 class Num:
@@ -84,7 +87,7 @@ def result_numbers(columns: list[dict], rows: list[list]) -> list[float]:
 def ungrounded(text: str, allowed: list[float]) -> list[str]:
     """Number tokens in `text` that match none of the allowed values (dates and small counts are skipped)."""
     bad = []
-    for n in number_tokens(DATES.sub(" ", text or "")):
+    for n in number_tokens(REFS.sub(" ", DATES.sub(" ", text or ""))):
         if all(v == int(v) and 0 <= v <= 12 for v in n.values):
             continue  # small counts and ranks ("top 5", "2 channels") are words more than data
         if not any(matches(n, a) for a in allowed):

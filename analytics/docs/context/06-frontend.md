@@ -21,6 +21,7 @@
 | `ask`, `ask/:convId` | AskPage | Ask AI chat. Engine dropdown (Claude auto-routed / Semantic engine), model badge with "(escalated)", routing reason, a "governed metrics" vs "validated SQL" tag, and SQL, data and insights tabs |
 | `lineage` | LineagePage | Source → dataset → query table → report/dashboard |
 | `history` | HistoryPage | Query history |
+| `memory` | MemoryPage | Phase 4 (shown when `/api/me` reports `memory`, `agent_loop` and `dashboard_chat`): tabs Remembered / Suggestions / Needs review / Retired / Team facts to approve (admins); search and filters by layer and dashboard; add a memory (decisions with "why", facts can be suggested to the team); edit, retire, restore, share, keep, delete; the acceptance rate of learned suggestions; the profile card (edit, rewrite from memories) |
 | `settings` | SettingsPage | User switcher (sets `X-User-Email`), members, Claude card showing the provider and models |
 
 ## Shared pieces
@@ -31,6 +32,7 @@
 - **Sign-in:** any 401 sends the browser to `/api/auth/login?next=<this page>` (`api/client.ts`). `components/UserMenu.tsx` (sidebar and home page) shows who is signed in, Sign out (google mode) and an Administration link for platform admins. `/admin` -> `pages/AdminPage.tsx`: Users (switch on/off, make admin), API tokens (create once-shown tokens, revoke), Audit log (filter by action or email). Workspace Settings gets `components/AccessRulesCard.tsx` for admins; the "Local user" switcher shows only in dev mode.
 - **`components/ChatMessage.tsx`:** one chat message (question, or answer with chart, assumptions, engine/model badge and thumbs up/down). Shared by AskPage and the dashboard chat.
 - **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback. With `features.agent_loop` it uses the streaming endpoint (`api.stream`) and shows each step live; answers carry a collapsible "How I worked this out" list (`StepList`) with each step's query.
+- **`components/MemoryNotes.tsx` (Phase 4):** `MemoryChips` under an answer ("Saved to memory" with Undo, "Suggested for memory", "Remembered: #12 ..."), `ProposalCard` ("Remember this?" with Remember / Edit / No). The dashboard panel shows up to 3 suggestions at the top and a Memory link in its header.
 - **`components/ui.tsx`:** Button, Empty, toast and similar primitives.
 - **`lib/format.ts`:** number, currency and percent formatting. The INR format uses lakh/crore grouping.
 

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, History, MessageSquarePlus, Send, Target, Trash2, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bot, Brain, History, MessageSquarePlus, Send, Target, Trash2, X } from "lucide-react";
 import { api, DashFilter, Dashboard, Widget } from "../api/client";
 import { timeAgo } from "../lib/format";
 import { Answer, ChatMessage, Msg, Step, StepList } from "./ChatMessage";
+import { MemoryItem, ProposalCard } from "./MemoryNotes";
 import { cx, Spinner, useAsync, useToast } from "./ui";
 
 export interface DrillState { [widgetId: number]: { field: string; value: any }[] }
@@ -12,12 +14,16 @@ interface Thread { id: number; title: string; updated_at: string; message_count:
 const STARTERS = ["What does this dashboard show?", "What stands out on this dashboard?", "Which caveats should I keep in mind here?"];
 
 /** The dashboard's own assistant: it already knows the dashboard and what is on screen, so questions need no context. */
-export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose, streaming = false }:
+export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose, streaming = false, memory = false }:
   { wsId: number; base: string; dash: Dashboard; filters: DashFilter[]; drill: DrillState; focus: Widget | null;
-    onClearFocus: () => void; onClose: () => void; streaming?: boolean }) {
+    onClearFocus: () => void; onClose: () => void; streaming?: boolean; memory?: boolean }) {
   const toast = useToast();
   const root = `/workspaces/${wsId}/dashboards/key/${encodeURIComponent(dash.key)}/assistant`;
   const threads = useAsync(() => api.get<Thread[]>(`${root}/conversations`), [root]);
+  // Phase 4: "Remember this?" suggestions learned from past conversations (and from this one)
+  const proposals = useAsync(() => (memory
+    ? api.get<MemoryItem[]>(`/workspaces/${wsId}/memory/proposals?dashboard_key=${encodeURIComponent(dash.key)}`)
+    : Promise.resolve([] as MemoryItem[])), [wsId, dash.key, memory]);
   const [conv, setConv] = useState<number | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -61,6 +67,7 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
       setMsgs((m) => [...m, { id: a.message_id, role: "assistant", content: a.text, payload: a }]);
       if (a.conversation_id && a.conversation_id !== conv) setConv(a.conversation_id);
       threads.reload();
+      if (a.memories_saved?.some((x) => x.status === "proposed")) proposals.reload();
     };
     try {
       if (streaming) {
@@ -107,6 +114,7 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
           <div className="truncate text-sm font-semibold text-slate-800">Ask about {dash.name}</div>
           <div className="text-[11px] text-slate-400">Knows this dashboard and what you're looking at</div>
         </div>
+        {memory && <Link to={`${base}/memory`} title="What the assistant remembers" aria-label="Memory" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Brain className="h-4 w-4" /></Link>}
         <button onClick={() => setShowThreads(!showThreads)} title="Past conversations" aria-label="Past conversations"
           className={cx("rounded p-1 hover:bg-slate-100", showThreads ? "text-brand-600" : "text-slate-500")}><History className="h-4 w-4" /></button>
         <button onClick={fresh} title="New conversation" aria-label="New conversation" className="rounded p-1 text-slate-500 hover:bg-slate-100"><MessageSquarePlus className="h-4 w-4" /></button>
@@ -130,6 +138,12 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        {memory && (proposals.data || []).length > 0 && (
+          <div className="mb-3 flex flex-col gap-2">
+            {(proposals.data || []).slice(0, 3).map((p) => <ProposalCard key={p.id} wsId={wsId} item={p} onDone={proposals.reload} />)}
+            {(proposals.data || []).length > 3 && <Link to={`${base}/memory`} className="text-center text-[11px] text-violet-700 hover:underline">{(proposals.data || []).length - 3} more suggestions on the Memory page</Link>}
+          </div>
+        )}
         {msgs.length === 0 && !busy && (
           <div className="py-6 text-center">
             <p className="mx-auto max-w-xs text-sm text-slate-500">Ask anything about this dashboard. Answers use its metric definitions and the filters you have set, and show the query behind them.</p>
