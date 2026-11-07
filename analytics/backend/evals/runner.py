@@ -312,8 +312,128 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
     return r
 
 
+# ----------------------------------------------------------------------------------------------- memory stories
+# A story (Phase 4) is several steps, each in a NEW conversation unless it says same_conversation: true:
+#
+#   - id: mem-last-year
+#     story:
+#       - remember: [{name: pref, text: "...", kind: preference, scope: global}]   # set up memories (status: retired
+#                                                                                   #  to set one up already retired)
+#       - dashboard: sales-channels
+#         question: Remember that I compare with the same period last year
+#         name: pref                       # the memory this answer saves is called `pref` in later steps
+#         expect_saved: {status: active, kind: preference}
+#         reject_proposals: true           # reject what this answer offered to remember (a "No" on the card)
+#       - dashboard: executive-overview
+#         question: How are net sales this financial year?
+#         expect_used: [pref]              # the answer cites these memories
+#         expect_not_used: [other]
+#         expect_last_year: "2025-04"      # a step compared with last year (compare=previous_year, or a range from here)
+#         must_mention: [[last year, previous year]]
+#
+# Everything a story creates (memories, conversations) is deleted afterwards. Stories need Claude (--live).
+
+def _step_specs(answer: dict) -> list[dict]:
+    out = []
+    for s in answer.get("steps") or []:
+        spec = s.get("spec") or ((s.get("input") or {}).get("spec") if isinstance(s.get("input"), dict) else None)
+        if isinstance(spec, dict):
+            out.append(spec)
+    if isinstance(answer.get("spec"), dict):
+        out.append(answer["spec"])
+    return out
+
+
+def _compared_last_year(answer: dict, prefix: str) -> bool:
+    for spec in _step_specs(answer):
+        if spec.get("compare") == "previous_year":
+            return True
+        tr = spec.get("time_range")
+        if isinstance(tr, dict) and str(tr.get("from") or "").startswith(str(prefix)):
+            return True
+    return False
+
+
+def run_story(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
+    r = CaseResult(id=case["id"], passed=True)
+    names: dict[str, int] = {}
+    made: list[int] = []
+    convs: list[int] = []
+    root = f"/api/workspaces/{ws}"
+    try:
+        for i, step in enumerate(case["story"], 1):
+            tag = f"step {i}"
+            for mm in step.get("remember") or []:
+                body = {k: mm[k] for k in ("text", "kind", "scope", "rationale", "visibility") if k in mm}
+                x = t.post(f"{root}/memory", body)
+                made.append(x["id"])
+                if mm.get("name"):
+                    names[mm["name"]] = x["id"]
+                if mm.get("status") == "retired":
+                    t.post(f"{root}/memory/{x['id']}/retire", {})
+            if not step.get("question"):
+                continue
+            body = {"question": step["question"], "engine": engine, "screen_state": step.get("screen_state") or {},
+                    "conversation_id": convs[-1] if step.get("same_conversation") and convs else None}
+            answer = t.post(f"{root}/dashboards/key/{urllib.parse.quote(step['dashboard'])}/assistant/ask", body)
+            if answer.get("conversation_id") and answer["conversation_id"] not in convs:
+                convs.append(answer["conversation_id"])
+            r.cost_inr += float((answer.get("usage") or {}).get("cost_inr") or 0)
+            r.engine, r.model = answer.get("engine"), answer.get("model")
+            r.answer = (answer.get("text") or "")[:500]
+            saved = answer.get("memories_saved") or []
+            made += [x["id"] for x in saved if x["id"] not in made]
+            if step.get("name") and saved:
+                names[step["name"]] = saved[0]["id"]
+            used = {x["id"] for x in answer.get("memories_used") or []}
+            want = step.get("expect_saved")
+            if want and not any(all(x.get(k) == v for k, v in want.items()) for x in saved):
+                r.problems.append(f"{tag}: nothing saved like {want} (saved: {[(x['status'], x['kind']) for x in saved]})")
+            for n in step.get("expect_used") or []:
+                if names.get(n) not in used:
+                    r.problems.append(f"{tag}: did not use memory '{n}'")
+            for n in step.get("expect_not_used") or []:
+                if names.get(n) in used:
+                    r.problems.append(f"{tag}: used memory '{n}', which it must not")
+            if step.get("expect_last_year") and not _compared_last_year(answer, step["expect_last_year"]):
+                r.problems.append(f"{tag}: no step compared with last year")
+            if step.get("reject_proposals"):
+                for p in t.get(f"{root}/memory/proposals"):
+                    if p["source"].get("conversation_id") == answer.get("conversation_id"):
+                        t.post(f"{root}/memory/{p['id']}/reject", {})
+            checked = score({"id": case["id"], "question": step["question"], "must_mention": step.get("must_mention"),
+                             "must_not_mention": step.get("must_not_mention"),
+                             "check_invented": step.get("check_invented", True)}, answer, None,
+                            screen_numbers(t, ws, {"dashboard": step["dashboard"], "screen_state": step.get("screen_state")}))
+            r.problems += [f"{tag}: {p}" for p in checked.problems]
+    except EvalError as e:
+        r.problems.append(str(e))
+    finally:
+        for mid in made:          # leave the owner's memory and chat lists as they were
+            try:
+                t.delete(f"{root}/memory/{mid}")
+            except EvalError:
+                pass
+        for cid in convs:
+            try:
+                t.delete(f"{root}/conversations/{cid}")
+            except EvalError:
+                pass
+    r.passed = not r.problems
+    return r
+
+
 def run_set(t: Transport, ws: int, cases: list[dict], engine: str = "semantic") -> list[CaseResult]:
-    return [run_case(t, ws, c, engine) for c in cases]
+    out = []
+    for c in cases:
+        if c.get("story"):
+            started = time.monotonic()
+            res = run_story(t, ws, c, engine)
+            res.seconds = round(time.monotonic() - started, 2)
+            out.append(res)
+        else:
+            out.append(run_case(t, ws, c, engine))
+    return out
 
 
 def summary(results: list[CaseResult]) -> dict:

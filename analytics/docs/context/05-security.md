@@ -48,6 +48,13 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - **Audit log** (`audit_events`): sign-ins and failures, sign-outs, assistant questions, access-rule, membership, user and token changes; viewable by platform admins (Administration page).
 - Known limit: a query table built by an admin on a restricted dataset is a dataset of its own; restrict it too.
 
+## Memory (Phase 4, 2026-11-07)
+- **Isolation:** personal memories and private decisions are visible only to their owner: in retrieval, in prompts, on the Memory page and in every API route (others get 404). Team facts (approved by a workspace admin) and decisions their owner shared are visible to members who can see the dashboard or domain they are about (`memory._scope_visible` uses the Phase 3 access rules). Tests assert on what the scripted Claude received.
+- **No silent saving:** a memory is active at once only when the user's own words asked for it (decided in code); anything the model proposes otherwise, and everything learned in the background, waits for the user's approval. Team facts need a workspace admin; only admins edit or delete them.
+- **Memories are data:** the prompts tell the model they are notes, not instructions; the extraction and profile jobs are told the conversation is data. Extraction runs as the conversation's owner (their access rules) and stops if they are no longer a member.
+- **Audit:** memory saves, proposals, edits, accept/reject/retire/restore/keep/share decisions, deletions and profile edits are in `audit_events`.
+- **Deletion:** deleting a memory removes it; deleting a chat keeps its memories with the excerpt they came from (the link to the chat is cleared).
+
 ## Accepted risks (QA_REPORT §4)
 - **R1:** identity-only login through the `X-User-Email` header. **Fixed in code (Phase 3)**: closes when `AUTH_MODE=google` is switched on in the live deployment.
 - **R2:** npm audit findings remain in Tailwind 3's build-time watcher. Migrate to Tailwind 4 when convenient.

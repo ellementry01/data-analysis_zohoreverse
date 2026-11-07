@@ -15,6 +15,7 @@ import DashboardView from "./pages/DashboardView";
 import AskPage from "./pages/AskPage";
 import LineagePage from "./pages/LineagePage";
 import HistoryPage from "./pages/HistoryPage";
+import MemoryPage from "./pages/MemoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminPage from "./pages/AdminPage";
 
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="lineage" element={<LineagePage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="memory" element={<MemoryPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

@@ -42,12 +42,45 @@ def run_due_schedules() -> int:
     return ran
 
 
+def run_jobs() -> int:
+    from . import jobs
+
+    try:
+        return jobs.run_pending()
+    except Exception:  # noqa: BLE001  (keep the scheduler alive)
+        log.exception("background jobs failed")
+        return 0
+
+
+def queue_memory_upkeep() -> None:
+    """Hourly: re-check memories whose metrics changed; weekly profile rewrites (Phase 4, only with memory on)."""
+    from ..config import get_settings
+    from . import jobs, memory
+
+    if not get_settings().assistant_memory:
+        return
+    get_engine()
+    db = SessionLocal()
+    try:
+        jobs.enqueue(db, "refresh_staleness", {}, dedupe_key="staleness")
+        memory.enqueue_due_profiles(db)
+    except Exception:  # noqa: BLE001
+        log.exception("could not queue memory upkeep")
+    finally:
+        db.close()
+
+
 def start() -> None:
+    from ..config import get_settings
+
     global _scheduler
     if _scheduler:
         return
     _scheduler = BackgroundScheduler(daemon=True)
     _scheduler.add_job(run_due_schedules, "interval", minutes=1, id="sync", max_instances=1, coalesce=True)
+    if get_settings().enable_worker:
+        _scheduler.add_job(run_jobs, "interval", seconds=30, id="jobs", max_instances=1, coalesce=True)
+    _scheduler.add_job(queue_memory_upkeep, "interval", hours=1, id="memory_upkeep", max_instances=1, coalesce=True)
     _scheduler.start()
 
 

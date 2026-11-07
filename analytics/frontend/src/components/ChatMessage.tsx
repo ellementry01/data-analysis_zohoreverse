@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, Bot, Check, ChevronDown, ChevronRight, Info, LayoutDashboard, PencilRuler, ThumbsDown, ThumbsUp, User, X } from "lucide-react";
 import { QueryResult } from "../api/client";
+import { MemoryBrief, MemoryChips } from "./MemoryNotes";
 import { ResultPanel } from "./ResultPanel";
 import { Badge, cx } from "./ui";
 
@@ -11,6 +12,7 @@ export interface Answer extends Partial<QueryResult> {
   engine?: string; dashboard_id?: number; conversation_id?: number; message_id?: number;
   model?: string; model_label?: string; routing?: string[]; escalated?: boolean;
   steps?: Step[]; warnings?: string[]; seconds?: number;
+  memories_saved?: MemoryBrief[]; memories_used?: MemoryBrief[]; memories_considered?: number;
 }
 export interface Step { n: number; tool: string; label: string; ok?: boolean; error?: string | null; row_count?: number | null; sql?: string | null; notes?: string[] }
 export interface Msg { id?: number; role: "user" | "assistant"; content: string; payload?: Answer; feedback?: "up" | "down" | null }
@@ -51,6 +53,7 @@ export function ChatMessage({ m, onAsk, wsId, base, compact = false, onFeedback 
             <div className="mt-2 flex flex-wrap gap-1.5">{p.suggestions.map((s) => <button key={s} onClick={() => onAsk(s)} className="rounded-full border border-brand-200 bg-white px-2.5 py-0.5 text-xs text-brand-700 hover:bg-brand-50">{s}</button>)}</div>
           )}
         </div>
+        <MemoryChips wsId={wsId} saved={p.memories_saved} used={p.memories_used} />
         {p.steps && p.steps.length > 0 && <StepList steps={p.steps} seconds={p.seconds} />}
         {hasData && (
           <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-card">

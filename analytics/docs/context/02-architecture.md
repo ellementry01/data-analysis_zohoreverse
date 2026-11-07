@@ -52,6 +52,8 @@ backend/
       ai_usage.py                  Claude cost ledger and spend caps
       auth.py, permissions.py      Google OIDC, sessions, API tokens; access rules (one check for people and assistant)
       audit.py                     audit log writer
+      memory.py                    assistant memory: save, visibility, retrieval, staleness, extraction/profile jobs (Phase 4)
+      jobs.py                      background job queue in the app database (Phase 4); app/worker.py runs it on its own
       agent/context.py             dashboard pack, screen state, filter inheritance (Phase 1)
       agent/tools.py, engine.py    read-only tools and the tool loop with limits and number check (Phase 2)
       agent/numbers.py             number finding/matching shared with the eval runner
@@ -62,7 +64,7 @@ backend/
   tests/                  pytest, real PostgreSQL DB ellementry_analytics_test (see 07)
 frontend/src/
   App.tsx (routes), api/client.ts, components/{Chart,ResultPanel,SpecBuilder,ui,ChatMessage,AssistantPanel,
-  UserMenu,AccessRulesCard}.tsx, pages/AdminPage.tsx,
+  UserMenu,AccessRulesCard,MemoryNotes}.tsx, pages/AdminPage.tsx, pages/MemoryPage.tsx,
   lib/format.ts, pages/*.tsx (see 06)
 ```
 
@@ -107,8 +109,19 @@ dashboard chat question + screen state (filters, drill, focused widget)
 ```
 Every Claude call goes through `claude._call` / `claude.call_with_tools`: model allow-list, spend caps, `ai_usage` ledger.
 
+## Memory (Phase 4; details in 04)
+```
+before an answer:  memories the asker may see (this dashboard, its domain, global) ranked by text match, kind,
+                   recency, use  -> up to 15 + their profile -> WHAT YOU REMEMBER block in the question turn
+during:            propose_memory (active if the USER's words asked, else a proposal), search_memory
+after (jobs):      thread summary when long; memory extraction once the chat has been quiet 30 min -> proposals
+                   -> user accepts/edits/rejects (panel cards, Memory page); profile rewrite after 10 approvals/weekly
+```
+
 ## Identity and access (Phase 3; details in 05)
 `AUTH_MODE=google`: session cookie from Google sign-in or `Authorization: Bearer` API token; `dev`: X-User-Email header (localhost only). The workspace role dependency records the acting user; `load_catalog`, `dataset_of`, dashboard lookups, lineage and the assistant tools apply access rules from it.
 
 ## Background jobs
 `scheduler.py` runs APScheduler in-process when `ENABLE_SCHEDULER=true`. It re-syncs connector datasets on `refresh_schedules`; workspace 34 has every dataset scheduled every 60 minutes. Prep transforms and calculated columns are replayed after every refresh or replace.
+
+Since Phase 4 it also works through the **job queue** (`services/jobs.py`, table `jobs`) every 30 seconds (unless `ENABLE_WORKER=false`): conversation summaries, memory extraction and profile rewrites run there, never in a request. A job is claimed with `SELECT ... FOR UPDATE SKIP LOCKED` (so a separate `python -m app.worker` process can share the queue), retried after 2, 4 ... minutes up to 3 attempts, then kept as `failed` with its error; a job left `running` by a dead process is picked up again after 10 minutes; finished jobs are deleted after 14 days. Hourly (memory on): the staleness check and due weekly profile rewrites are queued.

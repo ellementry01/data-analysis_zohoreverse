@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     today_override: str | None = None
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     enable_scheduler: bool = True
+    # The background job queue (services/jobs.py) runs inside the app's scheduler unless this is false (for example
+    # when a separate `python -m app.worker` process runs it).
+    enable_worker: bool = True
 
 
 @lru_cache
