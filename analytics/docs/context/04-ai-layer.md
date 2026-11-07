@@ -76,6 +76,7 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 - **Number check** (`agent/numbers.py`): every number in the final text must match a tool result (cells, labels, totals, shares; rounding and ₹ L/Cr/% aware), the question, the screen or the dashboard text. Otherwise one rewrite is requested; numbers still untraceable are listed in the answer's `warnings`.
 - **Payload:** `steps` (each tool call: label, ok/error, rows, spec, SQL, notes) and the last data result as the answer card; `tool_trace` is stored on the message.
 - **Streaming:** `POST /dashboards/key/{key}/assistant/ask/stream` sends `step`, `step_done`, `checking`, `escalated`, then `answer` or `error` as server-sent events; the panel shows each step live.
+- **Answers match the dashboard:** the prompt forbids adding filters to a governed metric (the first live run had RTO 8.1% with a website filter against the tile's 7.97%), and asks for plain text; `engine._plain` strips any markdown bold.
 - **Long threads:** past 12 messages since the last summary, all but the last 6 are summarised by Haiku into `conversations.summary` (`purpose = summary` in the ledger); the summary goes in the next user turn.
 
 ## Usage ledger and spend caps (`services/ai_usage.py`, 2026-11-07)

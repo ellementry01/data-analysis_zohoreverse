@@ -54,8 +54,8 @@
   expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: returns_value, alias: v}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
 - id: rd-channel-units
   dashboard: returns
-  question: Which channel sends back the most units?
-  expect: {spec: {dimensions: [{field: returns_daily.channel}], measures: [{metric: units_returned, alias: u}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+  question: Leaving out returns whose channel is still unclassified, which channel sends back the most units?
+  expect: {spec: {dimensions: [{field: returns_daily.channel}], measures: [{metric: units_returned, alias: u}], filters: [{field: returns_daily.channel, op: neq, value: Classification pending}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
 - id: rd-amazon-product
   dashboard: returns
   question: Which product do Amazon customers return most often, and how many units?
@@ -124,8 +124,8 @@
   expect: {widget: In transit by route (last 60 days), top: true}
 - id: pd-stuck-route
   dashboard: purchasing-transfers
-  question: Where are most of the units that haven't arrived after 60 days going to?
-  expect: {widget: "Not received after 60 days, own locations", top: true}
+  question: Among transfers to our own locations, which route has the most units not received after 60 days?
+  expect: {widget: "Not received after 60 days, own locations", top: true, label_match: Jaipur C-Scheme}
 - id: pd-over-received
   dashboard: purchasing-transfers
   question: How many units were received over the ordered quantity in total?

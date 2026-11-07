@@ -318,3 +318,24 @@ def test_dashboard_deep_set_is_well_formed():
     cases = load_set("dashboard_deep")
     assert len(cases) == 50 and set(Counter(c["dashboard"] for c in cases).values()) == {5}
     assert all(c.get("expect") for c in cases)
+
+
+def test_answers_are_plain_text(client, board, agent_on, fake_claude):
+    fake_claude(turn(tool_call("run_query", {"spec": NS})), "Net sales were **₹1,160** in __Aug-Sep__; 2*3 stays.")
+    out = ask(client, board, "net sales")
+    assert out["text"] == "Net sales were ₹1,160 in Aug-Sep; 2*3 stays."
+
+
+def test_prompt_says_dashboard_numbers_must_match():
+    assert "must match the dashboard" in engine.AGENT_PROMPT and "no markdown" in engine.AGENT_PROMPT
+
+
+def test_eval_checker_accepts_numbers_the_user_could_see():
+    from evals.runner import score
+
+    case = {"id": "c", "question": "q", "expect": {"top": True, "label_match": "C-Scheme"}}
+    ans = {"type": "answer", "text": "Most goes to the Jaipur C-Scheme route, 824 units; the tile shows ₹53.20 L.",
+           "columns": [{"name": "u", "role": "measure"}], "rows": [[824]]}
+    from evals.runner import Expected
+    assert score(case, ans, Expected(824.0, "Bagru to Jaipur C-Scheme Store")).problems == ["numbers not found in the data: 53.20 L"]
+    assert score(case, ans, Expected(824.0, "Bagru to Jaipur C-Scheme Store"), context=[5_320_000.0]).passed

@@ -36,6 +36,9 @@ How to work:
   breakdowns that explain it (by month, channel, location, category, courier...). Stop when the evidence answers the
   question; use as few calls as you can (at most 6). Independent calls can go in the same turn.
 - Prefer governed metrics in specs, and the dashboard's own widgets when the question is about one.
+- A number the dashboard already shows must match the dashboard: use the widget's own metric and filters (or
+  get_widget_data) and do not add filters of your own to a governed metric - its rules already restrict it (for
+  example rto_rate already counts only the channels that report RTO). Add a filter only when the user asks for one.
 - If the data can't answer the question, say what is missing instead of guessing.
 
 QuerySpec (JSON):
@@ -49,7 +52,7 @@ fields must be aliases you set. The data ends on the dates given in the dashboar
 explicit dates counted back from the latest data date.
 
 The final answer:
-- 2-5 plain sentences for a manager, no headings or lists, no SQL. Lead with the answer.
+- 2-5 plain sentences for a manager: no markdown (no bold, headings or lists), no SQL. Lead with the answer.
 - Quote numbers exactly as the tool results show them (already formatted: ₹ with L/Cr, %). Use the 'facts' totals and
   shares instead of adding or dividing yourself; never round, convert or compute.
 - Say which period and filters the numbers cover, and mention a caveat from the dashboard description or a tool
@@ -171,6 +174,7 @@ def run(ctx: T.ToolContext, question: str, history: list[dict], route: claude.Ro
             warnings.append(f"Some numbers in this answer could not be traced to the data: {', '.join(bad[:8])}.")
     if not final_text:
         raise claude.ClaudeError("The model gave no answer")
+    final_text = _plain(final_text)
 
     primary = next((s for s in reversed(steps) if s.get("ok") and s.get("columns")), None)
     payload = {"type": "answer", "engine": "claude", "model": r.model, "model_label": claude.label(r.model),
@@ -183,6 +187,13 @@ def run(ctx: T.ToolContext, question: str, history: list[dict], route: claude.Ro
         from ..analytics import suggest_chart
         payload["chart_type"] = suggest_chart(primary["columns"], primary["rows"])
     return payload
+
+
+def _plain(text: str) -> str:
+    """The chat shows plain text: drop markdown emphasis the model may still add."""
+    import re
+
+    return re.sub(r"(\*\*|__)(.+?)\1", r"\2", text)
 
 
 def _step_label(tool: str, args) -> str:

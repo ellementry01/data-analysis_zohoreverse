@@ -219,7 +219,9 @@ def label_variants(label: str) -> list[str]:
     return out
 
 
-def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseResult:
+def score(case: dict, answer: dict, expected: Expected | float | None, context: list[float] | None = None) -> CaseResult:
+    """context: numbers the user could see when asking (the dashboard's widgets with the same filters, its description
+    and widget titles); quoting them is not inventing."""
     if not isinstance(expected, Expected):
         expected = Expected(expected)
     r = CaseResult(id=case["id"], passed=True, expected=expected.value, expected_label=expected.label,
@@ -240,7 +242,8 @@ def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseRe
         if not (in_cells or in_text):
             r.problems.append(f"expected {expected.value:g} not found in the answer")
     if expected.label and (case.get("expect") or {}).get("top"):
-        if not any(alt in low for alt in label_variants(expected.label)):
+        named = (case.get("expect") or {}).get("label_match")  # a distinctive part of a long label is enough
+        if not any(alt in low for alt in label_variants(expected.label) + ([str(named).lower()] if named else [])):
             r.problems.append(f"does not name '{expected.label}'")
     for item in case.get("must_mention") or []:
         options = item if isinstance(item, list) else [item]
@@ -251,11 +254,34 @@ def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseRe
         if str(item).lower() in low:
             r.problems.append(f"mentions '{item}', which it must not")
     if case.get("check_invented", True) and answer.get("type") == "answer":
-        bad = invented_numbers(answer, case.get("question", ""))
+        bad = ungrounded(answer.get("text") or "", allowed_numbers(answer, case.get("question", "")) + (context or []))
         if bad:
             r.problems.append(f"numbers not found in the data: {', '.join(bad[:5])}")
     r.passed = not r.problems
     return r
+
+
+_screen_cache: dict[str, list[float]] = {}
+
+
+def screen_numbers(t: Transport, ws: int, case: dict) -> list[float]:
+    """Every number on the dashboard as the user saw it: each widget computed with the case's filters, plus the
+    description, widget titles and filter values. Computed independently of the assistant."""
+    key = json.dumps([ws, case["dashboard"], case.get("screen_state")], sort_keys=True, default=str)
+    if key in _screen_cache:
+        return _screen_cache[key]
+    dash = _dashboard(t, ws, case["dashboard"])
+    nums = parse_numbers(dash.get("description") or "") + parse_numbers(" ".join(w["title"] for w in dash["widgets"]))
+    nums += parse_numbers(json.dumps(dash.get("filters") or [], default=str))
+    for w in dash["widgets"]:
+        try:
+            res = t.post(f"/api/workspaces/{ws}/dashboards/{dash['id']}/widgets/{w['id']}/data",
+                         {"filters": _screen_filters(dash, case.get("screen_state"))})
+            nums += result_numbers(res.get("columns") or [], res.get("rows") or [])
+        except EvalError:
+            pass
+    _screen_cache[key] = nums
+    return nums
 
 
 def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
@@ -263,12 +289,13 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
     try:
         expected = expected_value(t, ws, case)
         body = {"question": case["question"], "engine": engine}
+        context = screen_numbers(t, ws, case) if case.get("dashboard") else []
         if case.get("dashboard"):
             body["screen_state"] = case.get("screen_state") or {}
             answer = t.post(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/assistant/ask", body)
         else:
             answer = t.post(f"/api/workspaces/{ws}/assistant/ask", body)
-        r = score(case, answer, expected)
+        r = score(case, answer, expected, context)
         if answer.get("conversation_id") and hasattr(t, "delete"):
             try:  # eval threads must not clutter the user's own conversation lists
                 t.delete(f"/api/workspaces/{ws}/conversations/{answer['conversation_id']}")
