@@ -187,7 +187,7 @@ Every phase follows the same cycle, and the next phase starts only after its exi
 **Goal.** Real sign-in and permissions, required before the COO or anyone else uses the assistants (personal memory is meaningless if identity can be changed in a header).
 
 **Steps**
-1. **Company sign-in (OIDC)** with Google Workspace or Microsoft 365 (owner to confirm which). Server-side sessions in an HTTP-only, secure cookie; sign-out; session expiry. `deps.current_user` reads the session; the `X-User-Email` header is accepted only when `AUTH_MODE=dev` (tests and local development), and the app refuses to start with `AUTH_MODE=dev` on a non-localhost bind.
+1. **Company sign-in (OIDC) with Google Workspace** (owner's decision, 2026-11-07), limited to the company's Google Workspace domain. Server-side sessions in an HTTP-only, secure cookie; sign-out; session expiry. `deps.current_user` reads the session; the `X-User-Email` header is accepted only when `AUTH_MODE=dev` (tests and local development), and the app refuses to start with `AUTH_MODE=dev` on a non-localhost bind.
 2. **Users and roles.** Table `users` (email, name, active, last login); workspace roles stay `viewer` / `editor` / `admin`. New `dashboard_access` (dashboard key or domain → role or user) so, for example, Finance dashboards are visible only to finance and management. A user removed or deactivated loses access at once.
 3. **One permission check for people and assistants.** `permissions.can_see(user, dashboard|dataset|metric)` used by the dashboard routes *and* every agent tool, so an assistant can never reach data its user can't.
 4. **Audit log.** Table `audit_events`: sign-ins, assistant questions (who, which scope, which tools), memory approvals, permission changes. Admin page to view it.
@@ -338,7 +338,7 @@ Expected answers are computed by SQL at run time from the app database, so the s
 
 ## 5. Open questions (do not block Phases 0–2)
 
-1. Company email on Google Workspace or Microsoft 365? (Phase 3 sign-in.)
+1. ~~Company email provider~~: **Google Workspace** (2026-11-07).
 2. Will the COO use their own device on the office network? (Phase 3 hosting.)
 3. Should the COO see the owner's decisions: none, only ones marked shared (default in this plan), or all?
 4. Who besides admins may approve shared business facts?
