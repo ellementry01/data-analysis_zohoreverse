@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..db import get_session
-from ..deps import current_user, editor, viewer
+from ..deps import admin, current_user, editor, viewer
 from ..serializers import dashboard_out, glossary_out, iso, metric_out, report_out, rule_out, widget_out
 from ..services.analytics import QueryExecutionError, QueryError, UnsafeSQLError, insights, run_spec, suggest_chart
 from ..services import dashboards as dash_svc
@@ -292,20 +292,7 @@ class WidgetRunIn(BaseModel):
     compare: str | None = None
 
 
-def apply_dashboard_filters(spec: QuerySpec, filters: list[dict]) -> QuerySpec:
-    spec = spec.model_copy(deep=True)
-    for f in filters:
-        v = f.get("value")
-        if v in (None, "", []) or v == {}:
-            continue
-        if f.get("type") == "date_range":
-            spec.time_range = v
-            if f.get("field") and f["field"] != "@time":
-                spec.time_field = f["field"]
-        elif f.get("type") == "values":
-            vals = v if isinstance(v, list) else [v]
-            spec.filters = [x for x in spec.filters if x.field != f["field"]] + [Filter(field=f["field"], op="in", value=vals)]
-    return spec
+apply_dashboard_filters = dash_svc.apply_dashboard_filters  # kept importable from here for older callers
 
 
 @router.post("/dashboards/{did}/widgets/{wid}/data")
@@ -653,8 +640,84 @@ def conversation(cid: int, ws: m.Workspace = Depends(viewer), db: Session = Depe
     c = db.get(m.Conversation, cid)
     if not c or c.workspace_id != ws.id or c.user_email != user:
         raise HTTPException(404, "Conversation not found")
-    return {"id": c.id, "title": c.title, "messages": [{"id": x.id, "role": x.role, "content": x.content, "payload": x.payload,
-                                                        "created_at": iso(x.created_at)} for x in c.messages]}
+    return {"id": c.id, "title": c.title, "scope_type": c.scope_type, "dashboard_key": c.dashboard_key,
+            "messages": [{"id": x.id, "role": x.role, "content": x.content, "payload": x.payload, "feedback": x.feedback,
+                          "created_at": iso(x.created_at)} for x in c.messages]}
+
+
+class FeedbackIn(BaseModel):
+    feedback: str | None = Field(default=None, pattern="^(up|down)$")
+    note: str = Field(default="", max_length=2000)
+
+
+@router.post("/conversations/{cid}/messages/{mid}/feedback")
+def message_feedback(cid: int, mid: int, body: FeedbackIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session),
+                     user: str = Depends(current_user)):
+    """Thumbs up / down on an assistant answer (null clears it). Only the thread's owner can rate it."""
+    c = db.get(m.Conversation, cid)
+    if not c or c.workspace_id != ws.id or c.user_email != user:
+        raise HTTPException(404, "Conversation not found")
+    msg = next((x for x in c.messages if x.id == mid and x.role == "assistant"), None)
+    if not msg:
+        raise HTTPException(404, "Answer not found")
+    msg.feedback, msg.feedback_note = body.feedback, body.note
+    db.commit()
+    return {"id": msg.id, "feedback": msg.feedback, "note": msg.feedback_note}
+
+
+# ----------------------------------------------------------------------------------------------- dashboard assistant
+
+class DashboardAskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    conversation_id: int | None = None
+    engine: str = Field("auto", pattern="^(auto|semantic|llm)$")
+    screen_state: dict = Field(default_factory=dict)
+
+
+def _dashboard_chat_on():
+    from ..config import get_settings
+
+    if not get_settings().assistant_dashboard_chat:
+        raise HTTPException(403, "The dashboard assistant is switched off (ASSISTANT_DASHBOARD_CHAT)")
+
+
+def _dashboard_by_key(db, ws, key) -> m.Dashboard:
+    d = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=key).one_or_none()
+    if not d:
+        raise HTTPException(404, "Dashboard not found")
+    return d
+
+
+# Until real sign-in exists (Phase 3 of docs/AI_ASSISTANTS_PLAN.md), only workspace admins can use the dashboard chat.
+@router.post("/dashboards/key/{key}/assistant/ask")
+def dashboard_ask(key: str, body: DashboardAskIn, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
+                  user: str = Depends(current_user)):
+    from ..services.agent import context as actx
+
+    _dashboard_chat_on()
+    d = _dashboard_by_key(db, ws, key)
+    try:
+        screen = actx.validate_screen(d, body.screen_state)
+    except actx.ScreenStateError as e:
+        raise HTTPException(400, str(e))
+    cat = load_catalog(db, ws)
+    scope = assistant.AnswerScope(scope_type="dashboard", dashboard_key=d.key,
+                                  prompt=actx.DASHBOARD_PROMPT + "\n\n" + actx.build_dashboard_pack(db, d, cat),
+                                  screen_text=actx.screen_summary(db, d, cat, screen, user), screen=screen,
+                                  screen_json=screen.as_json())
+    return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
+
+
+@router.get("/dashboards/key/{key}/assistant/conversations")
+def dashboard_conversations(key: str, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
+                            user: str = Depends(current_user)):
+    _dashboard_chat_on()
+    d = _dashboard_by_key(db, ws, key)
+    return [{"id": c.id, "title": c.title, "created_at": iso(c.created_at), "updated_at": iso(c.updated_at),
+             "message_count": len(c.messages)}
+            for c in db.query(m.Conversation).filter_by(workspace_id=ws.id, user_email=user, scope_type="dashboard",
+                                                        dashboard_key=d.key, archived=False)
+            .order_by(m.Conversation.updated_at.desc()).limit(50)]
 
 
 @router.delete("/conversations/{cid}", status_code=204)

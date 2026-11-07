@@ -42,7 +42,7 @@ docker compose ps
 | `AI_DAILY_LIMIT_USER_INR` / `AI_MONTHLY_LIMIT_INR` | 100 / 3000 | Spend caps in rupees (0 = off): per user per Indian calendar day, and for everyone per month. When reached, Claude is not called and the offline engine answers with a note. Placeholders until the owner sets the budget |
 | `USD_INR_RATE` | 88 | Converts the per-token prices (USD) into the rupee estimates in `ai_usage` |
 | `AI_PRICES_JSON` | unset | Overrides the built-in model prices in `services/ai_usage.py` (USD per million tokens) |
-| `ASSISTANT_DASHBOARD_CHAT`, `ASSISTANT_AGENT_LOOP`, `ASSISTANT_MEMORY`, `ASSISTANT_GLOBAL`, `ASSISTANT_SCHEDULED` | false | Assistant features, switched on phase by phase after each phase's sign-off (`docs/AI_ASSISTANTS_PLAN.md`); reported in `/api/me` |
+| `ASSISTANT_DASHBOARD_CHAT`, `ASSISTANT_AGENT_LOOP`, `ASSISTANT_MEMORY`, `ASSISTANT_GLOBAL`, `ASSISTANT_SCHEDULED` | false | Assistant features, switched on phase by phase (`docs/AI_ASSISTANTS_PLAN.md`); reported in `/api/me`. `ASSISTANT_DASHBOARD_CHAT=true` is set in `analytics/.env` since 2026-11-07 (admins only); a copy of the `.env` from before is in `backups/` |
 | `DEFAULT_USER` | `owner@local` | Identity when there is no `X-User-Email` header |
 | `TODAY_OVERRIDE` | unset | Pins "today", e.g. `2026-10-17`, for the tests and ground truth |
 | `ENABLE_SCHEDULER` | true | |
@@ -54,14 +54,15 @@ docker compose ps
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **438 passed** (2026-11-07), in about 2½ minutes. About 80 s of that is building the demo workspace once.
+- Current result: **465 passed** (2026-11-07), in about 3 minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)
   - `test_claude` (routing, escalation, safety and fallback, with a fake Anthropic client; it never calls the real API)
-  - `test_assistant_groundwork` (dashboard keys and the 0002 migration round trip, conversation scopes, the AI usage ledger and spend caps, feature flags, the test harness itself, the eval runner)
+  - `test_dashboard_chat` (Phase 1: access, the dashboard pack, screen-state validation, recomputed screen numbers, filter inheritance, threads, feedback, the eval runner on dashboards)
+- `test_assistant_groundwork` (dashboard keys and the 0002 migration round trip, conversation scopes, the AI usage ledger and spend caps, feature flags, the test harness itself, the eval runner)
 - **Scripted Claude for tests:** `tests/fakes.py` (`FakeMessages`, `turn`, `say`, `tool_call`) and the `fake_claude` fixture. It also enforces the rules: Haiku/Sonnet only, no `temperature`/`fallbacks`, no forced `tool_choice`, and the tool-loop contract (every `tool_use` answered by a `tool_result` in one user message). Use it for every new test that touches Claude.
-- **Evaluation sets:** `backend/evals/` (`python -m evals run <set>` from `backend/`, against the running app; needs `pyyaml` from `requirements-dev.txt`). Expected numbers come from SQL or a QuerySpec run at eval time. Without `--live` the free offline engine answers; `--live` uses Claude and refuses to start unless `EVAL_LIVE_OK=1` (owner's OK first). Sets live in `evals/sets/` (`sample.yaml` for now).
+- **Evaluation sets:** `backend/evals/` (`python -m evals run <set>` from `backend/`, against the running app; needs `pyyaml` from `requirements-dev.txt`). Expected numbers come from SQL or a QuerySpec run at eval time. Without `--live` the free offline engine answers; `--live` uses Claude and refuses to start unless `EVAL_LIVE_OK=1` (owner's OK first). Sets live in `evals/sets/`: `sample.yaml` and `dashboard_basic.yaml` (80 questions, 8 per dashboard; expected values from the dashboard's own widgets with the same filters). The runner checks the number, named labels, required mentions and that every number in an answer comes from its data, and deletes the threads it creates. The offline engine scored 15/80 on 2026-11-07 (it can't use dashboard context): that run only proves the wiring.
   - `test_safety`, `test_security_audit`, `test_hardening`, `test_analytics_units`
   - the end-to-end ground-truth test in `test_assistant`
 - In tests, import shared helpers with `from conftest import api, build_mini`; relative imports don't work.

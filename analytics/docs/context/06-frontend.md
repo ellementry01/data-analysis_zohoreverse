@@ -17,7 +17,7 @@
 | `sql` | SqlPage | SQL console and saved queries |
 | `semantic` | SemanticPage | Metrics, glossary, business rules |
 | `reports`, `reports/:reportId` | ReportsPage, ReportEditor | Shelf-based chart builder (`components/SpecBuilder.tsx`) |
-| `dashboards`, `dashboards/:dashId` | DashboardsPage, DashboardView | Grid dashboards, filters, drill-down, export |
+| `dashboards`, `dashboards/:dashId` | DashboardsPage, DashboardView | Grid dashboards, filters, drill-down, export. With the dashboard chat on (`/api/me` `features.dashboard_chat`, admins only for now): an **Ask** button opens `AssistantPanel` beside the grid (full screen on phones), and each widget gets an "Ask about this" button that focuses the question on it. The page sends filter values, drill-downs and the focused widget as `screen_state` |
 | `ask`, `ask/:convId` | AskPage | Ask AI chat. Engine dropdown (Claude auto-routed / Semantic engine), model badge with "(escalated)", routing reason, a "governed metrics" vs "validated SQL" tag, and SQL, data and insights tabs |
 | `lineage` | LineagePage | Source → dataset → query table → report/dashboard |
 | `history` | HistoryPage | Query history |
@@ -28,6 +28,8 @@
 - **`components/Chart.tsx`:** the ECharts renderer for kpi, line, area, bar, hbar, stacked, combo, pie, donut, scatter, heatmap, table and pivot. It escapes HTML in tooltips with `escapeHtml`.
   - `useEffect` bodies must be **block bodies**. An expression-bodied effect once returned a non-function and crashed with "r is not a function".
 - **`components/ResultPanel.tsx`:** chart, table, SQL, insights and exports (CSV/Excel/PNG).
+- **`components/ChatMessage.tsx`:** one chat message (question, or answer with chart, assumptions, engine/model badge and thumbs up/down). Shared by AskPage and the dashboard chat.
+- **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback.
 - **`components/ui.tsx`:** Button, Empty, toast and similar primitives.
 - **`lib/format.ts`:** number, currency and percent formatting. The INR format uses lakh/crore grouping.
 

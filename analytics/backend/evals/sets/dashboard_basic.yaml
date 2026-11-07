@@ -1,0 +1,346 @@
+# Phase 1 eval set: 8 questions on each of the 10 dashboards of workspace 34, asked in that dashboard's chat.
+# Expected numbers come from the dashboard's own widgets (same filters), computed when the set runs.
+# Pass mark (docs/AI_ASSISTANTS_PLAN.md): 90% correct numbers, no invented numbers, caveats mentioned where required.
+
+# ---------------------------------------------------------------- Executive overview (FY 26-27 to 15 Sep 2026)
+- id: ex-net-sales
+  dashboard: executive-overview
+  question: What are total net sales for this period?
+  expect: {widget: Net sales (all channels)}
+- id: ex-retail-bills
+  dashboard: executive-overview
+  question: How many retail bills were there?
+  expect: {widget: Retail bills}
+- id: ex-average-bill
+  dashboard: executive-overview
+  question: What is the average retail bill?
+  expect: {widget: Retail average bill}
+- id: ex-top-segment
+  dashboard: executive-overview
+  question: Which sales segment brought in the most net sales?
+  expect: {widget: Net sales by segment, top: true}
+- id: ex-top-retail-channel
+  dashboard: executive-overview
+  question: Which retail channel sells the most?
+  expect: {widget: Retail net sales by channel, top: true}
+- id: ex-top-product
+  dashboard: executive-overview
+  question: What is our best-selling retail product?
+  expect: {widget: Top 10 products (retail), top: true}
+- id: ex-rto-caveat
+  dashboard: executive-overview
+  question: Why does the RTO rate tile only cover the website?
+  must_mention: [[marketplace, marketplaces]]
+- id: ex-gst
+  dashboard: executive-overview
+  question: Do these sales figures include GST?
+  must_mention: [[exclud, excl, without gst, not include, don't include, do not include]]
+
+# ---------------------------------------------------------------- Sales & channels (all data)
+- id: sc-net-sales
+  dashboard: sales-channels
+  question: What are net sales over the whole period?
+  expect: {widget: Net sales}
+- id: sc-gross-sales
+  dashboard: sales-channels
+  question: How much did we invoice in total, before returns?
+  expect: {widget: Gross sales (invoices)}
+- id: sc-units-sold
+  dashboard: sales-channels
+  question: How many units were sold?
+  expect: {widget: Units sold}
+- id: sc-return-rate
+  dashboard: sales-channels
+  question: What is the return rate?
+  expect: {widget: Return rate (units)}
+- id: sc-top-category
+  dashboard: sales-channels
+  question: Which product category has the highest net sales?
+  expect: {widget: Net sales by category, top: true}
+- id: sc-top-store
+  dashboard: sales-channels
+  question: Which of our own stores sells the most?
+  expect: {widget: Own stores, top: true}
+- id: sc-segment-filter
+  dashboard: sales-channels
+  screen_state: {filters: [{id: segment, value: [Own stores]}]}
+  question: What are net sales here?
+  expect: {widget: Net sales}
+- id: sc-pending-meaning
+  dashboard: sales-channels
+  question: What does "B2B & partners (classification pending)" mean?
+  must_mention: [[partner list, classif, pending, confirm, not yet]]
+
+# ---------------------------------------------------------------- Returns (all data)
+- id: rt-value
+  dashboard: returns
+  question: What is the total value of returns?
+  expect: {widget: Returns value}
+- id: rt-units
+  dashboard: returns
+  question: How many units came back?
+  expect: {widget: Units returned}
+- id: rt-days
+  dashboard: returns
+  question: On average, how many days after the sale do returns come back?
+  expect: {widget: Avg days from sale to return}
+- id: rt-top-channel
+  dashboard: returns
+  question: Which channel has the most returns by value?
+  expect: {widget: Returns value by channel, top: true}
+- id: rt-top-reason
+  dashboard: returns
+  question: What is the most common reason for Amazon FBA returns?
+  expect: {widget: Amazon FBA returns by reason (units), top: true}
+- id: rt-top-product
+  dashboard: returns
+  question: Which product is returned most, by value?
+  expect: {widget: Top 15 returned products, top: true, column: returns_value}
+- id: rt-amazon-units
+  dashboard: returns
+  question: How many units did Amazon FBA customers return?
+  expect: {spec: {measures: [{metric: amazon_units_returned}], time_range: {from: "2025-04-01", to: "2026-09-15"}}}
+- id: rt-rate-definition
+  dashboard: returns
+  question: How is the return rate calculated?
+  must_mention: [[unit], [sold, sales]]
+
+# ---------------------------------------------------------------- Stock (latest snapshot, 15 Sep 2026)
+- id: st-value
+  dashboard: stock
+  question: What is our stock worth at cost?
+  expect: {widget: Stock value at cost}
+- id: st-units
+  dashboard: stock
+  question: How many units do we have on hand?
+  expect: {widget: Units on hand}
+- id: st-products
+  dashboard: stock
+  question: How many different products are in stock?
+  expect: {widget: Products in stock}
+- id: st-discontinued
+  dashboard: stock
+  question: How much discontinued stock do we hold, at cost?
+  expect: {widget: Discontinued stock at cost}
+- id: st-top-location-group
+  dashboard: stock
+  question: Where is most of our stock by value?
+  expect: {widget: Stock value by location group, top: true}
+- id: st-top-category
+  dashboard: stock
+  question: Which category holds the most stock value?
+  expect: {widget: Stock value by category, top: true}
+- id: st-category-filter
+  dashboard: stock
+  screen_state: {filters: [{id: category, value: [Tableware]}]}
+  question: What is the stock value at cost here?
+  expect: {widget: Stock value at cost}
+- id: st-partner-caveat
+  dashboard: stock
+  question: Is stock held at partners included in these numbers?
+  must_mention: [[partner], [not, excluded, left out, off, no opening]]
+
+# ---------------------------------------------------------------- Fulfilment (all data)
+- id: fu-orders
+  dashboard: fulfilment
+  question: How many orders were there?
+  expect: {widget: Orders}
+- id: fu-delivered
+  dashboard: fulfilment
+  question: How many orders were delivered?
+  expect: {widget: Delivered}
+- id: fu-rto
+  dashboard: fulfilment
+  question: What is the RTO rate?
+  expect: {widget: RTO rate (website)}
+  must_mention: [[website]]
+- id: fu-late
+  dashboard: fulfilment
+  question: What share of orders shipped late?
+  expect: {widget: Shipped late}
+- id: fu-ship-hours
+  dashboard: fulfilment
+  question: How long does it take us to ship an order?
+  expect: {widget: Order to ship (hours)}
+- id: fu-cod-rto
+  dashboard: fulfilment
+  question: What is the RTO rate for cash on delivery orders?
+  expect: {widget: "Website RTO rate: cash on delivery vs prepaid", row: COD}
+- id: fu-top-courier
+  dashboard: fulfilment
+  question: Which courier group handles the most orders?
+  expect: {widget: Couriers, top: true, column: orders}
+- id: fu-delivery-caveat
+  dashboard: fulfilment
+  question: Why is delivery time missing for some channels?
+  must_mention: [[nykaa, fnp, flipkart, delivery date, don't report, do not report, not report]]
+
+# ---------------------------------------------------------------- Purchasing & transfers
+- id: pt-open-po
+  dashboard: purchasing-transfers
+  question: How many units are on open purchase orders?
+  expect: {widget: Open PO quantity (Purchase lines)}
+- id: pt-lead-time
+  dashboard: purchasing-transfers
+  question: What is the average supplier lead time?
+  expect: {widget: "Supplier lead time, days"}
+- id: pt-in-transit
+  dashboard: purchasing-transfers
+  question: How many units are in transit to our own sites right now?
+  expect: {widget: In transit to own sites (recent)}
+- id: pt-stuck
+  dashboard: purchasing-transfers
+  question: How many units sent to our own locations have not arrived after 60 days?
+  expect: {widget: "Not received >60 days, own sites"}
+- id: pt-fba-old
+  dashboard: purchasing-transfers
+  question: How many units sent to Amazon FBA are older than 60 days without a receipt?
+  expect: {widget: To Amazon FBA >60 days (Amazon records receipt)}
+- id: pt-top-supplier
+  dashboard: purchasing-transfers
+  question: Which supplier has the most open PO quantity?
+  expect: {widget: Open PO quantity by supplier (Purchase lines), top: true}
+- id: pt-overdue
+  dashboard: purchasing-transfers
+  question: How much open PO quantity is overdue?
+  expect: {widget: Open PO lines by due status, row: Overdue}
+- id: pt-fba-caveat
+  dashboard: purchasing-transfers
+  question: Why are transfers to Amazon FBA shown separately?
+  must_mention: [[amazon], [receipt, receive, record, inward]]
+
+# ---------------------------------------------------------------- Discontinued & slow stock
+- id: ds-total
+  dashboard: discontinued-slow-stock
+  question: What is our trading stock worth at cost?
+  expect: {widget: Trading stock at cost}
+- id: ds-slow
+  dashboard: discontinued-slow-stock
+  question: How much stock has not sold in over 180 days?
+  expect: {widget: Not sold in over 180 days}
+- id: ds-never-sold
+  dashboard: discontinued-slow-stock
+  question: How much stock has not sold at all since April 2025?
+  expect: {widget: No sale since Apr 2025}
+- id: ds-discontinued
+  dashboard: discontinued-slow-stock
+  question: What is discontinued stock worth?
+  expect: {widget: Discontinued stock at cost}
+- id: ds-top-category
+  dashboard: discontinued-slow-stock
+  question: Which category has the most slow stock?
+  expect: {widget: Slow stock (over 180 days) by category, top: true}
+- id: ds-top-location
+  dashboard: discontinued-slow-stock
+  question: Which location holds the most slow stock?
+  expect: {widget: Slow stock (over 180 days) by location, top: true}
+- id: ds-top-product
+  dashboard: discontinued-slow-stock
+  question: Which product is the biggest slow-stock item by value?
+  expect: {widget: "Slowest stock: top 25 products by value", top: true, label: product_name}
+- id: ds-definition
+  dashboard: discontinued-slow-stock
+  question: How do you decide that stock is slow?
+  must_mention: [["180"], [last sold, last sale, since, sold anywhere]]
+
+# ---------------------------------------------------------------- Days of cover
+- id: dc-total
+  dashboard: days-of-cover
+  question: What is our sellable stock worth at cost?
+  expect: {widget: Sellable stock at cost}
+- id: dc-under-30
+  dashboard: days-of-cover
+  question: How much stock value has less than 30 days of cover?
+  expect: {widget: Under 30 days of cover}
+- id: dc-over-year
+  dashboard: days-of-cover
+  question: How much stock has over a year of cover, or sold nothing in 30 days?
+  expect: {widget: "Over a year, or nothing sold in 30 days"}
+- id: dc-top-band
+  dashboard: days-of-cover
+  question: Which cover band holds the most stock value?
+  expect: {widget: Stock by days of cover (at cost), top: true}
+- id: dc-30-90
+  dashboard: days-of-cover
+  question: How much stock value has between 30 and 90 days of cover?
+  expect: {widget: Stock by days of cover (at cost), row: "30-90"}
+- id: dc-units-at-risk
+  dashboard: days-of-cover
+  question: How many sellable units are at risk of running out within 30 days?
+  expect: {spec: {measures: [{field: days_of_cover.sellable_qty, agg: sum}], filters: [{field: days_of_cover.cover_band, op: eq, value: "1. Under 30 days"}]}}
+- id: dc-top-location
+  dashboard: days-of-cover
+  question: Which location has the most stock value?
+  expect: {spec: {dimensions: [{field: days_of_cover.location_name}], measures: [{metric: cover_stock_value_cost, alias: v}], sort: [{field: v, dir: desc}], limit: 1}, top: true}
+- id: dc-meaning
+  dashboard: days-of-cover
+  question: What does days of cover mean?
+  must_mention: [[day], [sell, sold, sales, demand, sent]]
+
+# ---------------------------------------------------------------- Instamart (all data)
+- id: im-units
+  dashboard: instamart
+  question: How many units did Instamart sell?
+  expect: {widget: Units sold by Instamart}
+- id: im-gmv
+  dashboard: instamart
+  question: What is Instamart's sell-out value?
+  expect: {widget: Sell-out value (GMV)}
+- id: im-invoiced
+  dashboard: instamart
+  question: How much did we invoice to Instamart?
+  expect: {widget: "Invoiced to Instamart (net, excl. GST)"}
+- id: im-sent
+  dashboard: instamart
+  question: How many units did we send to Instamart?
+  expect: {widget: Units sent to Instamart}
+- id: im-stock
+  dashboard: instamart
+  question: How much of our stock is with Instamart?
+  expect: {widget: Stock with Instamart (since Apr 2025)}
+- id: im-top-product
+  dashboard: instamart
+  question: What is the top-selling product on Instamart?
+  expect: {widget: Top 15 products sold on Instamart, top: true, column: qc_units_sold}
+- id: im-top-city
+  dashboard: instamart
+  question: Which city buys the most on Instamart?
+  expect: {widget: Instamart sales by city, top: true}
+- id: im-revenue
+  dashboard: instamart
+  question: Is Instamart's sell-out our revenue?
+  must_mention: [[not revenue, not our revenue, isn't revenue, is not revenue, demand, invoic, isn't our revenue]]
+
+# ---------------------------------------------------------------- Data health
+- id: dh-errors
+  dashboard: data-health
+  question: Are there any blocking data errors?
+  expect: {widget: Blocking data errors}
+- id: dh-warnings
+  dashboard: data-health
+  question: How many checks are flagging rows?
+  expect: {widget: Checks flagging rows (warnings)}
+- id: dh-gaps
+  dashboard: data-health
+  question: How many data gaps are still open?
+  expect: {widget: Open data gaps}
+- id: dh-files
+  dashboard: data-health
+  question: How many source files have been loaded?
+  expect: {widget: Source files loaded}
+- id: dh-top-check
+  dashboard: data-health
+  question: Which quality check flags the most rows?
+  expect: {widget: Quality checks that flag rows (latest build), top: true, label: check_name}
+- id: dh-top-source
+  dashboard: data-health
+  question: Which source has the most files loaded?
+  expect: {widget: "Files loaded, by source", top: true, column: files_loaded}
+- id: dh-gap-owner
+  dashboard: data-health
+  question: Who owns the most open data gaps?
+  expect: {spec: {dimensions: [{field: data_gaps.owner}], measures: [{metric: open_data_gaps, alias: g}], filters: [{field: data_gaps.status, op: neq, value: CLOSED}], sort: [{field: g, dir: desc}], limit: 1}, top: true}
+- id: dh-blocking-meaning
+  dashboard: data-health
+  question: What is a blocking data error?
+  must_mention: [[stop, block, fail, error]]

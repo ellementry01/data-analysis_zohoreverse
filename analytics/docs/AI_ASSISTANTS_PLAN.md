@@ -70,7 +70,7 @@ Every phase follows the same cycle, and the next phase starts only after its exi
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Groundwork | Done: signed off by the owner and merged 2026-11-07 |
-| 1 | Dashboard chat (single question) | Not started |
+| 1 | Dashboard chat (single question) | Built 2026-11-07 (branch `phase-1-dashboard-chat`), on for admins; awaiting the live eval and sign-off |
 | 2 | Agent loop with tools | Not started |
 | 3 | Identity and access | Not started |
 | 4 | Memory | Not started |

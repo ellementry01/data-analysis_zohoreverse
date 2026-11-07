@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import GridLayout, { Layout, WidthProvider } from "react-grid-layout";
 import type * as echarts from "echarts";
-import { ArrowLeft, ChevronLeft, Copy, Download, Filter, GripHorizontal, Image, LayoutTemplate, Maximize2, Pencil, Plus, Printer, RefreshCw, Settings2, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, Copy, Download, Filter, GripHorizontal, Image, LayoutTemplate, Maximize2, MessageSquareText, Pencil, Plus, Printer, RefreshCw, Settings2, Trash2, X } from "lucide-react";
 import { api, Dashboard, DashFilter, emptySpec, QueryResult, QuerySpec, Report, SpecFilter, Widget } from "../api/client";
+import { AssistantPanel, DrillState } from "../components/AssistantPanel";
 import { ChartView, CHART_TYPES, PointClick } from "../components/Chart";
 import { exportPng } from "../components/ResultPanel";
 import { addToSpec, DateRangePicker, fieldMap, FieldList, fieldOptions, SpecShelves, withAliases } from "../components/SpecBuilder";
@@ -20,6 +21,13 @@ export default function DashboardView() {
   const { ws, base, canEdit, model } = useWs();
   const toast = useToast();
   const q = useAsync(() => api.get<Dashboard>(`/workspaces/${ws.id}/dashboards/${dashId}`), [ws.id, dashId]);
+  const me = useAsync(() => api.get<{ features?: { dashboard_chat?: boolean } }>("/me"), []);
+  // Dashboard chat: switched on per phase, and admins only until real sign-in exists (AI_ASSISTANTS_PLAN.md Phase 3)
+  const chatAvailable = !!me.data?.features?.dashboard_chat && ws.role === "admin";
+  const [chatOpen, setChatOpen] = useState(false);
+  const [focus, setFocus] = useState<Widget | null>(null);
+  const [drills, setDrills] = useState<DrillState>({});
+  const onDrill = useCallback((wid: number, steps: { field: string; value: any }[]) => setDrills((d) => ({ ...d, [wid]: steps })), []);
   const [edit, setEdit] = useState(false);
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const [compare, setCompare] = useState<string>("");
@@ -75,7 +83,8 @@ export default function DashboardView() {
   const layout: Layout[] = d.widgets.map((w) => ({ i: String(w.id), x: w.layout.x ?? 0, y: w.layout.y ?? 0, w: w.layout.w ?? 6, h: w.layout.h ?? 4, minW: 2, minH: 2 }));
 
   return (
-    <div>
+    <div className={chatOpen ? "lg:flex lg:items-start lg:gap-4" : ""}>
+    <div className="min-w-0 flex-1">
       <div className="no-print mb-3 flex flex-wrap items-center gap-2">
         <Link to={`${base}/dashboards`} className="text-slate-400 hover:text-slate-700"><ArrowLeft className="h-4 w-4" /></Link>
         {edit ? (
@@ -84,6 +93,7 @@ export default function DashboardView() {
         ) : <h1 className="text-xl font-semibold text-slate-900">{d.name}</h1>}
         {d.is_template && <Badge tone="violet">template</Badge>}
         <div className="ml-auto flex flex-wrap gap-2">
+          {chatAvailable && <Button size="sm" variant={chatOpen ? "primary" : "secondary"} onClick={() => setChatOpen(!chatOpen)} title="Ask the dashboard's assistant"><MessageSquareText className="h-3.5 w-3.5" /> Ask</Button>}
           <Button size="sm" onClick={() => setTick((t) => t + 1)} title="Refresh data"><RefreshCw className="h-3.5 w-3.5" /></Button>
           <Button size="sm" onClick={() => window.print()} title="Print or save as PDF"><Printer className="h-3.5 w-3.5" /> PDF</Button>
           {canEdit && <Button size="sm" onClick={duplicate}><Copy className="h-3.5 w-3.5" /> Duplicate</Button>}
@@ -128,7 +138,8 @@ export default function DashboardView() {
           {d.widgets.map((w) => (
             <div key={String(w.id)}>
               <WidgetCard w={w} dashId={d.id} filters={activeFilters} compare={compare} tick={tick} edit={edit}
-                onEdit={() => setEditing(w)} onRemove={() => removeWidget(w)} onFull={() => setFull(w)} />
+                onEdit={() => setEditing(w)} onRemove={() => removeWidget(w)} onFull={() => setFull(w)}
+                onAsk={chatAvailable ? () => { setFocus(w); setChatOpen(true); } : undefined} onDrill={onDrill} />
             </div>
           ))}
         </Grid>
@@ -141,6 +152,11 @@ export default function DashboardView() {
           <div className="h-[60vh]"><WidgetBody w={full} dashId={d.id} filters={activeFilters} compare={compare} tick={tick} /></div>
         </Modal>
       )}
+    </div>
+    {chatOpen && d.key && (
+      <AssistantPanel wsId={ws.id} base={base} dash={d} filters={activeFilters} drill={drills} focus={focus}
+        onClearFocus={() => setFocus(null)} onClose={() => { setChatOpen(false); setFocus(null); }} />
+    )}
     </div>
   );
 }
@@ -232,10 +248,15 @@ function WidgetBody({ w, dashId, filters, compare, tick, drill = [], onPoint, on
   );
 }
 
-function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove, onFull }:
-  { w: Widget; dashId: number; filters: DashFilter[]; compare: string; tick: number; edit: boolean; onEdit: () => void; onRemove: () => void; onFull: () => void }) {
+function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove, onFull, onAsk, onDrill }:
+  { w: Widget; dashId: number; filters: DashFilter[]; compare: string; tick: number; edit: boolean; onEdit: () => void; onRemove: () => void; onFull: () => void;
+    onAsk?: () => void; onDrill?: (wid: number, steps: { field: string; value: any }[]) => void }) {
   const { ws, model } = useWs();
   const [drill, setDrill] = useState<DrillStep[]>([]);
+  useEffect(() => {
+    // tell the dashboard's assistant which values this widget is drilled into (date drills change the period instead)
+    onDrill?.(w.id, drill.flatMap((s) => s.filters.map((f) => ({ field: f.field, value: Array.isArray(f.value) ? f.value[0] : f.value }))));
+  }, [drill, w.id, onDrill]);
   const chart = useRef<echarts.ECharts | null>(null);
   const onPoint = useCallback((p: PointClick) => {
     if (edit || w.chart_type === "kpi") return;
@@ -259,6 +280,7 @@ function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove,
         <div className="no-print flex items-center gap-0.5 text-slate-400">
           {!["kpi", "table", "pivot"].includes(w.chart_type) && <button onClick={() => exportPng(chart.current, w.title)} title="Download PNG" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Image className="h-3.5 w-3.5" /></button>}
           <button onClick={csv} title="Export data to Excel" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Download className="h-3.5 w-3.5" /></button>
+          {onAsk && !edit && <button onClick={onAsk} title="Ask about this" aria-label={`Ask about ${w.title}`} className="rounded p-0.5 hover:bg-slate-100 hover:text-brand-600"><MessageSquareText className="h-3.5 w-3.5" /></button>}
           <button onClick={onFull} title="Expand" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Maximize2 className="h-3.5 w-3.5" /></button>
           {edit && <button onClick={onEdit} title="Edit" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Pencil className="h-3.5 w-3.5" /></button>}
           {edit && <button onClick={onRemove} title="Remove" className="rounded p-0.5 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>}

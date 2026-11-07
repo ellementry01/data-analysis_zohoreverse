@@ -7,6 +7,7 @@ The assistant never reports numbers that did not come back from the database.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -140,22 +141,43 @@ def _trend_filter(result: dict, post: dict) -> dict:
     return result
 
 
+@dataclass
+class AnswerScope:
+    """Where a question is asked when it is not the Ask page: a dashboard (Phase 1). Built by the dashboard chat."""
+    scope_type: str
+    dashboard_key: str | None
+    prompt: str          # stable context for the model (dashboard prompt + pack); prompt-cached
+    screen_text: str     # what is on screen now (recomputed numbers); goes in the user turn
+    screen: object       # agent.context.Screen, for filter inheritance
+    screen_json: dict    # stored with the user's message
+
+
+def _owns(conv: m.Conversation, ws: m.Workspace, user: str, scope: AnswerScope | None) -> bool:
+    if conv.workspace_id != ws.id or conv.user_email != user or conv.archived:
+        return False
+    if scope is None:
+        return conv.scope_type == "workspace"
+    return conv.scope_type == scope.scope_type and conv.dashboard_key == scope.dashboard_key
+
+
 def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_id: int | None = None,
-           engine: str = "auto", today: date | None = None) -> dict:
+           engine: str = "auto", today: date | None = None, scope: AnswerScope | None = None) -> dict:
     question = (question or "").strip()
     if not question:
         raise ValueError("Ask a question")
     conv = db.get(m.Conversation, conversation_id) if conversation_id else None
-    # never continue someone else's conversation, nor a thread that belongs to a dashboard or the global assistant
-    if conv and (conv.workspace_id != ws.id or conv.user_email != user or conv.scope_type != "workspace"):
+    # never continue someone else's conversation, nor a thread that lives somewhere else (Ask page, another dashboard)
+    if conv and not _owns(conv, ws, user, scope):
         conv = None
     if not conv:
-        conv = m.Conversation(workspace_id=ws.id, title=question[:200], user_email=user)
+        conv = m.Conversation(workspace_id=ws.id, title=question[:200], user_email=user,
+                              scope_type=scope.scope_type if scope else "workspace",
+                              dashboard_key=scope.dashboard_key if scope else None)
         db.add(conv)
         db.flush()
     prev = _prev_spec(conv)
     history = _history(conv)
-    conv.messages.append(m.Message(role="user", content=question))
+    conv.messages.append(m.Message(role="user", content=question, screen_state=scope.screen_json if scope else None))
     db.commit()
     conv_id = conv.id
 
@@ -163,7 +185,7 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     payload: dict = {"engine": None}
     try:
         with ai_usage.ai_context(user=user, workspace_id=ws.id, conversation_id=conv_id, purpose="chat"):
-            payload = _answer(db, ws, cat, user, question, prev, history, engine, today)
+            payload = _answer(db, ws, cat, user, question, prev, history, engine, today, scope)
     except Exception as e:  # never leave the user without a truthful message
         log.exception("assistant failure")
         db.rollback()
@@ -172,13 +194,44 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     stored = {**payload}
     if "rows" in stored:
         stored["rows"] = stored["rows"][:STORE_ROWS]
-    msg = m.Message(role="assistant", content=payload.get("text", ""), payload=stored)
+    msg = m.Message(role="assistant", content=payload.get("text", ""), payload=stored,
+                    model=payload.get("model") or "", usage=payload.get("usage"))
     conv.messages.append(msg)
     db.commit()
     return {**payload, "conversation_id": conv.id, "message_id": msg.id}
 
 
-def _answer(db, ws, cat, user, question, prev, history, engine, today) -> dict:
+READ_ONLY_NOTE = ("I can read and explain this dashboard, but I can't create or change dashboards from here. "
+                  "Ask me about the numbers on it instead.")
+
+
+def _run_scoped(db, cat, spec: QuerySpec, user, today, scope: AnswerScope | None) -> tuple[dict, QuerySpec, list[str]]:
+    """Run a question's spec; on a dashboard, with the dashboard's filters in force unless the question set its own."""
+    if scope is None:
+        return run_spec(db, cat, spec, user, source="ai", today=today), spec, []
+    from ..agent.context import drop_inherited, inherit_filters
+
+    scoped, notes, added = inherit_filters(spec, scope.screen)
+    try:
+        result = run_spec(db, cat, scoped, user, source="ai", today=today)
+        # the engine skips a filter on a field this question's data can't reach (and warns): never let that pass silently
+        skipped = [f for f in added if any(f"Filter on '{f}' does not apply" in w for w in result.get("warnings") or [])]
+        if skipped:
+            notes = [n for n in notes if not any(f"({f})" in n for f in skipped)] + [
+                f"The dashboard's filter on {', '.join(skipped)} does not apply to this data (no link to it), "
+                f"so this answer covers all values."]
+        return result, scoped, notes
+    except QueryError:
+        if not added:
+            raise
+        # a dashboard value filter on a field this question's data can't reach: answer without it, and say so
+        scoped = drop_inherited(scoped, added)
+        notes = [n for n in notes if not any(f"({f})" in n for f in added)] + [
+            f"The dashboard's filter on {', '.join(added)} does not apply to this data, so it was left out."]
+        return run_spec(db, cat, scoped, user, source="ai", today=today), scoped, notes
+
+
+def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: AnswerScope | None = None) -> dict:
     if not cat.datasets:
         return {"type": "clarify", "text": "This workspace has no data yet. Import a file or connect a database first.", "engine": "semantic"}
     values = value_index(cat)
@@ -190,15 +243,17 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today) -> dict:
             return {"type": "help", "engine": "semantic", "text": "Ask me about your data, for example:" if interp.kind == "help"
                     else "Hi! Ask me a question about your data.", "suggestions": suggest_questions(cat)}
         if interp.kind == "dashboard":
+            if scope is not None:  # assistants on a dashboard only read and explain
+                return {"type": "help", "engine": "semantic", "text": READ_ONLY_NOTE}
             return _make_dashboard(db, ws, cat, user, interp, today)
         try:
-            return _run_claude(db, cat, user, question, history, values, today, interp)
+            return _run_claude(db, cat, user, question, history, values, today, interp, scope)
         except claude.ClaudeUnavailable as e:
             log.warning("Claude unavailable, answering offline: %s", e)
             note = f"The AI model is unavailable right now ({str(e)[:120]}), so this was answered by the offline engine."
             if interp.kind in ("query", "trend_compare"):
                 try:
-                    out = _run_semantic(db, cat, user, question, interp, today, use_llm_text=False)
+                    out = _run_semantic(db, cat, user, question, interp, today, use_llm_text=False, scope=scope)
                     out["assumptions"] = [note] + out.get("assumptions", [])
                     return out
                 except (QueryError, QueryExecutionError, UnsafeSQLError):
@@ -215,10 +270,12 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today) -> dict:
             return {"type": "help", "engine": "semantic", "text": "Ask me about your data, for example:" if interp.kind == "help"
                     else "Hi! Ask me a question about your data.", "suggestions": suggest_questions(cat)}
         if interp.kind == "dashboard":
+            if scope is not None:  # assistants on a dashboard only read and explain
+                return {"type": "help", "engine": "semantic", "text": READ_ONLY_NOTE}
             return _make_dashboard(db, ws, cat, user, interp, today)
         if interp.kind in ("query", "trend_compare"):
             try:
-                return _run_semantic(db, cat, user, question, interp, today)
+                return _run_semantic(db, cat, user, question, interp, today, scope=scope)
             except (QueryError, QueryExecutionError, UnsafeSQLError) as e:
                 if not use_llm:
                     return {"type": "clarify", "engine": "semantic", "text": f"I understood the question but could not run it: {e}",
@@ -228,7 +285,8 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today) -> dict:
     return _run_llm(db, cat, user, question, history, values, today, fallback=interp)
 
 
-def _run_claude(db, cat, user, question, history, values, today, interp: Interpretation) -> dict:
+def _run_claude(db, cat, user, question, history, values, today, interp: Interpretation,
+                scope: AnswerScope | None = None) -> dict:
     """Claude plans the query (spec preferred, SQL as fallback); Haiku first unless the question is complex,
     with a single escalation to Sonnet when a plan fails validation or execution."""
     from .parser import _bases
@@ -242,7 +300,8 @@ def _run_claude(db, cat, user, question, history, values, today, interp: Interpr
     allowed = {d.slug for d in cat.datasets.values()}
     for attempt in range(2):
         try:
-            p = claude.plan(cat, question, history, values, r, feedback)
+            p = claude.plan(cat, question, history, values, r, feedback,
+                           scope_context=scope.prompt if scope else None, screen=scope.screen_text if scope else None)
         except claude.ClaudeError as e:
             last_err = str(e)
             if attempt == 0:
@@ -265,8 +324,8 @@ def _run_claude(db, cat, user, question, history, values, today, interp: Interpr
             if p.kind == "spec":
                 spec = QuerySpec.model_validate(p.spec)
                 _assign_aliases(spec)
-                result = run_spec(db, cat, spec, user, source="ai", today=today)
-                assumptions = p.assumptions + _rules_note(cat, spec)
+                result, spec, scope_notes = _run_scoped(db, cat, spec, user, today, scope)
+                assumptions = p.assumptions + scope_notes + _rules_note(cat, spec)
                 spec_out = spec.model_dump()
             else:
                 safe = validate_select(p.sql, cat.schema, allowed, row_limit=None)
@@ -304,10 +363,11 @@ def _run_claude(db, cat, user, question, history, values, today, interp: Interpr
                                              f"or name the metric and breakdown you want."}
 
 
-def _run_semantic(db, cat, user, question, interp: Interpretation, today, use_llm_text: bool = True) -> dict:
+def _run_semantic(db, cat, user, question, interp: Interpretation, today, use_llm_text: bool = True,
+                  scope: AnswerScope | None = None) -> dict:
     spec = interp.spec
     _assign_aliases(spec)
-    result = run_spec(db, cat, spec, user, source="ai", today=today)
+    result, spec, scope_notes = _run_scoped(db, cat, spec, user, today, scope)
     if interp.kind == "trend_compare":
         result = _trend_filter(result, interp.post_filter)
     chart = interp.chart or (suggest_chart(result["columns"], result["rows"]) if interp.kind == "query" else "table")
@@ -315,7 +375,7 @@ def _run_semantic(db, cat, user, question, interp: Interpretation, today, use_ll
         chart = "bar"  # a top-N list is not a whole, so shares would mislead
     if interp.kind == "trend_compare":
         chart = interp.chart or "table"
-    assumptions = interp.assumptions + _rules_note(cat, spec)
+    assumptions = interp.assumptions + scope_notes + _rules_note(cat, spec)
     text = None
     if use_llm_text and llm.enabled():
         try:

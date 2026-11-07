@@ -122,7 +122,7 @@ export interface QueryResult {
 export interface Report { id: number; name: string; description: string; chart_type: string; spec: QuerySpec; options: any; updated_at: string }
 export interface DashFilter { id: string; type: "date_range" | "values"; label: string; field: string; value: any }
 export interface Widget { id: number; title: string; chart_type: string; spec: QuerySpec; options: any; layout: { x: number; y: number; w: number; h: number }; report_id: number | null }
-export interface Dashboard { id: number; name: string; description: string; filters: DashFilter[]; is_template: boolean; widgets: Widget[]; widget_count: number; updated_at: string }
+export interface Dashboard { id: number; key: string; domain: string; name: string; description: string; filters: DashFilter[]; is_template: boolean; widgets: Widget[]; widget_count: number; updated_at: string }
 export interface Relationship { id: number; from_dataset_id: number; from_column: string; to_dataset_id: number; to_column: string; cardinality: string }
 
 export const emptySpec = (): QuerySpec => ({ dimensions: [], measures: [], filters: [], sort: [], time_range: null, compare: null, limit: null, apply_rules: true });

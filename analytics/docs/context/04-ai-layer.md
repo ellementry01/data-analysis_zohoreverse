@@ -59,6 +59,14 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 - `EXPLAIN_PROMPT` says to quote only the rows or computed_facts and **never do arithmetic**. This was added because the model once wrote "75 locations" when the true total was 76.
 - If the explanation fails, `template_explanation` builds the text deterministically instead.
 
+## Dashboard assistant (Phase 1, `services/agent/context.py`, 2026-11-07)
+- Same planning and execution path as Ask (`assistant.answer` with an `AnswerScope`), plus three things:
+  - **Dashboard pack** (`build_dashboard_pack`): the dashboard's description (caveats), filters with defaults, every widget in plain words, the definitions of the metrics used (rules, date column, stock-like, higher-is-better), and the dates each dataset covers. Generated from the definitions, ≤ 24,000 characters, cached by a fingerprint of the dashboard, its widgets, the metrics and the datasets' last sync. It goes into `claude.plan` as a third system block with `cache_control`, after the schema, preceded by `DASHBOARD_PROMPT`.
+  - **Screen state** (`validate_screen`, `screen_summary`): filter values, drill-downs and the focused widget. Unknown filters, widgets or drill fields are refused. The server recomputes every widget with those filters (≤ 8,000 characters, the focused widget first with 15 rows, others 5) and puts that text in the **user turn** (never in the cached prefix). Cached for 10 minutes per screen.
+  - **Filter inheritance** (`inherit_filters`, `assistant._run_scoped`): a question keeps the dashboard's date range unless its spec sets `time_range`, and its value filters unless the spec filters the same field. Each inherited filter becomes an assumption shown with the answer. When the engine skips a filter because the question's data has no link to that field (it warns "Filter on … does not apply"), the answer says so ("covers all values") instead of claiming the filter.
+- The dashboard chat never creates or changes dashboards: a "create a dashboard" request gets a read-only note.
+- Threads are `scope_type = dashboard` with the dashboard **key**; each user message stores its screen state, each answer its model and usage.
+
 ## Usage ledger and spend caps (`services/ai_usage.py`, 2026-11-07)
 - Every Claude call goes through `claude._call`, which first runs `ai_usage.check_budget()` and afterwards `ai_usage.record()`.
 - `record()` writes one `ai_usage` row: user, workspace, conversation and purpose come from `ai_usage.ai_context(...)`, set by `assistant.answer` (`chat`) and `claude.explain` (`explain`). The estimated cost (rupees) is also returned in the answer's `usage.cost_inr`. A ledger failure is logged and never loses the answer.

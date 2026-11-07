@@ -1,8 +1,31 @@
-"""Dashboard identity helpers: stable keys that survive renames and rebuilds."""
+"""Dashboard helpers: stable keys that survive renames and rebuilds, and applying dashboard filters to a widget's spec."""
 from sqlalchemy.orm import Session
 
 from .. import models as m
 from .naming import DASHBOARD_KEY_RE, dashboard_key, unique_dashboard_key
+from .spec import Filter, QuerySpec
+
+
+def filter_is_set(value) -> bool:
+    return value not in (None, "", []) and value != {}
+
+
+def apply_dashboard_filters(spec: QuerySpec, filters: list[dict]) -> QuerySpec:
+    """What a dashboard does to each widget: its date range replaces the widget's, its value filters replace
+    any widget filter on the same field."""
+    spec = spec.model_copy(deep=True)
+    for f in filters:
+        v = f.get("value")
+        if not filter_is_set(v):
+            continue
+        if f.get("type") == "date_range":
+            spec.time_range = v
+            if f.get("field") and f["field"] != "@time":
+                spec.time_field = f["field"]
+        elif f.get("type") == "values":
+            vals = v if isinstance(v, list) else [v]
+            spec.filters = [x for x in spec.filters if x.field != f["field"]] + [Filter(field=f["field"], op="in", value=vals)]
+    return spec
 
 DOMAINS = {"", "executive", "sales", "stock", "operations", "purchasing", "returns", "quick_commerce", "marketing",
            "finance", "customer", "product", "design", "data"}

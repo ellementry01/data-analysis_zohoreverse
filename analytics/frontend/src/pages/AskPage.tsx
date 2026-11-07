@@ -1,19 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bot, Info, LayoutDashboard, MessageSquarePlus, PencilRuler, Send, Trash2, User } from "lucide-react";
-import { api, QueryResult } from "../api/client";
-import { ResultPanel } from "../components/ResultPanel";
-import { Badge, cx, Spinner, useAsync, useToast } from "../components/ui";
+import { Bot, MessageSquarePlus, Send, Trash2 } from "lucide-react";
+import { api } from "../api/client";
+import { Answer, ChatMessage, Msg } from "../components/ChatMessage";
+import { cx, Spinner, useAsync, useToast } from "../components/ui";
 import { timeAgo } from "../lib/format";
 import { useWs } from "./WorkspaceLayout";
-
-interface Answer extends Partial<QueryResult> {
-  type: "answer" | "clarify" | "dashboard" | "help" | "error";
-  text: string; title?: string; chart_type?: string; spec?: any; assumptions?: string[]; suggestions?: string[];
-  engine?: string; dashboard_id?: number; conversation_id?: number; message_id?: number;
-  model?: string; model_label?: string; routing?: string[]; escalated?: boolean;
-}
-interface Msg { id?: number; role: "user" | "assistant"; content: string; payload?: Answer }
 
 export default function AskPage() {
   const { ws, base } = useWs();
@@ -55,7 +47,7 @@ export default function AskPage() {
     setBusy(true);
     try {
       const a = await api.post<Answer>(`/workspaces/${ws.id}/assistant/ask`, { question, conversation_id: conv, engine });
-      setMsgs((m) => [...m, { role: "assistant", content: a.text, payload: a }]);
+      setMsgs((m) => [...m, { id: a.message_id, role: "assistant", content: a.text, payload: a }]);
       if (!conv && a.conversation_id) {
         setConv(a.conversation_id);
         nav(`${base}/ask/${a.conversation_id}`, { replace: true });
@@ -75,6 +67,16 @@ export default function AskPage() {
       window.history.replaceState({}, "");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rate = async (i: number, m: Msg, feedback: "up" | "down" | null) => {
+    if (!conv || !m.id) return;
+    try {
+      await api.post(`/workspaces/${ws.id}/conversations/${conv}/messages/${m.id}/feedback`, { feedback });
+      setMsgs((all) => all.map((x, k) => (k === i ? { ...x, feedback } : x)));
+    } catch (e: any) {
+      toast("error", e.message);
+    }
+  };
 
   const delConv = async (id: number) => {
     await api.del(`/workspaces/${ws.id}/conversations/${id}`);
@@ -116,7 +118,7 @@ export default function AskPage() {
                 </div>
               </div>
             )}
-            {msgs.map((m, i) => <Message key={i} m={m} onAsk={ask} />)}
+            {msgs.map((m, i) => <ChatMessage key={i} m={m} onAsk={ask} wsId={ws.id} base={base} onFeedback={(f) => rate(i, m, f)} />)}
             {busy && <div className="flex items-center gap-2 py-3 text-sm text-slate-500"><Bot className="h-5 w-5 text-brand-500" /> <Spinner label="Analysing…" /></div>}
             <div ref={endRef} />
           </div>
@@ -136,51 +138,6 @@ export default function AskPage() {
             {me.data?.llm.provider === "anthropic" ? `Claude: ${me.data.llm.simple_model} for everyday questions, ${me.data.llm.complex_model} for complex ones. Answers use your metric definitions; any SQL is validated and run read-only.` : me.data?.llm.enabled ? `LLM: ${me.data.llm.model} — used as a fallback in Auto mode; all generated SQL is validated and run read-only.` : "Offline semantic engine (no LLM configured). Add synonyms and metrics in the Semantic layer to teach it your vocabulary."}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Message({ m, onAsk }: { m: Msg; onAsk: (q: string) => void }) {
-  const { ws, base } = useWs();
-  const nav = useNavigate();
-  const [chart, setChart] = useState(m.payload?.chart_type || "table");
-  if (m.role === "user") {
-    return (
-      <div className="mb-4 flex justify-end">
-        <div className="flex max-w-[80%] items-start gap-2 rounded-2xl rounded-tr-sm bg-brand-600 px-4 py-2 text-sm text-white"><span>{m.content}</span><User className="mt-0.5 h-4 w-4 shrink-0 opacity-70" /></div>
-      </div>
-    );
-  }
-  const p = m.payload || ({ type: "answer", text: m.content } as Answer);
-  const hasData = p.type === "answer" && p.columns && p.rows;
-  return (
-    <div className="mb-6 flex gap-3">
-      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100"><Bot className="h-4 w-4 text-brand-700" /></div>
-      <div className="min-w-0 flex-1">
-        <div className={cx("rounded-2xl rounded-tl-sm border px-4 py-3 text-sm", p.type === "error" ? "border-red-200 bg-red-50 text-red-800" : p.type === "clarify" ? "border-amber-200 bg-amber-50 text-slate-800" : "border-slate-200 bg-white text-slate-800")}>
-          {p.title && hasData && <div className="mb-1 font-semibold text-slate-900">{p.title}</div>}
-          <div className="leading-relaxed">{m.content}</div>
-          {p.assumptions && p.assumptions.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">{p.assumptions.map((a, i) => <span key={i} className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600"><Info className="h-3 w-3" />{a}</span>)}</div>
-          )}
-          {p.type === "dashboard" && p.dashboard_id && (
-            <Link to={`${base}/dashboards/${p.dashboard_id}`} className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"><LayoutDashboard className="h-3.5 w-3.5" /> Open dashboard</Link>
-          )}
-          {p.suggestions && p.suggestions.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">{p.suggestions.map((s) => <button key={s} onClick={() => onAsk(s)} className="rounded-full border border-brand-200 bg-white px-2.5 py-0.5 text-xs text-brand-700 hover:bg-brand-50">{s}</button>)}</div>
-          )}
-        </div>
-        {hasData && (
-          <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-card">
-            <ResultPanel res={p as QueryResult} chartType={chart} onChartType={setChart} spec={p.spec} title={p.title || "AI answer"} wsId={ws.id} height={320} />
-            <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-400">
-              <Badge tone={p.engine === "claude" || p.engine === "llm" ? "violet" : "blue"}>{p.engine === "claude" ? `${p.model_label}${p.escalated ? " (escalated)" : ""}` : p.engine === "llm" ? "LLM-generated SQL" : "offline semantic engine"}</Badge>
-              {p.engine === "claude" && p.routing && p.routing.length > 0 && <span title={p.routing.join(" · ")}>{p.spec ? "governed metrics" : "validated SQL"} · {p.routing[p.routing.length - 1]}</span>}
-              {p.spec && <button onClick={() => nav(`${base}/reports/new`, { state: { spec: p.spec, chart, title: p.title } })} className="inline-flex items-center gap-1 text-brand-600 hover:underline"><PencilRuler className="h-3 w-3" /> Open in report builder</button>}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

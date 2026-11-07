@@ -238,10 +238,15 @@ def _call(model: str, effort: str, system: list[dict], messages: list[dict], max
     return text, usage
 
 
-def plan(cat: Catalog, question: str, history: list[dict], values: dict | None, r: Route, feedback: str | None = None) -> Plan:
-    # Stable prefix first (instructions + workspace schema) so it is served from the prompt cache.
+def plan(cat: Catalog, question: str, history: list[dict], values: dict | None, r: Route, feedback: str | None = None,
+         scope_context: str | None = None, screen: str | None = None) -> Plan:
+    """scope_context: a stable description of where the question is asked (a dashboard pack), cached after the schema.
+    screen: what the user is looking at right now; it changes per question, so it goes in the user turn."""
+    # Stable prefix first (instructions + workspace schema [+ dashboard]) so it is served from the prompt cache.
     system = [{"type": "text", "text": SYSTEM_PROMPT},
               {"type": "text", "text": schema_context(cat, values), "cache_control": {"type": "ephemeral"}}]
+    if scope_context:
+        system.append({"type": "text", "text": scope_context, "cache_control": {"type": "ephemeral"}})
     messages: list[dict] = []
     for h in history[-6:]:
         if h["role"] in ("user", "assistant") and h["content"].strip():
@@ -251,7 +256,10 @@ def plan(cat: Catalog, question: str, history: list[dict], values: dict | None, 
                 messages.append({"role": h["role"], "content": h["content"][:2000]})
     if messages and messages[0]["role"] != "user":
         messages.pop(0)
-    ask = f"Today is {_today().isoformat()}.\nQuestion: {question}"
+    ask = f"Today is {_today().isoformat()}.\n"
+    if screen:
+        ask += f"SCREEN STATE (what the user is looking at now):\n{screen}\n\n"
+    ask += f"Question: {question}"
     if feedback:
         ask += f"\n\nA previous plan for this question failed: {feedback}\nReturn a corrected plan."
     if messages and messages[-1]["role"] == "user":

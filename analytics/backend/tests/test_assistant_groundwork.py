@@ -319,7 +319,8 @@ def test_scoring_rules():
     from evals.runner import score
 
     case = {"id": "c", "expect": {"tolerance": 0.005}, "must_mention": [["location", "store"]], "must_not_mention": ["zero"]}
-    ok = score(case, {"type": "answer", "text": "There are 3.86 Cr in 12 locations", "rows": []}, 38_612_345)
+    ok = score(case, {"type": "answer", "text": "There are 3.86 Cr in 12 locations", "rows": [[38_612_345]],
+                      "columns": [{"name": "v", "role": "measure"}]}, 38_612_345)
     assert ok.passed, ok.problems
     bad = score(case, {"type": "answer", "text": "There are zero stores", "rows": [[5]]}, 7)
     assert not bad.passed and len(bad.problems) == 2  # wrong number, forbidden word
@@ -331,13 +332,22 @@ class _InProcess:
     def __init__(self, client):
         self.client = client
 
-    def post(self, path, body):
+    def _check(self, path, r):
         from evals.runner import EvalError
 
-        r = self.client.post(path, json=body)
         if r.status_code >= 400:
             raise EvalError(f"{path}: HTTP {r.status_code}: {r.text[:200]}")
         return r.json()
+
+    def post(self, path, body):
+        return self._check(path, self.client.post(path, json=body))
+
+    def get(self, path):
+        return self._check(path, self.client.get(path))
+
+    def delete(self, path):
+        r = self.client.delete(path)
+        assert r.status_code == 204, r.text
 
 
 def test_eval_runner_end_to_end_with_the_offline_engine(client, mini):

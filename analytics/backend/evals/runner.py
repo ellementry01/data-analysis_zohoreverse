@@ -2,17 +2,23 @@
 
 An eval set is a YAML file in evals/sets/. Each case asks one question and states what a correct answer contains:
 
-    - id: locations-count
-      question: How many locations are there?
-      expect:
-        sql: SELECT COUNT(*) FROM locations        # or  spec: {measures: [...], ...}  (a QuerySpec)
-        column: null                               # which column holds the expected number (default: first numeric)
-        tolerance: 0.005                           # relative, default 0.5% (covers "3.86 Cr" style rounding)
-      must_mention: [locations]                    # every item must appear (an item may be a list = any of)
+    - id: stock-value
+      dashboard: stock                          # ask that dashboard's assistant (omit for the Ask page)
+      screen_state: {filters: [{id: category, value: [Decor]}]}   # optional; defaults are the dashboard's own
+      question: What is our stock worth at cost?
+      expect:                                   # where the right number comes from, computed at run time:
+        widget: Stock value at cost             #   a widget of the dashboard, with the same filters, or
+        # sql: SELECT ...                       #   a read-only SQL statement, or
+        # spec: {measures: [...]}               #   a QuerySpec through the governed query endpoint
+        row: COD                                # optional: the row whose first dimension contains this text
+        column: rto_rate                        # optional: which measure column (default: the first measure)
+        top: true                               # optional: the row with the largest value; its label must be named
+        label: product_name                     # optional: which dimension column is the label for `top`
+      must_mention: [[website, site]]           # every item must appear (an item may be a list = any of)
       must_not_mention: []
+      check_invented: true                      # default: every number in the answer must come from its data
 
-Expected numbers are computed at run time from the app database (through the read-only SQL console or the governed
-query endpoint), never typed by hand, so a set stays valid when the data changes.
+Numbers are matched with rounding in mind: "₹3.86 Cr" matches 3,86,12,345 and "7.8%" matches 0.0784.
 
 The default engine is the offline semantic engine, which costs nothing. --live uses Claude and needs EVAL_LIVE_OK=1
 (live calls cost money and need the owner's OK).
@@ -24,13 +30,18 @@ import math
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
 SETS_DIR = Path(__file__).parent / "sets"
-_NUM = re.compile(r"(?<![\w.])[-+]?(?:\d{1,3}(?:,\d{2,3})+|\d+)(?:\.\d+)?\s*(?:cr|crore|l|lakh|lakhs|k|%)?(?![\w])", re.I)
-_MULT = {"cr": 1e7, "crore": 1e7, "l": 1e5, "lakh": 1e5, "lakhs": 1e5, "k": 1e3}
+_NUM = re.compile(r"(?<![\w.])[-+]?(?:\d{1,3}(?:,\d{2,3})+|\d+)(?:\.\d+)?(?:\s*(?:cr|crore|crores|lakh|lakhs|l|k|%))?(?![\w])", re.I)
+_MULT = {"cr": 1e7, "crore": 1e7, "crores": 1e7, "l": 1e5, "lakh": 1e5, "lakhs": 1e5, "k": 1e3}
+# dates and period labels are not data values
+_DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?(?:\s+\d{4})?\b|"
+                    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
+                    r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
 
 
 class Transport:
@@ -39,16 +50,26 @@ class Transport:
     def __init__(self, base: str, user: str | None = None):
         self.base, self.user = base.rstrip("/"), user
 
-    def post(self, path: str, body: dict) -> dict:
+    def _req(self, method: str, path: str, body: dict | None = None):
         headers = {"Content-Type": "application/json"}
         if self.user:
             headers["X-User-Email"] = self.user
-        req = urllib.request.Request(self.base + path, data=json.dumps(body).encode(), headers=headers, method="POST")
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(self.base + path, data=data, headers=headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=300) as r:
                 return json.loads(r.read() or b"null")
         except urllib.error.HTTPError as e:
             raise EvalError(f"{path}: HTTP {e.code}: {e.read().decode(errors='replace')[:300]}") from e
+
+    def post(self, path: str, body: dict) -> dict:
+        return self._req("POST", path, body)
+
+    def get(self, path: str):
+        return self._req("GET", path)
+
+    def delete(self, path: str):
+        return self._req("DELETE", path)
 
 
 class EvalError(RuntimeError):
@@ -56,16 +77,24 @@ class EvalError(RuntimeError):
 
 
 @dataclass
+class Expected:
+    value: float | None = None
+    label: str | None = None
+
+
+@dataclass
 class CaseResult:
     id: str
     passed: bool
     expected: float | None = None
+    expected_label: str | None = None
     found: list[float] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
     engine: str | None = None
     model: str | None = None
     cost_inr: float = 0.0
     seconds: float = 0.0
+    answer: str = ""
 
 
 def load_set(name_or_path: str) -> list[dict]:
@@ -81,23 +110,45 @@ def load_set(name_or_path: str) -> list[dict]:
     return cases
 
 
-def parse_numbers(text: str) -> list[float]:
-    """Numbers in an answer, Indian style included: "1,23,456", "₹3.86 Cr", "53.2 L", "7.8%"."""
+# ----------------------------------------------------------------------------------------------- numbers
+
+@dataclass
+class Num:
+    token: str
+    values: list[float]      # alternatives ("7.8%" -> 0.078 and 7.8)
+    slack: list[float]       # rounding allowance for each alternative
+
+
+def number_tokens(text: str) -> list[Num]:
     out = []
     for m in _NUM.finditer(text or ""):
         tok = m.group(0).strip()
-        unit = re.search(r"(cr|crore|lakhs|lakh|l|k|%)$", tok, re.I)
-        num = float(re.sub(r"[^\d.+-]", "", tok[: unit.start()] if unit else tok) or "nan")
-        if math.isnan(num):
+        unit = re.search(r"(crores|crore|cr|lakhs|lakh|l|k|%)$", tok, re.I)
+        mant = re.sub(r"[^\d.+-]", "", tok[: unit.start()] if unit else tok)
+        try:
+            num = float(mant)
+        except ValueError:
             continue
+        decimals = len(mant.split(".")[1]) if "." in mant else 0
+        half = 0.5 * 10 ** -decimals
         u = unit.group(1).lower() if unit else ""
-        out.append(num / 100 if u == "%" else num * _MULT.get(u, 1))
         if u == "%":
-            out.append(num)  # rates may be stored as 0.078 or as 7.8
+            out.append(Num(tok, [num / 100, num], [half / 100, half]))
+        else:
+            mult = _MULT.get(u, 1)
+            out.append(Num(tok, [num * mult], [half * mult]))
     return out
 
 
-def _numeric_cells(res: dict, column: str | None) -> list[float]:
+def parse_numbers(text: str) -> list[float]:
+    return [v for n in number_tokens(text) for v in n.values]
+
+
+def _matches(n: Num, target: float, tol: float = 0.005) -> bool:
+    return any(abs(v - target) <= max(s, abs(target) * tol, 1e-9) for v, s in zip(n.values, n.slack))
+
+
+def _numeric_cells(res: dict, column: str | None = None) -> list[float]:
     cols = [c.get("name") or c.get("label") for c in res.get("columns") or []]
     vals = []
     for row in res.get("rows") or []:
@@ -116,44 +167,134 @@ def _numeric_cells(res: dict, column: str | None) -> list[float]:
     return vals
 
 
-def expected_value(t: Transport, ws: int, expect: dict) -> float | None:
-    if "sql" in expect:
+def allowed_numbers(answer: dict, question: str = "") -> list[float]:
+    """Every number an answer may quote: its cells, column totals and shares, the row count, and numbers that were
+    already in the question or the answer's assumptions (filters, periods, definitions)."""
+    allowed = _numeric_cells(answer)
+    cols = answer.get("columns") or []
+    rows = answer.get("rows") or []
+    allowed.append(float(len(rows)))
+    for i, c in enumerate(cols):
+        vals = [r[i] for r in rows if i < len(r) and isinstance(r[i], (int, float)) and not isinstance(r[i], bool)]
+        if not vals or c.get("role") == "dimension":
+            continue
+        total = float(sum(vals))
+        allowed += [total, float(max(vals)), float(min(vals))]
+        if total:
+            allowed += [v / total for v in vals] + [100 * v / total for v in vals]
+    for extra in [question, *(answer.get("assumptions") or []), *(answer.get("warnings") or [])]:
+        allowed += parse_numbers(str(extra))
+    comp = answer.get("comparison") or {}
+    allowed += parse_numbers(json.dumps(comp))
+    return allowed
+
+
+def invented_numbers(answer: dict, question: str = "") -> list[str]:
+    text = _DATES.sub(" ", answer.get("text") or "")
+    allowed = allowed_numbers(answer, question)
+    bad = []
+    for n in number_tokens(text):
+        if all(v == int(v) and 0 <= v <= 12 for v in n.values):
+            continue  # small counts and ranks ("top 5", "2 channels") are words more than data
+        if not any(_matches(n, a) for a in allowed):
+            bad.append(n.token)
+    return bad
+
+
+# ----------------------------------------------------------------------------------------------- expectations
+
+def _dashboard(t: Transport, ws: int, key: str) -> dict:
+    return t.get(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(key)}")
+
+
+def _screen_filters(dash: dict, screen: dict | None) -> list[dict]:
+    sent = {f["id"]: f.get("value") for f in (screen or {}).get("filters") or []}
+    return [{"field": f["field"], "type": f["type"], "value": sent.get(f["id"], f.get("value"))} for f in dash.get("filters") or []]
+
+
+def _pick(res: dict, expect: dict) -> Expected:
+    cols = res.get("columns") or []
+    rows = res.get("rows") or []
+    if not rows:
+        raise EvalError("the expected-value query returned no rows")
+    names = [c.get("name") for c in cols]
+    meas = [i for i, c in enumerate(cols) if c.get("role") == "measure"] or \
+           [i for i, v in enumerate(rows[0]) if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    dims = [i for i, c in enumerate(cols) if c.get("role") == "dimension"]
+    mi = names.index(expect["column"]) if expect.get("column") in names else (meas[0] if meas else 0)
+    li = names.index(expect["label"]) if expect.get("label") in names else (dims[0] if dims else None)
+    if expect.get("row") is not None:
+        want = str(expect["row"]).lower()
+        row = next((r for r in rows if li is not None and want in str(r[li]).lower()), None)
+        if row is None:
+            raise EvalError(f"no row matching '{expect['row']}' in the expected-value result")
+        return Expected(float(row[mi]), str(row[li]))
+    if expect.get("top"):
+        num = [r for r in rows if isinstance(r[mi], (int, float))]
+        row = max(num, key=lambda r: r[mi])
+        return Expected(float(row[mi]), str(row[li]) if li is not None else None)
+    v = rows[0][mi]
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        raise EvalError("the expected-value query returned no number")
+    return Expected(float(v), None)
+
+
+def expected_value(t: Transport, ws: int, case: dict) -> Expected:
+    expect = case.get("expect") or {}
+    if "widget" in expect:
+        dash = _dashboard(t, ws, case["dashboard"])
+        w = next((x for x in dash["widgets"] if x["title"] == expect["widget"]), None)
+        if not w:
+            raise EvalError(f"widget '{expect['widget']}' is not on dashboard '{case['dashboard']}'")
+        res = t.post(f"/api/workspaces/{ws}/dashboards/{dash['id']}/widgets/{w['id']}/data",
+                     {"filters": _screen_filters(dash, case.get("screen_state"))})
+    elif "sql" in expect:
         res = t.post(f"/api/workspaces/{ws}/sql", {"sql": expect["sql"]})
     elif "spec" in expect:
         res = t.post(f"/api/workspaces/{ws}/query", expect["spec"])
     else:
-        return None
-    vals = _numeric_cells(res, expect.get("column"))
-    if not vals:
-        raise EvalError(f"the expected-value query returned no number: {json.dumps(expect)[:200]}")
-    return vals[0]
+        return Expected()
+    return _pick(res, expect)
 
 
-def _close(a: float, b: float, tol: float) -> bool:
-    return abs(a - b) <= max(abs(b) * tol, 1e-9)
+# ----------------------------------------------------------------------------------------------- scoring
 
-
-def score(case: dict, answer: dict, expected: float | None) -> CaseResult:
-    r = CaseResult(id=case["id"], passed=True, expected=expected, engine=answer.get("engine"), model=answer.get("model"))
+def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseResult:
+    if not isinstance(expected, Expected):
+        expected = Expected(expected)
+    r = CaseResult(id=case["id"], passed=True, expected=expected.value, expected_label=expected.label,
+                   engine=answer.get("engine"), model=answer.get("model"), answer=(answer.get("text") or "")[:500])
     usage = answer.get("usage") or {}
     r.cost_inr = float(usage.get("cost_inr") or 0)
     if answer.get("type") == "error":
         r.problems.append(f"error answer: {answer.get('text', '')[:200]}")
     text = " ".join(str(answer.get(k) or "") for k in ("text", "title"))
-    if expected is not None:
-        tol = float((case.get("expect") or {}).get("tolerance", 0.005))
-        found = _numeric_cells(answer, None) + parse_numbers(text)
-        r.found = found[:20]
-        if not any(_close(v, expected, tol) for v in found):
-            r.problems.append(f"expected {expected:g} not found in the answer")
     low = text.lower()
+    if expected.value is not None:
+        tol = float((case.get("expect") or {}).get("tolerance", 0.005))
+        tokens = number_tokens(text)
+        cells = _numeric_cells(answer)
+        r.found = (cells + [v for n in tokens for v in n.values])[:20]
+        in_cells = any(abs(c - expected.value) <= max(abs(expected.value) * tol, 1e-9) for c in cells)
+        in_text = any(_matches(n, expected.value, tol) for n in tokens)
+        if not (in_cells or in_text):
+            r.problems.append(f"expected {expected.value:g} not found in the answer")
+    if expected.label and (case.get("expect") or {}).get("top"):
+        rows_text = " ".join(str(c) for row in answer.get("rows") or [] for c in row).lower()
+        if expected.label.lower() not in low and expected.label.lower() not in rows_text[:2000]:
+            r.problems.append(f"does not name '{expected.label}'")
     for item in case.get("must_mention") or []:
         options = item if isinstance(item, list) else [item]
-        if not any(str(o).lower() in low for o in options):
+        hay = low + " " + " ".join(answer.get("assumptions") or []).lower()
+        if not any(str(o).lower() in hay for o in options):
             r.problems.append(f"does not mention {' / '.join(map(str, options))}")
     for item in case.get("must_not_mention") or []:
         if str(item).lower() in low:
             r.problems.append(f"mentions '{item}', which it must not")
+    if case.get("check_invented", True) and answer.get("type") == "answer":
+        bad = invented_numbers(answer, case.get("question", ""))
+        if bad:
+            r.problems.append(f"numbers not found in the data: {', '.join(bad[:5])}")
     r.passed = not r.problems
     return r
 
@@ -161,9 +302,19 @@ def score(case: dict, answer: dict, expected: float | None) -> CaseResult:
 def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
     started = time.monotonic()
     try:
-        expected = expected_value(t, ws, case.get("expect") or {})
-        answer = t.post(f"/api/workspaces/{ws}/assistant/ask", {"question": case["question"], "engine": engine})
+        expected = expected_value(t, ws, case)
+        body = {"question": case["question"], "engine": engine}
+        if case.get("dashboard"):
+            body["screen_state"] = case.get("screen_state") or {}
+            answer = t.post(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/assistant/ask", body)
+        else:
+            answer = t.post(f"/api/workspaces/{ws}/assistant/ask", body)
         r = score(case, answer, expected)
+        if answer.get("conversation_id") and hasattr(t, "delete"):
+            try:  # eval threads must not clutter the user's own conversation lists
+                t.delete(f"/api/workspaces/{ws}/conversations/{answer['conversation_id']}")
+            except EvalError:
+                pass
     except EvalError as e:
         r = CaseResult(id=case["id"], passed=False, problems=[str(e)])
     r.seconds = round(time.monotonic() - started, 2)
@@ -174,6 +325,17 @@ def run_set(t: Transport, ws: int, cases: list[dict], engine: str = "semantic") 
     return [run_case(t, ws, c, engine) for c in cases]
 
 
+def summary(results: list[CaseResult]) -> dict:
+    n = len(results)
+    numeric = [r for r in results if r.expected is not None]
+    return {"cases": n, "passed": sum(r.passed for r in results),
+            "numbers_correct": sum(not any(p.startswith("expected ") for p in r.problems) for r in numeric),
+            "numeric_cases": len(numeric),
+            "invented": sum(any(p.startswith("numbers not found") for p in r.problems) for r in results),
+            "cost_inr": round(sum(r.cost_inr for r in results), 2),
+            "median_seconds": sorted(r.seconds for r in results)[n // 2] if n else 0}
+
+
 def report(results: list[CaseResult]) -> str:
     lines = []
     for r in results:
@@ -181,7 +343,8 @@ def report(results: list[CaseResult]) -> str:
         extra = f" [{r.engine}{' ' + r.model if r.model else ''}, {r.seconds}s, Rs {r.cost_inr:.2f}]"
         lines.append(f"{mark}  {r.id}{extra}")
         lines += [f"      - {p}" for p in r.problems]
-    passed = sum(r.passed for r in results)
-    cost = sum(r.cost_inr for r in results)
-    lines.append(f"\n{passed}/{len(results)} passed ({passed / max(len(results), 1):.0%}); estimated cost Rs {cost:.2f}")
+    s = summary(results)
+    lines.append(f"\n{s['passed']}/{s['cases']} passed ({s['passed'] / max(s['cases'], 1):.0%}); "
+                 f"correct numbers {s['numbers_correct']}/{s['numeric_cases']}; answers with invented numbers {s['invented']}; "
+                 f"estimated cost Rs {s['cost_inr']:.2f}; median {s['median_seconds']}s")
     return "\n".join(lines)
