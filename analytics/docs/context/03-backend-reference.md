@@ -17,11 +17,15 @@
 | conversations, messages | Assistant threads. `scope_type` says where a thread lives: `workspace` (the Ask page), `dashboard` (+ `dashboard_key`) or `global`; also `summary` (compacted older turns) and `archived`. Each message stores its spec for follow-ups, plus `screen_state`, `tool_trace`, `model`, `usage` and `feedback` (filled from Phase 1 of the assistants plan) |
 | ai_usage (`AIUsage`) | One row per Claude call: user, workspace, conversation, purpose (`chat`, `explain`, …), model, tokens, estimated cost in rupees. The spend caps read it |
 | refresh_schedules | Per-dataset sync interval, with last run and status |
+| users, auth_sessions, login_states, api_tokens | Phase 3 sign-in: people who signed in (active, platform admin), sessions (token hashes, expiry), pending Google sign-ins (state, nonce, PKCE), script tokens (hashes) |
+| access_rules | Restrict a dashboard, a domain or a dataset to a minimum role or named people (see 05) |
+| audit_events | Who did what and when (sign-ins, assistant questions, rule, member, user and token changes) |
 
-Migrations run automatically on app start: `0001_initial.py`, then `0002_assistant_groundwork.py` (dashboard keys backfilled from names, conversation scopes, message details, `ai_usage`).
+Migrations run automatically on app start: `0001_initial.py`, `0002_assistant_groundwork.py` (dashboard keys backfilled from names, conversation scopes, message details, `ai_usage`), `0003_identity_access.py` (users, sessions, login states, API tokens, access rules, audit).
 
 ## API (all under `/api`; workspace routes are `/api/workspaces/{ws_id}/…`)
-- **Auth:** the user comes from the `X-User-Email` header, defaulting to `DEFAULT_USER=owner@local`. Each route declares the role it needs through `deps.viewer/editor/admin`. A dataset id is always checked against the workspace (`dataset_of`).
+- **Auth:** `AUTH_MODE=google`: a session cookie from Google sign-in, or an API token (`Authorization: Bearer`); `AUTH_MODE=dev`: the `X-User-Email` header, defaulting to `DEFAULT_USER=owner@local` (see 05). Each route declares the role it needs through `deps.viewer/editor/admin`. A dataset id is always checked against the workspace (`dataset_of`).
+- **auth.py (Phase 3):** `GET /api/auth/config` (public: sign-in mode), `GET /api/auth/login?next=` -> Google, `GET /api/auth/callback`, `POST /api/auth/logout`; platform admins: `GET/POST/DELETE /api/admin/tokens`, `GET /api/admin/users`, `PATCH /api/admin/users/{email}` (`active`, `is_platform_admin`), `GET /api/admin/audit?action=&who=&before=&limit=`; workspace admins: `GET/POST/DELETE /api/workspaces/{ws}/access-rules`.
 - **workspaces.py:**
   - `GET /me` returns the user and LLM info: provider, simple/complex model labels and the base-URL host, plus `features` (the assistant feature flags, all off until their phase is signed off).
   - `POST /demo` builds the demo workspace.

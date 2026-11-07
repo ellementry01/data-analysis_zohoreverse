@@ -523,8 +523,12 @@ def compute_quality(ws: m.Workspace, ds: m.Dataset) -> dict:
 
 
 def lineage(db: Session, ws: m.Workspace) -> dict:
+    """Sources -> datasets -> reports and dashboards, showing only what the person asking may see."""
+    from .permissions import can_see_dashboard, hidden_dataset_ids
+
+    hidden = hidden_dataset_ids(db, ws)
     nodes, edges = [], []
-    datasets = db.query(m.Dataset).filter_by(workspace_id=ws.id).all()
+    datasets = [d for d in db.query(m.Dataset).filter_by(workspace_id=ws.id).all() if d.id not in hidden]
     by_slug = {d.slug: d for d in datasets}
     for d in datasets:
         nodes.append({"id": f"ds{d.id}", "type": d.kind, "label": d.name, "dataset_id": d.id})
@@ -545,6 +549,8 @@ def lineage(db: Session, ws: m.Workspace) -> dict:
             if slug in by_slug:
                 edges.append({"from": f"ds{by_slug[slug].id}", "to": f"rep{r.id}", "label": ""})
     for dsh in db.query(m.Dashboard).filter_by(workspace_id=ws.id):
+        if not can_see_dashboard(db, ws, dsh):
+            continue
         nodes.append({"id": f"dash{dsh.id}", "type": "dashboard", "label": dsh.name})
         seen = set()
         for w in dsh.widgets:

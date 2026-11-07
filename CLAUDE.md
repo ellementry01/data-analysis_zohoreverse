@@ -2,7 +2,7 @@
 
 Everything for this project lives in this one folder, `C:\Users\Dileep\Desktop\ellementry-analytics\` (one git repo, GitHub `ellementry01/data-analysis_zohoreverse`).
 
-- `analytics/` holds the **Ellementry Analytics** application. Start with [analytics/CLAUDE.md](analytics/CLAUDE.md), then read `analytics/docs/context/01…09`.
+- `analytics/` holds the **Ellementry Analytics** application. Start with [analytics/CLAUDE.md](analytics/CLAUDE.md), then read `analytics/docs/context/01…09`. The AI assistants work follows [analytics/docs/AI_ASSISTANTS_PLAN.md](analytics/docs/AI_ASSISTANTS_PLAN.md) (phases 0–8); where it stands is under "Resume here" in `analytics/docs/context/09-decisions-and-gotchas.md`.
 - `warehouse/` holds the **ellementry_dw** data warehouse code. Read [warehouse/README.md](warehouse/README.md) and `analytics/docs/context/08-ellementry-warehouse.md`.
 - `exports/` holds the company's source exports, with `MANIFEST.tsv` (originals as received in `exports/_originals/`, listed with sha256 in `ORIGINALS.tsv`). **It contains customer data: never commit it, upload it or print personal fields.**
 - `backups/` holds database dumps: `ellementry_dw_<date>.dump` (warehouse, made by `python dw.py backup`) and `ellementry_analytics_<date>.dump` (the app's own database in Docker). Not in git.

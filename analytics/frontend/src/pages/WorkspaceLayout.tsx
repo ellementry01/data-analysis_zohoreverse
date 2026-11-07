@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { UserMenu } from "../components/UserMenu";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { BarChart3, BookOpen, Database, FileUp, GitBranch, History, Home, LayoutDashboard, MessageSquareText, Network, Settings, TerminalSquare } from "lucide-react";
 import { api, Model, Workspace } from "../api/client";
@@ -64,6 +65,7 @@ export default function WorkspaceLayout() {
               ),
             )}
           </nav>
+          <UserMenu compact />
         </aside>
         <main className="print-full min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-[1500px] px-6 py-5">

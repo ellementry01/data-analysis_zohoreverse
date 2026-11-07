@@ -29,10 +29,10 @@ Also see `README.md` (user guide), `QA_REPORT.md` (security audit), `../research
 # Docker (from analytics/) — app on http://localhost:8000
 docker compose up -d --build
 docker compose up -d --force-recreate app   # after editing .env
-# Backend tests (from analytics/backend) — expect 492 passed
+# Backend tests (from analytics/backend) — expect 517 passed
 TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 # Frontend checks (from analytics/frontend)
 npm run typecheck && npm run build
 ```
 
-Last updated: 2026-11-07 (warehouse schema 2.15, ten dashboards; Stock and Fulfilment are COO-ready, three others need fixes, see 08). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
+Last updated: 2026-11-07 (warehouse schema 2.15, ten dashboards; AI assistants Phases 0-2 merged, Phase 3 sign-in built on branch `phase-3-identity-access` and waiting for the owner's Google OAuth client; resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.

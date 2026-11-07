@@ -72,7 +72,7 @@ Every phase follows the same cycle, and the next phase starts only after its exi
 | 0 | Groundwork | Done: signed off by the owner and merged 2026-11-07 |
 | 1 | Dashboard chat (single question) | Done: signed off by the owner and merged 2026-11-07 (live eval 78/80, 69/69 numbers right); on for admins |
 | 2 | Agent loop with tools | Done: signed off by the owner and merged 2026-11-07 (live eval 50/50, every number right); on for admins |
-| 3 | Identity and access | Not started |
+| 3 | Identity and access | Done 2026-11-07, signed off and merged (switch-on deferred by the owner); live app still in dev mode until the owner's Google OAuth client exists; the gate (COO signing in from their device) needs hosting |
 | 4 | Memory | Not started |
 | 5 | Data issues and "worth a look" | Not started |
 | 6 | Global assistant | Not started |

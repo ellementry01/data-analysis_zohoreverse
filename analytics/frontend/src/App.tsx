@@ -16,11 +16,13 @@ import AskPage from "./pages/AskPage";
 import LineagePage from "./pages/LineagePage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminPage from "./pages/AdminPage";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<WorkspacesPage />} />
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="/w/:wsId" element={<WorkspaceLayout />}>
         <Route index element={<OverviewPage />} />
         <Route path="data" element={<DataPage />} />

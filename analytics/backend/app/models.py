@@ -289,3 +289,79 @@ class RefreshSchedule(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_status: Mapped[str] = mapped_column(Text, default="")
+
+
+# ----------------------------------------------------------------------------------------------- identity and access
+# Phase 3 of docs/AI_ASSISTANTS_PLAN.md: real sign-in (Google Workspace), sessions, API tokens, access rules, audit.
+
+class User(Base):
+    __tablename__ = "users"
+    email: Mapped[str] = mapped_column(String(200), primary_key=True)  # lower case
+    name: Mapped[str] = mapped_column(String(200), default="")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)  # inactive users lose access at once
+    is_platform_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # manages users, tokens, the audit log
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AuthSession(Base):
+    """A signed-in browser. The cookie holds a random token; only its SHA-256 is stored."""
+    __tablename__ = "auth_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_email: Mapped[str] = mapped_column(ForeignKey("users.email", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    user_agent: Mapped[str] = mapped_column(String(300), default="")
+    ip: Mapped[str] = mapped_column(String(64), default="")
+
+
+class LoginState(Base):
+    """One pending sign-in: OIDC state, nonce and PKCE verifier, valid for a few minutes."""
+    __tablename__ = "login_states"
+    state: Mapped[str] = mapped_column(String(64), primary_key=True)
+    nonce: Mapped[str] = mapped_column(String(64))
+    code_verifier: Mapped[str] = mapped_column(String(128))
+    next_path: Mapped[str] = mapped_column(String(500), default="/")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ApiToken(Base):
+    """For scripts (dashboard builds, evals): sent as 'Authorization: Bearer <token>', acting as its user."""
+    __tablename__ = "api_tokens"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    user_email: Mapped[str] = mapped_column(ForeignKey("users.email", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class AccessRule(Base):
+    """Who may see a dashboard, a domain of dashboards, or a dataset. A target with no rules is visible to every member
+    of the workspace; once it has rules, only members they match (and workspace admins) see it."""
+    __tablename__ = "access_rules"
+    __table_args__ = (UniqueConstraint("workspace_id", "target_type", "target", "principal_type", "principal",
+                                       name="uq_access_rules"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    target_type: Mapped[str] = mapped_column(String(20))   # dashboard | domain | dataset
+    target: Mapped[str] = mapped_column(String(200))       # dashboard key, domain name, or dataset slug
+    principal_type: Mapped[str] = mapped_column(String(20))  # role | user
+    principal: Mapped[str] = mapped_column(String(200))    # minimum role (viewer|editor|admin), or a user's email
+    created_by: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+    user_email: Mapped[str] = mapped_column(String(200), index=True)
+    action: Mapped[str] = mapped_column(String(60), index=True)  # sign_in, sign_in_failed, sign_out, assistant_ask, ...
+    workspace_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target: Mapped[str] = mapped_column(String(300), default="")
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    ip: Mapped[str] = mapped_column(String(64), default="")

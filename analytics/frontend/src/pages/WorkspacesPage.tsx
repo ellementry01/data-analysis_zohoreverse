@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserMenu } from "../components/UserMenu";
 import { Link, useNavigate } from "react-router-dom";
 import { Database, LayoutDashboard, Plus, Sparkles, Trash2 } from "lucide-react";
 import { api, Workspace } from "../api/client";
@@ -51,6 +52,7 @@ export default function WorkspacesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mb-3 flex justify-end"><UserMenu /></div>
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src="/favicon.svg" className="h-9 w-9" alt="" />

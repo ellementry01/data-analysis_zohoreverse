@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from ..config import get_settings
 from ..db import get_session
 from ..deps import admin, current_user, viewer
 from ..serializers import iso, workspace_out
+from ..services import audit
 from ..services import datasets as dsvc
 from ..services.nlq import llm
 
@@ -25,11 +26,15 @@ class MemberIn(BaseModel):
 
 
 @router.get("/me")
-def me(user: str = Depends(current_user)):
+def me(user: str = Depends(current_user), db: Session = Depends(get_session)):
     s = get_settings()
     features = {"dashboard_chat": s.assistant_dashboard_chat, "agent_loop": s.assistant_agent_loop,
                 "memory": s.assistant_memory, "global_assistant": s.assistant_global, "scheduled_agents": s.assistant_scheduled}
-    return {**_me(user, s), "features": features}
+    u = db.get(m.User, user)
+    admins = {e.strip().lower() for e in s.bootstrap_admins.split(",") if e.strip()}
+    is_admin = bool(u and u.is_platform_admin) if s.auth_mode == "google" else (user in admins or user == s.default_user.lower())
+    return {**_me(user, s), "features": features, "auth_mode": s.auth_mode, "name": u.name if u else "",
+            "is_platform_admin": is_admin}
 
 
 def _me(user: str, s) -> dict:
@@ -101,8 +106,12 @@ def delete_workspace(ws: m.Workspace = Depends(admin), db: Session = Depends(get
 
 
 @router.put("/workspaces/{ws_id}/members")
-def upsert_member(body: MemberIn, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session)):
+def upsert_member(body: MemberIn, request: Request, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
+                  user: str = Depends(current_user)):
     email = body.user_email.strip().lower()
+    s = get_settings()
+    if s.auth_mode == "google" and not email.endswith("@" + (s.google_allowed_domain or "").lower()):
+        raise HTTPException(400, f"Only {s.google_allowed_domain} accounts can be members")
     mem = next((x for x in ws.members if x.user_email == email), None)
     if mem:
         if mem.role == "admin" and body.role != "admin" and sum(x.role == "admin" for x in ws.members) == 1:
@@ -111,11 +120,13 @@ def upsert_member(body: MemberIn, ws: m.Workspace = Depends(admin), db: Session 
     else:
         ws.members.append(m.WorkspaceMember(user_email=email, role=body.role))
     db.commit()
+    audit.record(user, "member_set", ws.id, email, {"role": body.role}, audit.client_ip(request))
     return [{"user_email": x.user_email, "role": x.role} for x in ws.members]
 
 
 @router.delete("/workspaces/{ws_id}/members/{email}")
-def remove_member(email: str, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session)):
+def remove_member(email: str, request: Request, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
+                  user: str = Depends(current_user)):
     mem = next((x for x in ws.members if x.user_email == email.lower()), None)
     if not mem:
         raise HTTPException(404, "Member not found")
@@ -123,6 +134,7 @@ def remove_member(email: str, ws: m.Workspace = Depends(admin), db: Session = De
         raise HTTPException(400, "A workspace needs at least one admin")
     ws.members.remove(mem)
     db.commit()
+    audit.record(user, "member_removed", ws.id, email.lower(), ip=audit.client_ip(request))
     return [{"user_email": x.user_email, "role": x.role} for x in ws.members]
 
 

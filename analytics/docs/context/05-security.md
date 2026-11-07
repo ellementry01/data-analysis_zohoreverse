@@ -39,8 +39,17 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - **Cross-workspace access (IDOR):** every id-scoped route checks the workspace; conversations also check the user.
 - **Container:** non-root `ellementry` user, read-only root filesystem, `cap_drop: ALL`, `no-new-privileges`, 2 GB memory and 256 PID limits, ports bound to 127.0.0.1 only.
 
+## Sign-in and access (Phase 3, 2026-11-07)
+- `AUTH_MODE=google`: Google Workspace sign-in (OIDC code flow with PKCE, `hd` limited to the company domain). The ID token's RS256 signature is checked against Google's published keys, and its issuer, audience, expiry, nonce, verified email and hosted domain are checked (`services/auth.py`). The browser gets a random session token in an HttpOnly, SameSite=Lax cookie (Secure on https); the database stores only its SHA-256. Sessions end after `SESSION_HOURS` (12) or `SESSION_IDLE_HOURS` (4) without use. Cookie-authenticated writes with a foreign Origin are refused. Redirect targets after sign-in are same-site paths only.
+- Scripts use API tokens (`Authorization: Bearer`), created by platform admins, shown once, stored hashed, revocable, 1-365 days.
+- `AUTH_MODE=dev` (the `X-User-Email` header) remains for local development and tests; the app **refuses to start** in dev mode unless `PUBLIC_BASE_URL` is localhost, and in google mode without client id, secret and domain, or without https outside localhost.
+- Users: switching a user off revokes every session and token at once. `BOOTSTRAP_ADMINS` (emails) become platform admins and workspace admins on sign-in. In google mode, workspace members must be company accounts.
+- **Access rules** (`services/permissions.py`): dashboards, domains of dashboards and datasets can be restricted to a minimum workspace role or named people; without rules everything stays visible to members; workspace admins see everything. Enforced at one place: the workspace dependency records who is acting, and `load_catalog`, `dataset_of`, dashboard lookups, lineage and the assistant's tools read it. The assistant never sees more than the person asking (the streaming thread copies the asker onto its own workspace object).
+- **Audit log** (`audit_events`): sign-ins and failures, sign-outs, assistant questions, access-rule, membership, user and token changes; viewable by platform admins (Administration page).
+- Known limit: a query table built by an admin on a restricted dataset is a dataset of its own; restrict it too.
+
 ## Accepted risks (QA_REPORT §4)
-- **R1:** identity-only login through the `X-User-Email` header. Add OIDC or an SSO proxy before any shared deployment.
+- **R1:** identity-only login through the `X-User-Email` header. **Fixed in code (Phase 3)**: closes when `AUTH_MODE=google` is switched on in the live deployment.
 - **R2:** npm audit findings remain in Tailwind 3's build-time watcher. Migrate to Tailwind 4 when convenient.
 - **R3:** expensive but valid SQL is only bounded by the timeout.
 - **R4:** the `/sql` console echoes the first line of the database error.

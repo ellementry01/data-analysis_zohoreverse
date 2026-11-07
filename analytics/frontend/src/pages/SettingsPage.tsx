@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bot, Trash2, UserCog, Users } from "lucide-react";
 import { api, currentUser, USER_KEY, Workspace } from "../api/client";
+import { AccessRulesCard } from "../components/AccessRulesCard";
 import { Badge, Button, Card, inputCls, Label, PageHeader, Select, useAsync, useToast } from "../components/ui";
 import { timeAgo } from "../lib/format";
 import { useWs } from "./WorkspaceLayout";
@@ -11,7 +12,7 @@ export default function SettingsPage() {
   const toast = useToast();
   const nav = useNavigate();
   const full = useAsync(() => api.get<Workspace>(`/workspaces/${ws.id}`), [ws.id]);
-  const me = useAsync(() => api.get<{ email: string; llm: { enabled: boolean; model: string | null; base_url_host: string | null; provider?: string | null; simple_model?: string; complex_model?: string } }>("/me"), []);
+  const me = useAsync(() => api.get<{ email: string; auth_mode?: string; llm: { enabled: boolean; model: string | null; base_url_host: string | null; provider?: string | null; simple_model?: string; complex_model?: string } }>("/me"), []);
   const schedules = useAsync(() => api.get<any[]>(`/workspaces/${ws.id}/schedules`), [ws.id]);
   const [name, setName] = useState(ws.name);
   const [desc, setDesc] = useState(ws.description);
@@ -78,10 +79,13 @@ export default function SettingsPage() {
             </div>
           )}
         </Card>
-        <Card title={<span className="flex items-center gap-1.5"><UserCog className="h-4 w-4" /> Local user</span>}>
-          <p className="mb-2 text-xs text-slate-500">This local-first build identifies users by email (no passwords). Switch user to try roles; you only see workspaces you are a member of.</p>
-          <div className="flex gap-2"><input className={inputCls} value={user} onChange={(e) => setUser(e.target.value)} /><Button onClick={switchUser}>Switch</Button></div>
-        </Card>
+        {isAdmin && <AccessRulesCard wsId={ws.id} datasets={model.datasets.map((d: any) => ({ slug: d.slug, name: d.name }))} />}
+        {me.data?.auth_mode === "dev" && (
+          <Card title={<span className="flex items-center gap-1.5"><UserCog className="h-4 w-4" /> Local user (development mode)</span>}>
+            <p className="mb-2 text-xs text-slate-500">Development mode identifies users by email with no password. Switch user to try roles; you only see workspaces you are a member of. With company sign-in switched on, this card disappears.</p>
+            <div className="flex gap-2"><input className={inputCls} value={user} onChange={(e) => setUser(e.target.value)} /><Button onClick={switchUser}>Switch</Button></div>
+          </Card>
+        )}
         <Card title={<span className="flex items-center gap-1.5"><Bot className="h-4 w-4" /> AI assistant</span>}>
           {me.data?.llm.provider === "anthropic" ? (
             <div className="text-sm">Anthropic Claude connected. Everyday questions go to <b>{me.data.llm.simple_model}</b>; genuinely complex ones (opposing trends, "why", cohorts, share-of-total, many metrics) go to <b>{me.data.llm.complex_model}</b>, which is also used once if a cheaper plan fails validation. Opus and Fable are never used. Answers use your metric definitions where possible, and any SQL passes the validator and runs read-only. If the API is unreachable, the offline engine answers.</div>

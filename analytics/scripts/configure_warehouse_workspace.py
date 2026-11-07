@@ -43,6 +43,18 @@ LABEL_COLUMNS = [
 ]
 
 
+
+def _headers() -> dict:
+    """With company sign-in on, scripts authenticate with an API token from ELLEMENTRY_API_TOKEN (Administration ->
+    API tokens). It is read from the environment only, never printed."""
+    import os
+
+    h = {"Content-Type": "application/json"}
+    token = os.environ.get("ELLEMENTRY_API_TOKEN", "").strip()
+    if token:
+        h["Authorization"] = f"Bearer {token}"
+    return h
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://localhost:8000"); ap.add_argument("--workspace", type=int, default=34)
@@ -50,7 +62,7 @@ def main() -> int:
     base = f"{a.base}/api/workspaces/{a.workspace}"
 
     def call(method, path, body=None):
-        req = urllib.request.Request(base + path, method=method, headers={"Content-Type": "application/json"},
+        req = urllib.request.Request(base + path, method=method, headers=_headers(),
                                      data=json.dumps(body).encode() if body is not None else None)
         try:
             with urllib.request.urlopen(req, timeout=600) as r:
