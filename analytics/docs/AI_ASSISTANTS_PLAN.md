@@ -73,7 +73,7 @@ Every phase follows the same cycle, and the next phase starts only after its exi
 | 1 | Dashboard chat (single question) | Done: signed off by the owner and merged 2026-11-07 (live eval 78/80, 69/69 numbers right); on for admins |
 | 2 | Agent loop with tools | Done: signed off by the owner and merged 2026-11-07 (live eval 50/50, every number right); on for admins |
 | 3 | Identity and access | Done 2026-11-07, signed off and merged (switch-on deferred by the owner); live app still in dev mode until the owner's Google OAuth client exists; the gate (COO signing in from their device) needs hosting |
-| 4 | Memory | Built 2026-11-07 (branch `phase-4-memory`, 555 tests); live eval `memory` 7/7 (Rs 6.07, after widening two checker word lists); the owner's week of use pending. Built with a PostgreSQL job queue instead of Redis + RQ (see 09) |
+| 4 | Memory | Done: signed off by the owner and merged 2026-11-07 (555 tests; live eval `memory` 7/7, Rs 6.07); on for admins. The owner signed off before the week of use: watch the suggestion acceptance rate (`GET /memory/stats`, target above 50%). Built with a PostgreSQL job queue instead of Redis + RQ (see 09) |
 | 5 | Data issues and "worth a look" | Not started |
 | 6 | Global assistant | Not started |
 | 7 | Scheduled domain agents | Not started |
