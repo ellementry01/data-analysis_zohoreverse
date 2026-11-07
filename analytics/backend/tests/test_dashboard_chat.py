@@ -317,6 +317,10 @@ def test_invented_numbers_are_caught():
            "columns": [{"name": "channel", "role": "dimension"}, {"name": "n", "role": "measure"}],
            "rows": [["Amazon", 650.0], ["Shopify", 510.0]], "assumptions": []}
     assert invented_numbers(ans) == ["999"]       # 1,160 is the total, 56% a share; dates are not data
+    labelled = {"type": "answer", "text": "Band \"1. Under 30 days\" is largest; values run from 2025-04 to 2026-09.",
+                "columns": [{"name": "band", "role": "dimension"}, {"name": "v", "role": "measure"}],
+                "rows": [["1. Under 30 days", 5.0]], "assumptions": []}
+    assert invented_numbers(labelled) == []       # numbers in labels and year-months are not data
 
 
 class _InProcess:
@@ -376,3 +380,26 @@ def test_dashboard_basic_set_is_well_formed():
     for k in keys:
         assert sum(c["dashboard"] == k for c in cases) == 8, k
     assert all(c.get("expect") or c.get("must_mention") for c in cases)
+
+
+def test_explanations_get_display_formatted_values():
+    from app.services.nlq.claude import _display, _facts
+
+    cols = [{"name": "band", "label": "Band", "role": "dimension"},
+            {"name": "v", "label": "Stock value", "role": "measure", "format": "currency"},
+            {"name": "r", "label": "Return rate", "role": "measure", "format": "percent", "additive": False}]
+    rows = [["A", 28_264_401.39, 0.03695375159283412], ["B", 25_793_071.65, 0.32983705727388035]]
+    shown, facts = _display(cols, rows, _facts(cols, rows))
+    assert shown == [["A", "₹2.83 Cr", "3.7%"], ["B", "₹2.58 Cr", "33.0%"]]
+    assert facts["Stock value"]["total"] == "₹5.41 Cr" and facts["Stock value"]["share_of_total_pct"]["A"] == "52.3%"
+    assert facts["Return rate"]["max"] == "33.0%" and "total" not in facts["Return rate"]
+
+
+def test_explain_prompt_forbids_commenting_on_assumptions(fake_claude):
+    from app.services.nlq import claude
+
+    fm = fake_claude("ok")
+    claude.explain("q", [{"name": "v", "label": "V", "role": "measure", "format": "currency"}], [[12_345_678]], ["a note"])
+    sent = fm.calls[0]
+    assert "never contradict them" in sent["system"][0]["text"]
+    assert "₹1.23 Cr" in sent["messages"][0]["content"] and "12345678" not in sent["messages"][0]["content"]

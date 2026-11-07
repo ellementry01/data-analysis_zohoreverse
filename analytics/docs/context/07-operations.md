@@ -54,7 +54,7 @@ docker compose ps
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **465 passed** (2026-11-07), in about 3 minutes. About 80 s of that is building the demo workspace once.
+- Current result: **467 passed** (2026-11-07), in about 3½ minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)
@@ -62,7 +62,7 @@ $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
   - `test_dashboard_chat` (Phase 1: access, the dashboard pack, screen-state validation, recomputed screen numbers, filter inheritance, threads, feedback, the eval runner on dashboards)
 - `test_assistant_groundwork` (dashboard keys and the 0002 migration round trip, conversation scopes, the AI usage ledger and spend caps, feature flags, the test harness itself, the eval runner)
 - **Scripted Claude for tests:** `tests/fakes.py` (`FakeMessages`, `turn`, `say`, `tool_call`) and the `fake_claude` fixture. It also enforces the rules: Haiku/Sonnet only, no `temperature`/`fallbacks`, no forced `tool_choice`, and the tool-loop contract (every `tool_use` answered by a `tool_result` in one user message). Use it for every new test that touches Claude.
-- **Evaluation sets:** `backend/evals/` (`python -m evals run <set>` from `backend/`, against the running app; needs `pyyaml` from `requirements-dev.txt`). Expected numbers come from SQL or a QuerySpec run at eval time. Without `--live` the free offline engine answers; `--live` uses Claude and refuses to start unless `EVAL_LIVE_OK=1` (owner's OK first). Sets live in `evals/sets/`: `sample.yaml` and `dashboard_basic.yaml` (80 questions, 8 per dashboard; expected values from the dashboard's own widgets with the same filters). The runner checks the number, named labels, required mentions and that every number in an answer comes from its data, and deletes the threads it creates. The offline engine scored 15/80 on 2026-11-07 (it can't use dashboard context): that run only proves the wiring.
+- **Evaluation sets:** `backend/evals/` (`python -m evals run <set>` from `backend/`, against the running app; needs `pyyaml` from `requirements-dev.txt`). Expected numbers come from SQL or a QuerySpec run at eval time. Without `--live` the free offline engine answers; `--live` uses Claude and refuses to start unless `EVAL_LIVE_OK=1` (owner's OK first). Sets live in `evals/sets/`: `sample.yaml` and `dashboard_basic.yaml` (80 questions, 8 per dashboard; expected values from the dashboard's own widgets with the same filters). The runner checks the number, named labels, required mentions and that every number in an answer comes from its data, and deletes the threads it creates. The offline engine scored 15/80 on 2026-11-07 (it can't use dashboard context): that run only proves the wiring. **Live run with Claude (2026-11-07, owner's OK): 78/80 passed, 69/69 numbers correct, Rs 30.81, median 15 s per answer**; the 2 failures were checker false positives (year-months, numbers inside band names), fixed. A 12-question recheck after the formatting fix passed 12/12 (Rs 11.94, mostly cache rewrites after the rebuild).
   - `test_safety`, `test_security_audit`, `test_hardening`, `test_analytics_units`
   - the end-to-end ground-truth test in `test_assistant`
 - In tests, import shared helpers with `from conftest import api, build_mini`; relative imports don't work.

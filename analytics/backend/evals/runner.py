@@ -39,7 +39,7 @@ SETS_DIR = Path(__file__).parent / "sets"
 _NUM = re.compile(r"(?<![\w.])[-+]?(?:\d{1,3}(?:,\d{2,3})+|\d+)(?:\.\d+)?(?:\s*(?:cr|crore|crores|lakh|lakhs|l|k|%))?(?![\w])", re.I)
 _MULT = {"cr": 1e7, "crore": 1e7, "crores": 1e7, "l": 1e5, "lakh": 1e5, "lakhs": 1e5, "k": 1e3}
 # dates and period labels are not data values
-_DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?(?:\s+\d{4})?\b|"
+_DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?(?:\s+\d{4})?\b|"
                     r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
                     r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
 
@@ -173,6 +173,8 @@ def allowed_numbers(answer: dict, question: str = "") -> list[float]:
     allowed = _numeric_cells(answer)
     cols = answer.get("columns") or []
     rows = answer.get("rows") or []
+    # numbers inside labels ("6. Nothing sold or sent in 30 days") are names, not data
+    allowed += [v for row in rows for c in row if isinstance(c, str) for v in parse_numbers(c)]
     allowed.append(float(len(rows)))
     for i, c in enumerate(cols):
         vals = [r[i] for r in rows if i < len(r) and isinstance(r[i], (int, float)) and not isinstance(r[i], bool)]

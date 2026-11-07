@@ -57,6 +57,8 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 ## Explanation (`claude.explain`)
 - Haiku receives the question, columns, up to N rows, the assumptions, and **`computed_facts`**. `_facts()` computes `row_count` and, per measure, min, max and total. For additive measures it also computes `share_of_total_pct`; ratio measures get no total.
 - `EXPLAIN_PROMPT` says to quote only the rows or computed_facts and **never do arithmetic**. This was added because the model once wrote "75 locations" when the true total was 76.
+- Rows and facts reach the model **already formatted for display** (`claude._display`: ₹ with lakh/crore, %), and the prompt says to quote them exactly, never convert. Added 2026-11-07 after the live eval quoted raw values such as 0.0369 and 28,264,401.39.
+- The prompt also says assumptions may be restated as caveats but never contradicted or commented on: one answer had claimed the dashboard "should be checked" because of its own interpretation note.
 - If the explanation fails, `template_explanation` builds the text deterministically instead.
 
 ## Dashboard assistant (Phase 1, `services/agent/context.py`, 2026-11-07)
