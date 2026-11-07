@@ -786,5 +786,8 @@ def delete_conversation(cid: int, ws: m.Workspace = Depends(viewer), db: Session
     c = db.get(m.Conversation, cid)
     if not c or c.workspace_id != ws.id or c.user_email != user:
         raise HTTPException(404, "Conversation not found")
+    # its queued background work (summary, memory extraction) goes with it
+    db.query(m.Job).filter(m.Job.status == "queued",
+                           m.Job.dedupe_key.in_((f"summary:{c.id}", f"extract:{c.id}"))).delete(synchronize_session=False)
     db.delete(c)
     db.commit()

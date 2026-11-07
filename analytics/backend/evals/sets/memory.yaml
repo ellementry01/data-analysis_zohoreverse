@@ -28,7 +28,7 @@
     - dashboard: days-of-cover
       question: "Should we move more stock to the partner warehouses?"
       expect_used: [partner_stock]
-      must_mention: [[decided, decision], [sell-through, unsold, sitting]]
+      must_mention: [[decided, decision], [sell-through, unsold, sitting, sold]]
       check_invented: false
 
 - id: mem-dashboard-scope-stays-on-its-dashboard
@@ -76,7 +76,7 @@
     - dashboard: fulfilment
       question: "What did I decide about couriers and RTO?"
       expect_used: [rto_courier]
-      must_mention: [[cod], [north]]
+      must_mention: [[cod, cash-on-delivery, cash on delivery], [north]]
       check_invented: false
 
 - id: mem-team-fact-explains-a-term

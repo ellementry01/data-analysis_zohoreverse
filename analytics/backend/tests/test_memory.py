@@ -534,7 +534,11 @@ def test_memory_page_lifecycle(client, board, mem_on):
 def test_deleting_the_chat_keeps_the_memory_and_its_words(client, board, mem_on, fake_claude):
     fake_claude(turn(tool_call("propose_memory", {"text": "Bagru counts lag a week", "kind": "caveat", "scope": "global"})), "Noted.")
     out = ask(client, board, "remember that Bagru counts lag a week")
+    with _db() as db:
+        assert db.query(m.Job).filter_by(dedupe_key=f"extract:{out['conversation_id']}", status="queued").count() == 1
     assert client.delete(api(board["ws"], f"/conversations/{out['conversation_id']}")).status_code == 204
+    with _db() as db:   # its queued learning job goes with it
+        assert db.query(m.Job).filter_by(dedupe_key=f"extract:{out['conversation_id']}").count() == 0
     (x,) = mems(client, board)
     assert x["source"]["conversation_id"] is None and "Bagru counts lag a week" in x["source"]["excerpt"]
 
