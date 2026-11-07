@@ -69,6 +69,15 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 - The dashboard chat never creates or changes dashboards: a "create a dashboard" request gets a read-only note.
 - Threads are `scope_type = dashboard` with the dashboard **key**; each user message stores its screen state, each answer its model and usage.
 
+## Multi-step answers with tools (Phase 2, `services/agent/`, 2026-11-07)
+- With `ASSISTANT_AGENT_LOOP=true`, the dashboard chat answers through `agent/engine.run`: a manual tool loop on the Anthropic SDK (`claude.call_with_tools`, same model allow-list, spend caps and ledger as every call). Routing as before (Haiku low / Sonnet medium); after 2 failed tool calls on Haiku the rest of the answer escalates once to Sonnet.
+- **Tools** (`agent/tools.py`, all read-only): `run_query` (a QuerySpec through `_run_scoped`, so the dashboard's filters apply), `get_widget_data` (a widget exactly as a dashboard computes it, with optional filters and drill), `describe_metric`, `list_values`, `get_dashboard_context`, `get_data_issues` (empty until Phase 5). No SQL tool. Results reach the model formatted for display, at most 50 rows, with exact totals and shares in `facts`. Tools see only their workspace; per-dashboard access arrives with Phase 3 (`tools.can_see_dashboard`).
+- **Limits:** 6 tool calls, 90 s, 300,000 tokens per answer; at a limit the model is told to answer with what it has (`tool_choice: none`).
+- **Number check** (`agent/numbers.py`): every number in the final text must match a tool result (cells, labels, totals, shares; rounding and ₹ L/Cr/% aware), the question, the screen or the dashboard text. Otherwise one rewrite is requested; numbers still untraceable are listed in the answer's `warnings`.
+- **Payload:** `steps` (each tool call: label, ok/error, rows, spec, SQL, notes) and the last data result as the answer card; `tool_trace` is stored on the message.
+- **Streaming:** `POST /dashboards/key/{key}/assistant/ask/stream` sends `step`, `step_done`, `checking`, `escalated`, then `answer` or `error` as server-sent events; the panel shows each step live.
+- **Long threads:** past 12 messages since the last summary, all but the last 6 are summarised by Haiku into `conversations.summary` (`purpose = summary` in the ledger); the summary goes in the next user turn.
+
 ## Usage ledger and spend caps (`services/ai_usage.py`, 2026-11-07)
 - Every Claude call goes through `claude._call`, which first runs `ai_usage.check_budget()` and afterwards `ai_usage.record()`.
 - `record()` writes one `ai_usage` row: user, workspace, conversation and purpose come from `ai_usage.ai_context(...)`, set by `assistant.answer` (`chat`) and `claude.explain` (`explain`). The estimated cost (rupees) is also returned in the answer's `usage.cost_inr`. A ledger failure is logged and never loses the answer.

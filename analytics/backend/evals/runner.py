@@ -36,12 +36,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 SETS_DIR = Path(__file__).parent / "sets"
-_NUM = re.compile(r"(?<![\w.])[-+]?(?:\d{1,3}(?:,\d{2,3})+|\d+)(?:\.\d+)?(?:\s*(?:cr|crore|crores|lakh|lakhs|l|k|%))?(?![\w])", re.I)
-_MULT = {"cr": 1e7, "crore": 1e7, "crores": 1e7, "l": 1e5, "lakh": 1e5, "lakhs": 1e5, "k": 1e3}
-# dates and period labels are not data values
-_DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?(?:\s+\d{4})?\b|"
-                    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
-                    r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
+from app.services.agent.numbers import DATES as _DATES  # noqa: E402  (shared with the assistant's own check)
+from app.services.agent.numbers import Num, matches as _matches, number_tokens, parse_numbers, result_numbers, ungrounded  # noqa: E402,F401
 
 
 class Transport:
@@ -112,42 +108,6 @@ def load_set(name_or_path: str) -> list[dict]:
 
 # ----------------------------------------------------------------------------------------------- numbers
 
-@dataclass
-class Num:
-    token: str
-    values: list[float]      # alternatives ("7.8%" -> 0.078 and 7.8)
-    slack: list[float]       # rounding allowance for each alternative
-
-
-def number_tokens(text: str) -> list[Num]:
-    out = []
-    for m in _NUM.finditer(text or ""):
-        tok = m.group(0).strip()
-        unit = re.search(r"(crores|crore|cr|lakhs|lakh|l|k|%)$", tok, re.I)
-        mant = re.sub(r"[^\d.+-]", "", tok[: unit.start()] if unit else tok)
-        try:
-            num = float(mant)
-        except ValueError:
-            continue
-        decimals = len(mant.split(".")[1]) if "." in mant else 0
-        half = 0.5 * 10 ** -decimals
-        u = unit.group(1).lower() if unit else ""
-        if u == "%":
-            out.append(Num(tok, [num / 100, num], [half / 100, half]))
-        else:
-            mult = _MULT.get(u, 1)
-            out.append(Num(tok, [num * mult], [half * mult]))
-    return out
-
-
-def parse_numbers(text: str) -> list[float]:
-    return [v for n in number_tokens(text) for v in n.values]
-
-
-def _matches(n: Num, target: float, tol: float = 0.005) -> bool:
-    return any(abs(v - target) <= max(s, abs(target) * tol, 1e-9) for v, s in zip(n.values, n.slack))
-
-
 def _numeric_cells(res: dict, column: str | None = None) -> list[float]:
     cols = [c.get("name") or c.get("label") for c in res.get("columns") or []]
     vals = []
@@ -168,39 +128,20 @@ def _numeric_cells(res: dict, column: str | None = None) -> list[float]:
 
 
 def allowed_numbers(answer: dict, question: str = "") -> list[float]:
-    """Every number an answer may quote: its cells, column totals and shares, the row count, and numbers that were
-    already in the question or the answer's assumptions (filters, periods, definitions)."""
-    allowed = _numeric_cells(answer)
-    cols = answer.get("columns") or []
-    rows = answer.get("rows") or []
-    # numbers inside labels ("6. Nothing sold or sent in 30 days") are names, not data
-    allowed += [v for row in rows for c in row if isinstance(c, str) for v in parse_numbers(c)]
-    allowed.append(float(len(rows)))
-    for i, c in enumerate(cols):
-        vals = [r[i] for r in rows if i < len(r) and isinstance(r[i], (int, float)) and not isinstance(r[i], bool)]
-        if not vals or c.get("role") == "dimension":
-            continue
-        total = float(sum(vals))
-        allowed += [total, float(max(vals)), float(min(vals))]
-        if total:
-            allowed += [v / total for v in vals] + [100 * v / total for v in vals]
+    """Every number an answer may quote: the cells, labels, totals and shares of its result and of every step the
+    assistant took, plus numbers already in the question or the answer's assumptions and warnings."""
+    allowed = result_numbers(answer.get("columns") or [], answer.get("rows") or [])
+    for st in answer.get("steps") or []:
+        allowed += result_numbers(st.get("columns") or [], st.get("rows") or [])
+        allowed += parse_numbers(" ".join(str(x) for x in st.get("notes") or []))
     for extra in [question, *(answer.get("assumptions") or []), *(answer.get("warnings") or [])]:
         allowed += parse_numbers(str(extra))
-    comp = answer.get("comparison") or {}
-    allowed += parse_numbers(json.dumps(comp))
+    allowed += parse_numbers(json.dumps(answer.get("comparison") or {}))
     return allowed
 
 
 def invented_numbers(answer: dict, question: str = "") -> list[str]:
-    text = _DATES.sub(" ", answer.get("text") or "")
-    allowed = allowed_numbers(answer, question)
-    bad = []
-    for n in number_tokens(text):
-        if all(v == int(v) and 0 <= v <= 12 for v in n.values):
-            continue  # small counts and ranks ("top 5", "2 channels") are words more than data
-        if not any(_matches(n, a) for a in allowed):
-            bad.append(n.token)
-    return bad
+    return ungrounded(answer.get("text") or "", allowed_numbers(answer, question))
 
 
 # ----------------------------------------------------------------------------------------------- expectations
@@ -261,6 +202,23 @@ def expected_value(t: Transport, ws: int, case: dict) -> Expected:
 
 # ----------------------------------------------------------------------------------------------- scoring
 
+_MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+           "november", "december"]
+
+
+def label_variants(label: str) -> list[str]:
+    """Ways an answer may name a label: as is, and for a month start date ("2025-10-01") also "october 2025",
+    "oct 2025" and "2025-10"."""
+    low = str(label).lower()
+    out = [low]
+    m = re.match(r"^(\d{4})-(\d{2})(?:-01)?(?:[t ].*)?$", low)
+    if m:
+        y, mo = m.group(1), int(m.group(2))
+        name = _MONTHS[mo - 1]
+        out += [f"{name} {y}", f"{name[:3]} {y}", f"{name[:3]}-{y[2:]}", f"{y}-{m.group(2)}"]
+    return out
+
+
 def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseResult:
     if not isinstance(expected, Expected):
         expected = Expected(expected)
@@ -282,8 +240,7 @@ def score(case: dict, answer: dict, expected: Expected | float | None) -> CaseRe
         if not (in_cells or in_text):
             r.problems.append(f"expected {expected.value:g} not found in the answer")
     if expected.label and (case.get("expect") or {}).get("top"):
-        rows_text = " ".join(str(c) for row in answer.get("rows") or [] for c in row).lower()
-        if expected.label.lower() not in low and expected.label.lower() not in rows_text[:2000]:
+        if not any(alt in low for alt in label_variants(expected.label)):
             r.problems.append(f"does not name '{expected.label}'")
     for item in case.get("must_mention") or []:
         options = item if isinstance(item, list) else [item]

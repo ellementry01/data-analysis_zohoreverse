@@ -692,20 +692,72 @@ def _dashboard_by_key(db, ws, key) -> m.Dashboard:
 @router.post("/dashboards/key/{key}/assistant/ask")
 def dashboard_ask(key: str, body: DashboardAskIn, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
                   user: str = Depends(current_user)):
+    _dashboard_chat_on()
+    scope = _dashboard_scope(db, ws, key, body.screen_state, user)
+    return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
+
+
+def _dashboard_scope(db, ws, key: str, screen_state: dict, user: str):
     from ..services.agent import context as actx
 
-    _dashboard_chat_on()
     d = _dashboard_by_key(db, ws, key)
     try:
-        screen = actx.validate_screen(d, body.screen_state)
+        screen = actx.validate_screen(d, screen_state)
     except actx.ScreenStateError as e:
         raise HTTPException(400, str(e))
     cat = load_catalog(db, ws)
-    scope = assistant.AnswerScope(scope_type="dashboard", dashboard_key=d.key,
-                                  prompt=actx.DASHBOARD_PROMPT + "\n\n" + actx.build_dashboard_pack(db, d, cat),
-                                  screen_text=actx.screen_summary(db, d, cat, screen, user), screen=screen,
-                                  screen_json=screen.as_json())
-    return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
+    return assistant.AnswerScope(scope_type="dashboard", dashboard_key=d.key,
+                                 prompt=actx.DASHBOARD_PROMPT + "\n\n" + actx.build_dashboard_pack(db, d, cat),
+                                 screen_text=actx.screen_summary(db, d, cat, screen, user), screen=screen,
+                                 screen_json=screen.as_json())
+
+
+@router.post("/dashboards/key/{key}/assistant/ask/stream")
+def dashboard_ask_stream(key: str, body: DashboardAskIn, ws: m.Workspace = Depends(admin), db: Session = Depends(get_session),
+                         user: str = Depends(current_user)):
+    """Same as /ask, as server-sent events: one `step` / `step_done` event per tool call while the answer is worked
+    out, then `answer` (the full payload) or `error`. Lets the chat show progress on multi-step answers."""
+    import json as _json
+    import queue
+    import threading
+
+    from fastapi.responses import StreamingResponse
+
+    from ..db import SessionLocal
+
+    _dashboard_chat_on()
+    scope = _dashboard_scope(db, ws, key, body.screen_state, user)   # validation errors are plain 400s, before streaming
+    ws_id = ws.id
+    events: queue.Queue = queue.Queue()
+
+    def work():
+        own = SessionLocal()   # the request's session closes when the handler returns; the stream outlives it
+        try:
+            out = assistant.answer(own, own.get(m.Workspace, ws_id), user, body.question, body.conversation_id,
+                                   engine=body.engine, scope=scope, on_event=events.put)
+            events.put({"type": "answer", "answer": out})
+        except Exception as e:  # noqa: BLE001
+            events.put({"type": "error", "detail": str(e).splitlines()[0][:300] if str(e) else "Failed"})
+        finally:
+            own.close()
+            events.put(None)
+
+    threading.Thread(target=work, daemon=True).start()
+
+    def stream():
+        yield ": started\n\n"
+        while True:
+            try:
+                e = events.get(timeout=15)
+            except queue.Empty:
+                yield ": keep-alive\n\n"
+                continue
+            if e is None:
+                return
+            yield f"event: {e['type']}\ndata: {_json.dumps(e, default=str, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.get("/dashboards/key/{key}/assistant/conversations")

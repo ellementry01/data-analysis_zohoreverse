@@ -80,6 +80,8 @@ class FakeMessages:
 
     # ------------------------------------------------------------------ API surface
     def create(self, **kw):
+        # keep what was sent at this moment: callers keep appending to the same messages list afterwards
+        kw = {**kw, "messages": list(kw.get("messages") or [])}
         self.calls.append(kw)
         self._check_request(kw)
         assert self.replies, "the script ran out of replies (the code called Claude more often than expected)"

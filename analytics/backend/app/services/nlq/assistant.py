@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from ... import models as m
 from .. import ai_usage
+from ...config import get_settings
 from ..analytics import fmt, insights, run_spec, suggest_chart
 from ..catalog import Catalog, load_catalog
 from ..executor import QueryExecutionError, log_query, run_readonly
@@ -161,7 +162,8 @@ def _owns(conv: m.Conversation, ws: m.Workspace, user: str, scope: AnswerScope |
 
 
 def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_id: int | None = None,
-           engine: str = "auto", today: date | None = None, scope: AnswerScope | None = None) -> dict:
+           engine: str = "auto", today: date | None = None, scope: AnswerScope | None = None,
+           on_event=None) -> dict:
     question = (question or "").strip()
     if not question:
         raise ValueError("Ask a question")
@@ -177,6 +179,8 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
         db.flush()
     prev = _prev_spec(conv)
     history = _history(conv)
+    if conv.summary:
+        history = [{"role": "summary", "content": conv.summary}] + history
     conv.messages.append(m.Message(role="user", content=question, screen_state=scope.screen_json if scope else None))
     db.commit()
     conv_id = conv.id
@@ -185,7 +189,7 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     payload: dict = {"engine": None}
     try:
         with ai_usage.ai_context(user=user, workspace_id=ws.id, conversation_id=conv_id, purpose="chat"):
-            payload = _answer(db, ws, cat, user, question, prev, history, engine, today, scope)
+            payload = _answer(db, ws, cat, user, question, prev, history, engine, today, scope, on_event)
     except Exception as e:  # never leave the user without a truthful message
         log.exception("assistant failure")
         db.rollback()
@@ -195,10 +199,43 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     if "rows" in stored:
         stored["rows"] = stored["rows"][:STORE_ROWS]
     msg = m.Message(role="assistant", content=payload.get("text", ""), payload=stored,
-                    model=payload.get("model") or "", usage=payload.get("usage"))
+                    model=payload.get("model") or "", usage=payload.get("usage"), tool_trace=_trace(payload))
     conv.messages.append(msg)
     db.commit()
+    if scope is not None and payload.get("steps") is not None:
+        _maybe_compact(db, conv, user, ws.id)
     return {**payload, "conversation_id": conv.id, "message_id": msg.id}
+
+
+COMPACT_AFTER = 12   # messages in a thread before older turns are summarised
+KEEP_RECENT = 6      # the most recent messages always go to the model in full
+
+
+def _trace(payload: dict) -> list | None:
+    steps = payload.get("steps")
+    if steps is None:
+        return None
+    return [{k: s.get(k) for k in ("n", "tool", "input", "ok", "label", "error", "notes", "row_count", "sql")} for s in steps]
+
+
+def _maybe_compact(db, conv: m.Conversation, user: str, ws_id: int) -> None:
+    """Long threads: once more than COMPACT_AFTER messages exist since the last summary, summarise all but the last
+    KEEP_RECENT of them into conversations.summary (Haiku)."""
+    since = [x for x in conv.messages if not conv.summary_upto_message_id or x.id > conv.summary_upto_message_id]
+    if len(since) <= COMPACT_AFTER:
+        return
+    older = since[:-KEEP_RECENT]
+    cut = older[-1]
+    try:
+        from ..agent.engine import summarise
+
+        with ai_usage.ai_context(user=user, workspace_id=ws_id, conversation_id=conv.id):
+            conv.summary = summarise([{"role": x.role, "content": x.content} for x in older], conv.summary)
+        conv.summary_upto_message_id = cut.id
+        db.commit()
+    except Exception:  # noqa: BLE001  (a missing summary only means less history next time)
+        log.exception("could not summarise conversation %s", conv.id)
+        db.rollback()
 
 
 READ_ONLY_NOTE = ("I can read and explain this dashboard, but I can't create or change dashboards from here. "
@@ -231,7 +268,8 @@ def _run_scoped(db, cat, spec: QuerySpec, user, today, scope: AnswerScope | None
         return run_spec(db, cat, scoped, user, source="ai", today=today), scoped, notes
 
 
-def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: AnswerScope | None = None) -> dict:
+def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: AnswerScope | None = None,
+            on_event=None) -> dict:
     if not cat.datasets:
         return {"type": "clarify", "text": "This workspace has no data yet. Import a file or connect a database first.", "engine": "semantic"}
     values = value_index(cat)
@@ -247,6 +285,8 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
                 return {"type": "help", "engine": "semantic", "text": READ_ONLY_NOTE}
             return _make_dashboard(db, ws, cat, user, interp, today)
         try:
+            if scope is not None and get_settings().assistant_agent_loop:
+                return _run_agent(db, ws, cat, user, question, history, today, interp, scope, on_event)
             return _run_claude(db, cat, user, question, history, values, today, interp, scope)
         except claude.ClaudeUnavailable as e:
             log.warning("Claude unavailable, answering offline: %s", e)
@@ -283,6 +323,24 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
         elif not use_llm:
             return {"type": "clarify", "engine": "semantic", "text": interp.clarification, "suggestions": interp.suggestions}
     return _run_llm(db, cat, user, question, history, values, today, fallback=interp)
+
+
+def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretation, scope: AnswerScope, on_event) -> dict:
+    """Phase 2: several tool steps per answer (services/agent/engine.py)."""
+    from ..agent import engine, tools
+    from .parser import _bases
+
+    hint = interp.spec if interp.kind in ("query", "trend_compare") else None
+    r = claude.route(question, measures=len(hint.measures) if hint else 0, dimensions=len(hint.dimensions) if hint else 0,
+                     datasets=len(_bases(cat, hint.measures)) if hint else 0)
+    dash = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=scope.dashboard_key).one_or_none() if scope.dashboard_key else None
+    ctx = tools.ToolContext(db=db, ws=ws, cat=cat, user=user, today=today, scope=scope, dashboard=dash)
+    try:
+        return engine.run(ctx, question, history, r, on_event)
+    except claude.ClaudeError as e:
+        return {"type": "error", "engine": "claude", "model": r.model, "model_label": claude.label(r.model),
+                "routing": r.reasons, "escalated": r.escalated,
+                "text": f"I couldn't finish that answer ({e}). Try rephrasing, or ask about one number at a time."}
 
 
 def _run_claude(db, cat, user, question, history, values, today, interp: Interpretation,

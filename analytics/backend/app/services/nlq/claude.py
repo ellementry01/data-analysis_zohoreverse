@@ -241,6 +241,39 @@ def _call(model: str, effort: str, system: list[dict], messages: list[dict], max
     return text, usage
 
 
+def call_with_tools(model: str, effort: str, system: list[dict], messages: list[dict], tools: list[dict],
+                    tool_choice: dict | None = None, max_tokens: int = 8000):
+    """One turn of the assistant's tool loop. Same guards as every call: the model allow-list, the spend caps, the usage
+    ledger, and the API errors mapped to ClaudeUnavailable (answer offline) or ClaudeError (unusable answer).
+    Returns (response, usage); the caller handles stop reasons other than refusal."""
+    import anthropic
+
+    kwargs = {"model": check_model(model), "max_tokens": max_tokens, "system": system, "messages": messages,
+              "tools": tools, "output_config": {"effort": effort}}
+    if tool_choice:
+        kwargs["tool_choice"] = tool_choice
+    try:
+        ai_usage.check_budget()
+    except ai_usage.BudgetExceeded as e:
+        raise ClaudeUnavailable(f"AI spend limit reached: {e}") from e
+    try:
+        resp = _get_client().messages.create(**kwargs)
+    except (anthropic.APIConnectionError, anthropic.AuthenticationError, anthropic.PermissionDeniedError,
+            anthropic.RateLimitError, anthropic.NotFoundError) as e:
+        raise ClaudeUnavailable(f"{type(e).__name__}: {getattr(e, 'message', str(e))[:200]}") from e
+    except anthropic.APIStatusError as e:
+        raise ClaudeUnavailable(f"API error {e.status_code}: {getattr(e, 'message', '')[:200]}") from e
+    if resp.stop_reason == "refusal":
+        raise ClaudeError("The model declined to answer this request")
+    u = resp.usage
+    usage = {"input_tokens": getattr(u, "input_tokens", 0), "output_tokens": getattr(u, "output_tokens", 0),
+             "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0,
+             "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0}
+    usage["cost_inr"] = ai_usage.record(model, usage)
+    log.info("claude tools %s effort=%s stop=%s usage=%s", model, effort, resp.stop_reason, usage)
+    return resp, usage
+
+
 def plan(cat: Catalog, question: str, history: list[dict], values: dict | None, r: Route, feedback: str | None = None,
          scope_context: str | None = None, screen: str | None = None) -> Plan:
     """scope_context: a stable description of where the question is asked (a dashboard pack), cached after the schema.

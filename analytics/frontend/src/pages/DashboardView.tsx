@@ -21,7 +21,7 @@ export default function DashboardView() {
   const { ws, base, canEdit, model } = useWs();
   const toast = useToast();
   const q = useAsync(() => api.get<Dashboard>(`/workspaces/${ws.id}/dashboards/${dashId}`), [ws.id, dashId]);
-  const me = useAsync(() => api.get<{ features?: { dashboard_chat?: boolean } }>("/me"), []);
+  const me = useAsync(() => api.get<{ features?: { dashboard_chat?: boolean; agent_loop?: boolean } }>("/me"), []);
   // Dashboard chat: switched on per phase, and admins only until real sign-in exists (AI_ASSISTANTS_PLAN.md Phase 3)
   const chatAvailable = !!me.data?.features?.dashboard_chat && ws.role === "admin";
   const [chatOpen, setChatOpen] = useState(false);
@@ -155,7 +155,8 @@ export default function DashboardView() {
     </div>
     {chatOpen && d.key && (
       <AssistantPanel wsId={ws.id} base={base} dash={d} filters={activeFilters} drill={drills} focus={focus}
-        onClearFocus={() => setFocus(null)} onClose={() => { setChatOpen(false); setFocus(null); }} />
+        onClearFocus={() => setFocus(null)} onClose={() => { setChatOpen(false); setFocus(null); }}
+        streaming={!!me.data?.features?.agent_loop} />
     )}
     </div>
   );

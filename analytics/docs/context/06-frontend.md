@@ -29,7 +29,7 @@
   - `useEffect` bodies must be **block bodies**. An expression-bodied effect once returned a non-function and crashed with "r is not a function".
 - **`components/ResultPanel.tsx`:** chart, table, SQL, insights and exports (CSV/Excel/PNG).
 - **`components/ChatMessage.tsx`:** one chat message (question, or answer with chart, assumptions, engine/model badge and thumbs up/down). Shared by AskPage and the dashboard chat.
-- **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback.
+- **`components/AssistantPanel.tsx`:** a dashboard's chat: starter questions, past threads for that dashboard, the focused-widget chip, feedback. With `features.agent_loop` it uses the streaming endpoint (`api.stream`) and shows each step live; answers carry a collapsible "How I worked this out" list (`StepList`) with each step's query.
 - **`components/ui.tsx`:** Button, Empty, toast and similar primitives.
 - **`lib/format.ts`:** number, currency and percent formatting. The INR format uses lakh/crore grouping.
 

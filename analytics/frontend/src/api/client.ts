@@ -52,6 +52,37 @@ export const api = {
     fd.append("file", file);
     return request<T>("POST", p, fd, true);
   },
+  /** POST and read a server-sent-event stream; calls onEvent with each event's JSON data. */
+  async stream(path: string, body: unknown, onEvent: (e: any) => void) {
+    const res = await fetch(`/api${path}`, {
+      method: "POST",
+      headers: { "X-User-Email": currentUser(), "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok || !res.body) {
+      let msg = res.statusText;
+      try {
+        const d = await res.json();
+        msg = typeof d?.detail === "string" ? d.detail : msg;
+      } catch { /* not JSON */ }
+      throw new ApiError(res.status, msg || `HTTP ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i: number;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, i);
+        buf = buf.slice(i + 2);
+        const data = chunk.split("\n").filter((l) => l.startsWith("data: ")).map((l) => l.slice(6)).join("\n");
+        if (data) onEvent(JSON.parse(data));
+      }
+    }
+  },
   async download(path: string, body: unknown, filename: string) {
     const res = await fetch(`/api${path}`, {
       method: body === undefined ? "GET" : "POST",

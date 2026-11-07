@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bot, History, MessageSquarePlus, Send, Target, Trash2, X } from "lucide-react";
 import { api, DashFilter, Dashboard, Widget } from "../api/client";
 import { timeAgo } from "../lib/format";
-import { Answer, ChatMessage, Msg } from "./ChatMessage";
+import { Answer, ChatMessage, Msg, Step, StepList } from "./ChatMessage";
 import { cx, Spinner, useAsync, useToast } from "./ui";
 
 export interface DrillState { [widgetId: number]: { field: string; value: any }[] }
@@ -12,9 +12,9 @@ interface Thread { id: number; title: string; updated_at: string; message_count:
 const STARTERS = ["What does this dashboard show?", "What stands out on this dashboard?", "Which caveats should I keep in mind here?"];
 
 /** The dashboard's own assistant: it already knows the dashboard and what is on screen, so questions need no context. */
-export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose }:
+export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClearFocus, onClose, streaming = false }:
   { wsId: number; base: string; dash: Dashboard; filters: DashFilter[]; drill: DrillState; focus: Widget | null;
-    onClearFocus: () => void; onClose: () => void }) {
+    onClearFocus: () => void; onClose: () => void; streaming?: boolean }) {
   const toast = useToast();
   const root = `/workspaces/${wsId}/dashboards/key/${encodeURIComponent(dash.key)}/assistant`;
   const threads = useAsync(() => api.get<Thread[]>(`${root}/conversations`), [root]);
@@ -23,10 +23,11 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showThreads, setShowThreads] = useState(false);
+  const [live, setLive] = useState<Step[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy, live.length]);
   useEffect(() => { if (focus) inputRef.current?.focus(); }, [focus?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = async (id: number) => {
@@ -56,15 +57,34 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
       drill: Object.fromEntries(Object.entries(drill).filter(([, s]) => s.length > 0)),
       focus_widget_id: focus?.id ?? null,
     };
-    try {
-      const a = await api.post<Answer>(`${root}/ask`, { question, conversation_id: conv, screen_state });
+    const done = (a: Answer) => {
       setMsgs((m) => [...m, { id: a.message_id, role: "assistant", content: a.text, payload: a }]);
       if (a.conversation_id && a.conversation_id !== conv) setConv(a.conversation_id);
       threads.reload();
+    };
+    try {
+      if (streaming) {
+        // multi-step answers: show each step as it happens
+        setLive([]);
+        let answered = false;
+        let failure: string | null = null;
+        await api.stream(`${root}/ask/stream`, { question, conversation_id: conv, screen_state }, (e) => {
+          if (e.type === "step") setLive((s) => [...s, { n: e.n, tool: e.tool, label: e.label }]);
+          else if (e.type === "step_done") setLive((s) => s.map((x) => (x.n === e.n ? { ...x, ok: e.ok, label: e.label, row_count: e.rows } : x)));
+          else if (e.type === "checking") setLive((s) => [...s, { n: 99, tool: "check", label: e.label }]);
+          else if (e.type === "answer") { answered = true; done(e.answer); }
+          else if (e.type === "error") failure = e.detail;
+        });
+        if (failure) throw new Error(failure);
+        if (!answered) throw new Error("The answer was interrupted; please ask again.");
+      } else {
+        done(await api.post<Answer>(`${root}/ask`, { question, conversation_id: conv, screen_state }));
+      }
     } catch (e: any) {
       setMsgs((m) => [...m, { role: "assistant", content: e.message, payload: { type: "error", text: e.message } }]);
     } finally {
       setBusy(false);
+      setLive([]);
     }
   };
 
@@ -121,7 +141,12 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
           </div>
         )}
         {msgs.map((m, i) => <ChatMessage key={i} m={m} onAsk={ask} wsId={wsId} base={base} compact onFeedback={(f) => rate(i, m, f)} />)}
-        {busy && <div className="flex items-center gap-2 py-2 text-sm text-slate-500"><Spinner label="Looking at the dashboard…" /></div>}
+        {busy && (
+          <div className="py-2 text-sm text-slate-500">
+            <Spinner label={live.length ? "Working it out…" : "Looking at the dashboard…"} />
+            {live.length > 0 && <StepList steps={live} live />}
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 

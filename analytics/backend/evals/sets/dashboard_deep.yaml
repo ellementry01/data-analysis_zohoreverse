@@ -1,0 +1,224 @@
+# Phase 2 eval set: 5 harder questions per dashboard of workspace 34 - breakdowns, comparisons, drill-downs and
+# "which / when" questions that need more than one step. Expected values are computed when the set runs, from
+# governed QuerySpecs or the dashboards' own widgets. Pass mark (docs/AI_ASSISTANTS_PLAN.md): 85% correct, 100%
+# grounded (no number in an answer that its steps did not return).
+
+# ---------------------------------------------------------------- Executive overview (FY 26-27: 2026-04-01..2026-09-15)
+- id: ed-best-month
+  dashboard: executive-overview
+  question: Which month this financial year had the highest net sales, and how much was it?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: net_sales, alias: n}], time_range: {from: "2026-04-01", to: "2026-09-15"}}, top: true}
+- id: ed-retail-sales
+  dashboard: executive-overview
+  question: How much of this period's net sales came from retail?
+  expect: {widget: Retail net sales}
+- id: ed-last-year
+  dashboard: executive-overview
+  question: How do net sales compare with the same period last year?
+  expect: {spec: {measures: [{metric: net_sales}], time_range: {from: "2025-04-01", to: "2025-09-15"}}}
+- id: ed-channel-bills
+  dashboard: executive-overview
+  question: Which retail channel had the most bills this period?
+  expect: {spec: {dimensions: [{field: net_sales_daily.channel}], measures: [{metric: retail_bills, alias: b}], time_range: {from: "2026-04-01", to: "2026-09-15"}, filters: [{field: net_sales_daily.partner_type, op: eq, value: D2C_CHANNEL_ACCOUNT}]}, top: true}
+- id: ed-rto-month
+  dashboard: executive-overview
+  question: In which month this year was the website RTO rate highest?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: rto_rate, alias: r}], time_range: {from: "2026-04-01", to: "2026-09-15"}}, top: true}
+
+# ---------------------------------------------------------------- Sales & channels (all data)
+- id: sd-fy-25-26
+  dashboard: sales-channels
+  question: What were net sales for the whole of FY 2025-26, and how is FY 2026-27 tracking?
+  expect: {spec: {measures: [{metric: net_sales}], time_range: {from: "2025-04-01", to: "2026-03-31"}}}
+- id: sd-best-month
+  dashboard: sales-channels
+  question: Which was our best month for net sales, and what were sales that month?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: net_sales, alias: n}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: sd-top-marketplace
+  dashboard: sales-channels
+  question: Among the marketplaces, which channel sells the most?
+  expect: {spec: {dimensions: [{field: net_sales_daily.channel}], measures: [{metric: net_sales, alias: n}], filters: [{field: net_sales_daily.sales_segment, op: eq, value: Marketplaces}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: sd-category-units
+  dashboard: sales-channels
+  question: Which category sold the most units, and how many?
+  expect: {spec: {dimensions: [{field: net_sales_daily.category}], measures: [{metric: units_sold, alias: u}], filters: [{field: net_sales_daily.item_type, op: eq, value: TRADING}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: sd-stores-august
+  dashboard: sales-channels
+  question: What were our own stores' net sales in August 2026?
+  expect: {spec: {measures: [{metric: net_sales}], filters: [{field: net_sales_daily.sales_segment, op: eq, value: Own stores}], time_range: {from: "2026-08-01", to: "2026-08-31"}}}
+
+# ---------------------------------------------------------------- Returns (all data)
+- id: rd-worst-month
+  dashboard: returns
+  question: Which month had the highest value of returns?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: returns_value, alias: v}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: rd-channel-units
+  dashboard: returns
+  question: Which channel sends back the most units?
+  expect: {spec: {dimensions: [{field: returns_daily.channel}], measures: [{metric: units_returned, alias: u}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: rd-amazon-product
+  dashboard: returns
+  question: Which product do Amazon customers return most often, and how many units?
+  expect: {widget: Products returned most on Amazon (units), top: true}
+- id: rd-august
+  dashboard: returns
+  question: What was the value of returns in August 2026, and how does it compare with July 2026?
+  expect: {spec: {measures: [{metric: returns_value}], time_range: {from: "2026-08-01", to: "2026-08-31"}}}
+- id: rd-rate-channel
+  dashboard: returns
+  question: Which retail channel has the highest return rate?
+  expect: {widget: Return rate by retail channel, top: true}
+
+# ---------------------------------------------------------------- Stock (latest snapshot)
+- id: skd-bagru
+  dashboard: stock
+  question: How much of our stock value is at the Bagru warehouse?
+  expect: {widget: Stock value by location group, row: Bagru}
+- id: skd-decor-product
+  dashboard: stock
+  question: Which Decor product holds the most stock value?
+  expect: {spec: {dimensions: [{field: stock_position_latest.product_name}], measures: [{metric: stock_value_cost, alias: v}], filters: [{field: stock_position_latest.item_type, op: eq, value: TRADING}, {field: stock_position_latest.location_group, op: neq, value: At partners (no opening balance)}, {field: stock_position_latest.category_label, op: eq, value: Decor}], sort: [{field: v, dir: desc}], limit: 5}, top: true}
+- id: skd-discontinued
+  dashboard: stock
+  question: How much of our stock value is discontinued, compared with continued?
+  expect: {widget: Discontinued stock at cost}
+- id: skd-month-end-peak
+  dashboard: stock
+  question: At which month-end was stock value highest?
+  expect: {widget: "Stock value at cost, month-end (at today's unit cost)", top: true}
+- id: skd-top-location
+  dashboard: stock
+  question: Which single location holds the most stock value?
+  expect: {widget: Stock by location, top: true, column: stock_value_cost}
+
+# ---------------------------------------------------------------- Fulfilment (all data)
+- id: fd-late-month
+  dashboard: fulfilment
+  question: Which month had the worst late-shipment rate, and what was it?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: late_shipment_rate, alias: l}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: fd-cod-vs-prepaid
+  dashboard: fulfilment
+  question: How does the RTO rate for cash on delivery compare with prepaid orders?
+  expect: {widget: "Website RTO rate: cash on delivery vs prepaid", row: COD}
+- id: fd-courier-rto
+  dashboard: fulfilment
+  question: Which courier group has the highest RTO rate?
+  expect: {spec: {dimensions: [{field: fulfilment.courier_group}], measures: [{metric: rto_rate, alias: r}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: fd-top-channel
+  dashboard: fulfilment
+  question: Which channel sends the most orders to the warehouse, and how many?
+  expect: {spec: {dimensions: [{field: fulfilment.channel_name}], measures: [{metric: deliveries, alias: o}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: fd-october
+  dashboard: fulfilment
+  question: What was the late-shipment rate in October 2025, and why might it have been high?
+  expect: {spec: {measures: [{metric: late_shipment_rate}], time_range: {from: "2025-10-01", to: "2025-10-31"}}}
+
+# ---------------------------------------------------------------- Purchasing & transfers
+- id: pd-overdue-supplier
+  dashboard: purchasing-transfers
+  question: Which supplier has the most overdue open PO quantity?
+  expect: {spec: {dimensions: [{field: open_purchase_orders.supplier}], measures: [{metric: open_po_qty, alias: q}], filters: [{field: open_purchase_orders.due_status, op: eq, value: Overdue}, {field: open_purchase_orders.document_type, op: eq, value: PURCHASE}]}, top: true}
+- id: pd-transit-route
+  dashboard: purchasing-transfers
+  question: Which transfer route has the most units in transit right now?
+  expect: {widget: In transit by route (last 60 days), top: true}
+- id: pd-stuck-route
+  dashboard: purchasing-transfers
+  question: Where are most of the units that haven't arrived after 60 days going to?
+  expect: {widget: "Not received after 60 days, own locations", top: true}
+- id: pd-over-received
+  dashboard: purchasing-transfers
+  question: How many units were received over the ordered quantity in total?
+  expect: {spec: {measures: [{metric: over_received_qty}], filters: [{field: purchase_order_lines.is_over_received, op: eq, value: true}]}}
+- id: pd-not-due
+  dashboard: purchasing-transfers
+  question: How much open PO quantity is not yet due, and how much is overdue?
+  expect: {widget: Open PO lines by due status, row: Not yet due}
+
+# ---------------------------------------------------------------- Discontinued & slow stock
+- id: ssd-disc-slow
+  dashboard: discontinued-slow-stock
+  question: How much discontinued stock has not sold in over 180 days?
+  expect: {spec: {measures: [{metric: slow_stock_value_cost}], filters: [{field: slow_stock.lifecycle_status, op: eq, value: DISCONTINUED}, {field: slow_stock.sales_age_band, op: in, value: ["4. Last sale 181-365 days ago", "5. Last sale over a year ago", "6. No sale since Apr 2025"]}]}}
+- id: ssd-bagru
+  dashboard: discontinued-slow-stock
+  question: How much slow stock is sitting at Bagru?
+  expect: {widget: Slow stock (over 180 days) by location, row: Bagru}
+- id: ssd-band
+  dashboard: discontinued-slow-stock
+  question: Which time-since-last-sale band holds the most stock value?
+  expect: {widget: Stock by time since last sale (at cost), top: true}
+- id: ssd-continued-slow
+  dashboard: discontinued-slow-stock
+  question: How much continued (not discontinued) stock has not sold in over 180 days?
+  expect: {spec: {measures: [{metric: slow_stock_value_cost}], filters: [{field: slow_stock.lifecycle_status, op: eq, value: CONTINUED}, {field: slow_stock.sales_age_band, op: in, value: ["4. Last sale 181-365 days ago", "5. Last sale over a year ago", "6. No sale since Apr 2025"]}]}}
+- id: ssd-category-never
+  dashboard: discontinued-slow-stock
+  question: Which category has the most stock that hasn't sold since April 2025?
+  expect: {spec: {dimensions: [{field: slow_stock.category_label}], measures: [{metric: slow_stock_value_cost, alias: v}], filters: [{field: slow_stock.sales_age_band, op: eq, value: "6. No sale since Apr 2025"}]}, top: true}
+
+# ---------------------------------------------------------------- Days of cover
+- id: dcd-under30-location
+  dashboard: days-of-cover
+  question: Which location has the most stock value with under 30 days of cover?
+  expect: {spec: {dimensions: [{field: days_of_cover.location_name}], measures: [{metric: cover_stock_value_cost, alias: v}], filters: [{field: days_of_cover.cover_band, op: eq, value: "1. Under 30 days"}]}, top: true}
+- id: dcd-overstock-location
+  dashboard: days-of-cover
+  question: Which location has the most overstock, meaning over a year of cover?
+  expect: {spec: {dimensions: [{field: days_of_cover.location_name}], measures: [{metric: cover_stock_value_cost, alias: v}], filters: [{field: days_of_cover.cover_band, op: eq, value: "5. Over a year"}]}, top: true}
+- id: dcd-not-moving
+  dashboard: days-of-cover
+  question: How much sellable stock sold or moved nothing in the last 30 days?
+  expect: {widget: Stock by days of cover (at cost), row: "6."}
+- id: dcd-90-180
+  dashboard: days-of-cover
+  question: How much stock value has between 90 and 180 days of cover?
+  expect: {widget: Stock by days of cover (at cost), row: "90-180"}
+- id: dcd-products-at-risk
+  dashboard: days-of-cover
+  question: How many different products have under 30 days of cover somewhere?
+  expect: {spec: {measures: [{field: days_of_cover.sku_code, agg: count_distinct}], filters: [{field: days_of_cover.cover_band, op: eq, value: "1. Under 30 days"}]}}
+
+# ---------------------------------------------------------------- Instamart (all data)
+- id: imd-best-month
+  dashboard: instamart
+  question: In which month did Instamart sell the most units?
+  expect: {spec: {dimensions: [{field: "@time", grain: month}], measures: [{metric: qc_units_sold, alias: u}], filters: [{field: quick_commerce_sell_out_daily.platform, op: eq, value: Instamart}], time_range: {from: "2025-04-01", to: "2026-09-15"}}, top: true}
+- id: imd-sent-vs-sold
+  dashboard: instamart
+  question: How many units did we send to Instamart compared with how many they sold?
+  expect: {widget: Units sent to Instamart}
+- id: imd-top-city-units
+  dashboard: instamart
+  question: How many units did Instamart sell in its biggest city?
+  expect: {widget: Instamart sales by city, top: true}
+- id: imd-fy27-invoiced
+  dashboard: instamart
+  question: How much have we invoiced to Instamart in FY 2026-27 so far?
+  expect: {spec: {measures: [{metric: net_sales}], filters: [{field: net_sales_daily.channel_name, op: eq, value: Instamart}], time_range: {from: "2026-04-01", to: "2026-09-15"}}}
+- id: imd-returned
+  dashboard: instamart
+  question: How many units has Instamart sent back to us?
+  expect: {widget: Units returned by Instamart}
+
+# ---------------------------------------------------------------- Data health
+- id: dhd-flagged-table
+  dashboard: data-health
+  question: Which table has the most rows flagged by the quality checks?
+  expect: {spec: {dimensions: [{field: data_quality_latest.target_table}], measures: [{field: data_quality_latest.failed_row_count, agg: sum, alias: f}], filters: [{field: data_quality_latest.outcome, op: eq, value: FAIL}]}, top: true}
+- id: dhd-biggest-source
+  dashboard: data-health
+  question: Which source loaded the most rows?
+  expect: {spec: {dimensions: [{field: load_batches.source_name}], measures: [{field: load_batches.rows_loaded, agg: sum, alias: r}], filters: [{field: load_batches.status, op: eq, value: LOADED}]}, top: true}
+- id: dhd-top-check
+  dashboard: data-health
+  question: Which quality check flags the most rows, and on which table?
+  expect: {widget: Quality checks that flag rows (latest build), top: true, label: check_name}
+- id: dhd-business-gaps
+  dashboard: data-health
+  question: How many open data gaps are waiting on the business?
+  expect: {spec: {measures: [{metric: open_data_gaps}], filters: [{field: data_gaps.owner, op: eq, value: BUSINESS}, {field: data_gaps.status, op: neq, value: CLOSED}]}}
+- id: dhd-warnings
+  dashboard: data-health
+  question: Are there any blocking errors, and how many checks are only raising warnings?
+  expect: {widget: Checks flagging rows (warnings)}

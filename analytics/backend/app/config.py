@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 
     # Assistant features, switched on phase by phase after each phase's gate (docs/AI_ASSISTANTS_PLAN.md).
     assistant_dashboard_chat: bool = False
-    assistant_agent_loop: bool = False
+    assistant_agent_loop: bool = False   # Phase 2: multi-step answers with tools in the dashboard chat
     assistant_memory: bool = False
     assistant_global: bool = False
     assistant_scheduled: bool = False
