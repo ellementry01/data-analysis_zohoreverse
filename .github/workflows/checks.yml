@@ -45,6 +45,8 @@ jobs:
           cache: pip
           cache-dependency-path: analytics/backend/requirements*.txt
       - run: pip install -r requirements-dev.txt
+      - name: Sample data for the demo-workspace tests (synthetic, generated with seed 42; not kept in git)
+        run: python ../sample_data/generate.py
       - name: Tests (includes the eval sets' format checks and the read-only database login)
         run: python -m pytest -q -p no:cacheprovider
 
