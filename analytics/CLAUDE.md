@@ -35,4 +35,4 @@ TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 npm run typecheck && npm run build
 ```
 
-Last updated: 2026-11-10 (warehouse schema 2.15, ten dashboards; AI assistants Phases 0-5 merged (sign-in not yet switched on), Phase 6 global assistant built on branch `phase-6-global-assistant`; resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
+Last updated: 2026-11-10 (warehouse schema 2.15, ten dashboards; AI assistants Phases 0-6 merged (sign-in not yet switched on), next Phase 7 when the owner says so; resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
