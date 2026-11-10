@@ -1,0 +1,107 @@
+# Phase 7 eval set: the domain assistants (Stock, Operations, Executive) opened from the Alerts page (workspace 34).
+# 20 questions: counts and details of the open alerts, what each rule checks and its threshold, digging into a dashboard
+# behind an alert, and refusing to decide an alert for the person. Expected numbers are computed at run time from the
+# agent_alerts dataset (the warehouse's mart.v_agent_alerts) or a dashboard tile; numbers in the alerts and rules count
+# as sourced. A few questions name a product or PO from the 2026-09-15 build: if a later build resolves it, update them.
+# Needs --live (Claude, the owner's OK) and ASSISTANT_SCHEDULED on. Pass mark (docs/AI_ASSISTANTS_PLAN.md): 90% correct.
+
+# ---------------------------------------------------------------- stock
+- id: dm-stockout-count
+  domain: stock
+  question: How many stock-out alerts are open right now?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A01' AND status = 'OPEN'"}
+- id: dm-low-cover-count
+  domain: stock
+  question: How many low-cover alerts are open, and below how many days of cover does the alert fire?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A02' AND status = 'OPEN'"}
+  also_expect: [{sql: "SELECT max(threshold_value) AS t FROM agent_alerts WHERE alert_code = 'STK-A02' AND status = 'OPEN'"}]
+- id: dm-lowest-cover
+  domain: stock
+  question: Among the low-cover alerts, which product has the least cover left, and how many days is it?
+  expect: {sql: "SELECT sku_code, metric_value FROM agent_alerts WHERE alert_code = 'STK-A02' AND status = 'OPEN' ORDER BY metric_value, alert_id LIMIT 1",
+           top: true, label: sku_code, column: metric_value}
+- id: dm-stockout-rule
+  domain: stock
+  question: What exactly does the stock-out alert check before it fires?
+  must_mention: [[30 days, 30-day, last 30], [sellable], [continued]]
+- id: dm-stockouts-fba
+  domain: stock
+  question: How many of the open stock-out alerts are at Amazon FBA warehouses?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A01' AND status = 'OPEN' AND location_name LIKE 'Amazon%'"}
+- id: dm-stockouts-bagru
+  domain: stock
+  question: How many products with recent demand are out of stock at Bagru Warehouse?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A01' AND status = 'OPEN' AND location_name LIKE 'Bagru%'"}
+- id: dm-low-cover-bagru
+  domain: stock
+  question: How many low-cover alerts are at Bagru Warehouse?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A02' AND status = 'OPEN' AND location_name LIKE 'Bagru%'"}
+- id: dm-stock-decide
+  domain: stock
+  question: Dismiss all the low-cover alerts for me.
+  must_mention: [[can't, cannot, can not, not able, unable, you decide, your decision, your call, alerts page, buttons, yourself]]
+  check_invented: false
+
+# ---------------------------------------------------------------- operations
+- id: dm-po-count
+  domain: operations
+  question: How many purchase orders are overdue?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'OPS-A02' AND status = 'OPEN'"}
+- id: dm-po-critical
+  domain: operations
+  question: How many of the overdue purchase orders are critical, and after how many days late does one become critical?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'OPS-A02' AND status = 'OPEN' AND severity = 'CRITICAL'"}
+  also_expect: [{sql: "SELECT max(threshold_value) AS t FROM agent_alerts WHERE alert_code = 'OPS-A02' AND status = 'OPEN'"}]
+- id: dm-po-worst
+  domain: operations
+  question: Which purchase order is the most overdue, and by how many days?
+  expect: {sql: "SELECT document_ref, metric_value FROM agent_alerts WHERE alert_code = 'OPS-A02' AND status = 'OPEN' ORDER BY metric_value DESC, alert_id LIMIT 1",
+           top: true, label: document_ref, column: metric_value}
+- id: dm-po-rule
+  domain: operations
+  question: When does the overdue purchase order alert fire?
+  must_mention: [[due date, past due, due], [pending]]
+- id: dm-po-10
+  domain: operations
+  question: What is the alert about purchase order PO/10/26-27 saying?
+  expect: {sql: "SELECT metric_value FROM agent_alerts WHERE alert_code = 'OPS-A02' AND document_ref = 'PO/10/26-27' AND status = 'OPEN'"}
+  must_mention: [[fair pack]]
+- id: dm-po-remark
+  domain: operations
+  question: Could some of these overdue purchase orders actually be customer returns rather than purchases?
+  must_mention: [[remark, purchase, BR-031]]
+  check_invented: false
+- id: dm-po-lead-time
+  domain: operations
+  question: For context on the overdue POs, what is the supplier lead time on the Purchasing & transfers dashboard?
+  expect: {dashboard: purchasing-transfers, widget: "Supplier lead time, days"}
+  context_dashboards: [purchasing-transfers]
+- id: dm-ops-decide
+  domain: operations
+  question: Acknowledge every overdue purchase order alert.
+  must_mention: [[can't, cannot, can not, not able, unable, you decide, your decision, your call, alerts page, buttons, yourself]]
+  check_invented: false
+
+# ---------------------------------------------------------------- executive (everything)
+- id: dm-exec-total
+  domain: executive
+  question: How many alerts are open in total, and how many of them are critical?
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE status = 'OPEN'"}
+  also_expect: [{sql: "SELECT count(*) AS n FROM agent_alerts WHERE status = 'OPEN' AND severity = 'CRITICAL'"}]
+- id: dm-exec-first
+  domain: executive
+  question: Of the open alerts, what needs my attention first?
+  must_mention: [[stock-out, stock out, out of stock, purchase order, PO]]
+- id: dm-exec-by-rule
+  domain: executive
+  question: Give me the number of open alerts for each rule.
+  expect: {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A01' AND status = 'OPEN'"}
+  also_expect:
+    - {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A02' AND status = 'OPEN'"}
+    - {sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'OPS-A02' AND status = 'OPEN'"}
+- id: dm-exec-net-sales
+  domain: executive
+  question: What were net sales this financial year on the Executive overview, and how many stock-out alerts are open?
+  expect: {dashboard: executive-overview, widget: Net sales (all channels)}
+  also_expect: [{sql: "SELECT count(*) AS n FROM agent_alerts WHERE alert_code = 'STK-A01' AND status = 'OPEN'"}]
+  context_dashboards: [executive-overview]

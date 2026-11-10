@@ -11,7 +11,7 @@
   - Normalised files (Blinkit/Instamart sell-out, GRN register) have a `NORMALISE_LOG.tsv` next to them.
 - **Working reports:** `reports/` (not in git): `S2_mrp_differences_by_location.csv`, `bagru_unexplained_stock.csv`, `bagru_unexplained_stock_explained.csv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.15**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.16**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy; every migration and load is tried here first.
@@ -68,6 +68,7 @@
 | 2.13 | 210 | Amazon return reasons (`v_return_reasons`); `v_slow_stock`; `v_partner_stock_monthly`; cover bands and cost in `v_days_of_cover`; BR-034 Instamart accounts |
 | 2.14 | 220 | ERP GRN register: `core.fact_grn_line`; receipts in the stock ledger and lead time come from it when loaded |
 | 2.15 | 230 | Store status sheet: 12 franchise accounts and Shoppers Stop (SIS) are sale-or-return partners with partner stock locations (BR-035); own stores' running / closed status |
+| 2.16 | 240 | Agent runner (Phase 7): rules STK-A01 stock-out with demand, STK-A02 low cover, OPS-A02 PO overdue in `insight.alert_rule`; `insight.alert_event` gains severity, identity_key (one open event per condition), document_ref, details, last_seen; thresholds in `meta.pipeline_setting`; views `mart.v_agent_alerts`, `v_agent_rules`, `v_agent_runs` |
 
 ## Business rules that matter for every number
 - **Money excludes GST** (BR-001/002/003). **Net sales = invoices − returns** (BR-004).
@@ -85,7 +86,7 @@
 
 **Connector.** id 1 "ellementry_dw (mart, read-only)". Host `host.docker.internal:5432`, user `ellementry_metrics`, schema `mart`. Every dataset is synced hourly. Physical schema `ws_8304153982f4` in the Docker database `ellementry_analytics`.
 
-**Datasets (29):**
+**Datasets (32):**
 | id | dataset | mart view | rows | date column |
 |---|---|---|---|---|
 | 53 | net_sales_daily | v_net_sales_daily | 102,937 | calendar_date |
@@ -105,6 +106,7 @@
 | 57 | supplier_lead_time | v_supplier_lead_time (from the GRN register) | 2,988 | po_date |
 | 73 | fulfilment | v_fulfilment | 45,246 | order_date |
 | 74 | quick_commerce_sell_out_daily | v_partner_sellout_daily | 6,003 | calendar_date |
+| 82–84 | agent_alerts, agent_rules, agent_runs | v_agent_alerts, v_agent_rules, v_agent_runs (Phase 7) | 298 open alerts (2026-11-10) | raised_date |
 | 60–62, 66–71 | partner_review, data_coverage, data_quality_latest, sources, load_batches, transform_runs, business_rules (35), data_gaps (28), source_notes | portal / data-health views | | |
 | 63, 64, 65 | products (4,512), locations (90, incl. 13 franchise / SIS partner stock locations), channels (23) | lookup dimensions | | |
 
@@ -183,3 +185,11 @@ The user chose **not to fix yet** ("Not now"); the fixes below are the next job 
 - **Fulfilment:** the WMS dispatch report is the OMS report. Missing delivery dates and marketplace RTO must come from seller-panel or courier exports (D-112, D-113); courier codes need confirming (D-111).
 - **Blinkit is parked** (D-005, D-050, D-051, D-092) until data from the new seller arrangement arrives. **Zepto** has no data yet.
 - **Mappings added from data evidence are `is_confirmed = false`**, with the evidence in the notes, until the business confirms them.
+
+## Agent runner (schema 2.16, Phase 7, 2026-11-10)
+`warehouse/agents/` (`python dw.py agents run all`, after a successful build). Preconditions: the latest `meta.transform_run` SUCCEEDED and no failed ERROR check; every setting a rule names exists and is a number. Each agent (STOCK, OPERATIONS) writes one `insight.model_run` (parameters = the settings used, `data_as_of_date` = the build's period end) and its alerts in one transaction (FAILED and nothing else on any error). A rule whose process has no data for the latest month (`mart.v_data_coverage` = NONE) is skipped and named in the run notes.
+- **STK-A01 stock-out with demand** (CRITICAL): continued trading products with units sold (external customers) or sent out by transfer in the 30 days to the period end at a sellable, non-partner location, and no sellable stock there (no snapshot row counts as 0). 131 on the 15 Sep build (91 at Amazon FBA, 18 at Bagru, 22 at own stores).
+- **STK-A02 low cover** (WARNING): continued products with sellable stock whose `v_days_of_cover` is below `stock.low_cover_days` (7). Partner consignment (ledger-based) is left out. 19.
+- **OPS-A02 purchase order overdue**: one alert per PO with lines of document remark PURCHASE (BR-031, confirmed), a due date, pending units and days past due; CRITICAL when the worst line is more than `ops.po_overdue_critical_days` (14) late. 148 (113 critical); many are months old (the most overdue, PO/150/25-26, 361 days), which suggests POs that were never closed in the ERP. PRD-001 FR-OPS-05 would hold these back until suppliers are classified (G-005); BR-031's Purchase remark is used instead.
+- One open event per `identity_key` (rule + SKU + location, or rule + PO); a condition that still holds refreshes its event, one that no longer holds is RESOLVED by `stock_ai` / `operations_ai`; a rule switched off resolves its open events. Same build + same settings = same alerts.
+- Not built yet (PRD-001, add one at a time with the owner): REORDER / TRANSFER / LIQUIDATE / EXPEDITE recommendations, STK-A03..A06, OPS-A01 transit, OPS-A03..A08, and the fulfilment rules (off until G-003).

@@ -17,6 +17,13 @@ DATES = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|"
                    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b|\bfy\s*\d{2,4}(?:\s*[-–]\s*\d{2,4})?\b|"
                    r"\b(?:19|20)\d{2}\b|\b\d{2}-\d{2}\b", re.I)
 
+# spelled-out counts ("Eighteen products", "twenty-one POs"): English starts a sentence with a word, not a digit
+_UNITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+          "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+_WORDS = {w: i for i, w in enumerate(_UNITS)} | _TENS
+_WORD_NUM = re.compile(r"\b(" + "|".join(_TENS) + r")(?:[- ](" + "|".join(_UNITS[1:10]) + r"))?\b|\b(" + "|".join(_UNITS) + r")\b", re.I)
+
 # references, not values: "(memory #12)", "#3", data issue codes "D-112"
 REFS = re.compile(r"#\s*\d+(?!\d)|\b[A-Z]{1,4}-\d{1,5}\b")
 
@@ -46,6 +53,12 @@ def number_tokens(text: str) -> list[Num]:
         else:
             mult = _MULT.get(u, 1)
             out.append(Num(tok, [num * mult], [half * mult]))
+    for m in _WORD_NUM.finditer(text or ""):
+        if m.group(3):
+            num = _WORDS[m.group(3).lower()]
+        else:
+            num = _TENS[m.group(1).lower()] + (_WORDS[m.group(2).lower()] if m.group(2) else 0)
+        out.append(Num(m.group(0), [float(num)], [0.0]))
     return out
 
 

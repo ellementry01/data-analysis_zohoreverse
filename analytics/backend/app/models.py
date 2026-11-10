@@ -470,6 +470,48 @@ class DashboardInsight(Base):
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class AgentDecision(Base):
+    """A person's decision on a warehouse alert (Phase 7). The app reads the warehouse read-only, so decisions live here;
+    each one is also saved as a decision memory (an explicit act of the person)."""
+    __tablename__ = "agent_decisions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    alert_id: Mapped[int] = mapped_column(Integer)
+    alert_code: Mapped[str] = mapped_column(String(40))
+    decision: Mapped[str] = mapped_column(String(20))       # acknowledged | dismissed
+    note: Mapped[str] = mapped_column(Text, default="")
+    decided_by: Mapped[str] = mapped_column(String(200))
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    alert_message: Mapped[str] = mapped_column(Text, default="")
+    memory_id: Mapped[int | None] = mapped_column(ForeignKey("memories.id", ondelete="SET NULL"), nullable=True)
+
+
+class Briefing(Base):
+    """The executive briefing (Phase 7): facts computed in code, worded by Sonnet (or by code when the model is off or
+    its wording failed the number check). Same facts = same briefing (fingerprint)."""
+    __tablename__ = "briefings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20), default="executive")
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    as_of_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    facts: Mapped[dict] = mapped_column(JSON, default=dict)
+    text: Mapped[str] = mapped_column(Text, default="")
+    written_by: Mapped[str] = mapped_column(String(40), default="")   # model id, or "code"
+    usage: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_by: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AgentSyncState(Base):
+    """The newest warehouse alert and agent run the app has already announced (so a re-sync never repeats a notice)."""
+    __tablename__ = "agent_sync_state"
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True)
+    last_alert_id: Mapped[int] = mapped_column(Integer, default=0)
+    last_run_id: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
 class Job(Base):
     """Background work kept in the database (memory extraction, profile rewrites, conversation summaries): it survives
     restarts, is retried with back-off, and several workers can share the queue (rows are claimed with SKIP LOCKED)."""

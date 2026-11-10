@@ -71,7 +71,8 @@ class Settings(BaseSettings):
     assistant_memory: bool = False
     assistant_data_issues: bool = False   # Phase 5: issue register, tile notes, worth a look
     assistant_global: bool = False
-    assistant_scheduled: bool = False
+    assistant_scheduled: bool = False   # Phase 7: alerts from the warehouse rules, decisions, briefing
+    briefing_every_days: int = 0        # Phase 7: write the executive briefing after a sync every N days (0 = on request)
 
     # Sign-in (Phase 3). "dev": identity from the X-User-Email header or DEFAULT_USER, for local development and tests
     # only (refused unless PUBLIC_BASE_URL is localhost). "google": Google Workspace sign-in (OIDC), sessions in a

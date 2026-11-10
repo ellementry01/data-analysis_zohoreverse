@@ -618,6 +618,22 @@ class AskIn(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     conversation_id: int | None = None
     engine: str = Field("auto", pattern="^(auto|semantic|llm)$")
+    domain: str | None = Field(None, pattern="^(stock|operations|executive)$")   # Phase 7: a domain assistant
+
+
+def _ask_scope(db, ws, body: "AskIn"):
+    """Phase 7: `domain` (from the Alerts page) asks a domain assistant (admins, scheduled agents and the agent loop on);
+    otherwise the global assistant or the Phase 0 path."""
+    from ..config import get_settings
+    from ..services.nlq import claude
+
+    s = get_settings()
+    if body.domain and s.assistant_scheduled and s.assistant_agent_loop and claude.enabled() and body.engine != "semantic" \
+            and permissions.acting(ws)[1] == "admin":
+        from ..services.agent import domain_scope
+
+        return domain_scope.scope(db, ws, load_catalog(db, ws), body.domain)
+    return _global_scope(db, ws, body.engine)
 
 
 def _global_scope(db, ws, engine: str):
@@ -638,16 +654,16 @@ def _global_scope(db, ws, engine: str):
 
 @router.post("/assistant/ask")
 def ask(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
-    scope = _global_scope(db, ws, body.engine)
-    audit.record(user, "assistant_ask", ws.id, "global" if scope else "ask", {"conversation_id": body.conversation_id})
+    scope = _ask_scope(db, ws, body)
+    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id})
     return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
 
 
 @router.post("/assistant/ask/stream")
 def ask_stream(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
     """The Ask page as server-sent events (same events as the dashboard chat's stream)."""
-    scope = _global_scope(db, ws, body.engine)
-    audit.record(user, "assistant_ask", ws.id, "global" if scope else "ask", {"conversation_id": body.conversation_id, "stream": True})
+    scope = _ask_scope(db, ws, body)
+    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id, "stream": True})
     return _stream_answer(ws, user, body, scope)
 
 
@@ -659,11 +675,12 @@ def ask_suggestions(ws: m.Workspace = Depends(viewer), db: Session = Depends(get
 
 @router.get("/conversations")
 def conversations(ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
-    """The Ask page's threads (from before the global assistant, and with it)."""
+    """The Ask page's threads (from before the global assistant, with it, and with the domain assistants)."""
     return [{"id": c.id, "title": c.title, "created_at": iso(c.created_at), "updated_at": iso(c.updated_at),
              "message_count": len(c.messages), "scope_type": c.scope_type}
             for c in db.query(m.Conversation).filter(m.Conversation.workspace_id == ws.id, m.Conversation.user_email == user,
-                                                     m.Conversation.scope_type.in_(("workspace", "global")),
+                                                     m.Conversation.scope_type.in_(("workspace", "global"))
+                                                     | m.Conversation.scope_type.like("domain:%"),   # Phase 7
                                                      m.Conversation.archived.is_(False))
             .order_by(m.Conversation.updated_at.desc()).limit(100)]
 

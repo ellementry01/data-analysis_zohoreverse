@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bot, Brain, Globe2, MessageSquarePlus, Send, Trash2 } from "lucide-react";
+import { BellRing, Bot, Brain, Globe2, MessageSquarePlus, Send, Trash2, X } from "lucide-react";
 import { api } from "../api/client";
 import { Answer, ChatMessage, Msg, Step, StepList } from "../components/ChatMessage";
 import { MemoryItem, ProposalCard } from "../components/MemoryNotes";
@@ -12,11 +12,11 @@ export default function AskPage() {
   const { ws, base } = useWs();
   const { convId } = useParams();
   const nav = useNavigate();
-  const loc = useLocation() as { state?: { question?: string } };
+  const loc = useLocation() as { state?: { question?: string; domain?: Domain } };
   const toast = useToast();
-  const convs = useAsync(() => api.get<{ id: number; title: string; updated_at: string; message_count: number }[]>(`/workspaces/${ws.id}/conversations`), [ws.id]);
+  const convs = useAsync(() => api.get<{ id: number; title: string; updated_at: string; message_count: number; scope_type?: string }[]>(`/workspaces/${ws.id}/conversations`), [ws.id]);
   const me = useAsync(() => api.get<{ llm: { enabled: boolean; model: string | null; provider?: string | null; simple_model?: string; complex_model?: string };
-    features?: { global_assistant?: boolean; agent_loop?: boolean; memory?: boolean } }>("/me"), []);
+    features?: { global_assistant?: boolean; agent_loop?: boolean; memory?: boolean; scheduled_agents?: boolean } }>("/me"), []);
   // Phase 6: the global assistant (admins only until company sign-in is on), with live steps and memory
   const global = !!me.data?.features?.global_assistant && !!me.data?.features?.agent_loop && !!me.data?.llm.enabled && ws.role === "admin";
   const memoryOn = global && !!me.data?.features?.memory;
@@ -28,6 +28,10 @@ export default function AskPage() {
   const [busy, setBusy] = useState(false);
   const [engine, setEngine] = useState("auto");
   const [conv, setConv] = useState<number | null>(convId ? Number(convId) : null);
+  // Phase 7: a domain assistant (Stock / Operations / Executive), opened from the Alerts page
+  const [domain, setDomain] = useState<Domain | null>(loc.state?.domain || null);
+  const domainOn = !!me.data?.features?.scheduled_agents && !!me.data?.features?.agent_loop && !!me.data?.llm.enabled && ws.role === "admin";
+  const activeDomain = domainOn ? domain : null;
   const endRef = useRef<HTMLDivElement>(null);
   const asked = useRef(false);
 
@@ -35,11 +39,14 @@ export default function AskPage() {
     if (!convId) {
       setMsgs([]);
       setConv(null);
+      if (!loc.state?.domain) setDomain(null);
       return;
     }
-    api.get<{ messages: Msg[] }>(`/workspaces/${ws.id}/conversations/${convId}`).then((c) => {
+    api.get<{ messages: Msg[]; scope_type?: string }>(`/workspaces/${ws.id}/conversations/${convId}`).then((c) => {
       setMsgs(c.messages);
       setConv(Number(convId));
+      const d = (c.scope_type || "").startsWith("domain:") ? (c.scope_type!.split(":")[1] as Domain) : null;
+      setDomain(d);
     }).catch((e) => toast("error", e.message));
   }, [convId, ws.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -62,11 +69,11 @@ export default function AskPage() {
       if (a.memories_saved?.some((x) => x.status === "proposed")) proposals.reload();
     };
     try {
-      if (global && engine !== "semantic") {
+      if ((global || activeDomain) && engine !== "semantic") {
         setLive([]);
         let answered = false;
         let failure: string | null = null;
-        await api.stream(`/workspaces/${ws.id}/assistant/ask/stream`, { question, conversation_id: conv, engine }, (e) => {
+        await api.stream(`/workspaces/${ws.id}/assistant/ask/stream`, { question, conversation_id: conv, engine, domain: activeDomain }, (e) => {
           if (e.type === "step") setLive((s) => [...s, { n: e.n, tool: e.tool, label: e.label }]);
           else if (e.type === "step_done") setLive((s) => s.map((x) => (x.n === e.n ? { ...x, ok: e.ok, label: e.label, row_count: e.rows } : x)));
           else if (e.type === "checking") setLive((s) => [...s, { n: 99, tool: "check", label: e.label }]);
@@ -76,7 +83,7 @@ export default function AskPage() {
         if (failure) throw new Error(failure);
         if (!answered) throw new Error("The answer was interrupted; please ask again.");
       } else {
-        done(await api.post<Answer>(`/workspaces/${ws.id}/assistant/ask`, { question, conversation_id: conv, engine }));
+        done(await api.post<Answer>(`/workspaces/${ws.id}/assistant/ask`, { question, conversation_id: conv, engine, domain: activeDomain }));
       }
     } catch (e: any) {
       setMsgs((m) => [...m, { role: "assistant", content: e.message, payload: { type: "error", text: e.message } }]);
@@ -120,7 +127,7 @@ export default function AskPage() {
           {(convs.data || []).map((c) => (
             <div key={c.id} className={cx("group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm", c.id === conv ? "bg-brand-50 text-brand-800" : "hover:bg-slate-50")}>
               <Link to={`${base}/ask/${c.id}`} className="min-w-0 flex-1">
-                <div className="truncate">{c.title}</div>
+                <div className="truncate">{(c.scope_type || "").startsWith("domain:") && <BellRing className="mr-1 inline h-3 w-3 text-amber-600" />}{c.title}</div>
                 <div className="text-[10px] text-slate-400">{timeAgo(c.updated_at)}</div>
               </Link>
               <button onClick={() => delConv(c.id)} className="hidden text-slate-400 hover:text-red-600 group-hover:block"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -132,6 +139,13 @@ export default function AskPage() {
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="mx-auto max-w-4xl">
+            {activeDomain && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <BellRing className="h-4 w-4 shrink-0" />
+                <span className="flex-1"><b>{DOMAIN_LABEL[activeDomain]}</b>: explains the alerts from the {activeDomain === "executive" ? "stock and operations" : activeDomain} rules and digs into the dashboards behind them. It never decides an alert; you do, on the <Link to={`${base}/alerts`} className="underline">Alerts page</Link>.</span>
+                {!conv && <button onClick={() => setDomain(null)} title="Ask the general assistant instead" className="text-amber-700 hover:text-amber-900"><X className="h-4 w-4" /></button>}
+              </div>
+            )}
             {msgs.length === 0 && (
               <div className="py-10 text-center">
                 <Bot className="mx-auto mb-3 h-10 w-10 text-brand-500" />
@@ -189,3 +203,6 @@ export default function AskPage() {
     </div>
   );
 }
+
+type Domain = "stock" | "operations" | "executive";
+const DOMAIN_LABEL: Record<Domain, string> = { stock: "Stock assistant", operations: "Operations assistant", executive: "Executive assistant" };

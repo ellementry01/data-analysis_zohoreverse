@@ -30,14 +30,15 @@ def _now() -> datetime:
 
 
 def _handlers() -> dict[str, Callable[[Session, dict], dict | None]]:
-    from . import memory, worth_a_look
+    from . import domain_agents, memory, worth_a_look
     from .nlq import assistant
 
     return {"summarise_conversation": assistant.summarise_job,
             "extract_memories": memory.extract_job,
             "update_profile": memory.profile_job,
             "refresh_staleness": memory.staleness_job,
-            "worth_a_look": worth_a_look.refresh_job}
+            "worth_a_look": worth_a_look.refresh_job,
+            "briefing": domain_agents.briefing_job}
 
 
 def enqueue(db: Session, kind: str, payload: dict, delay: timedelta | None = None, dedupe_key: str | None = None,

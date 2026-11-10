@@ -4,6 +4,7 @@ Runs warehouse commands with the admin login from .env (ADMIN_DATABASE_URL), wit
     python dw.py loader load ERP_RETAIL_SALES <file>            # any `python -m loader ...` command
     python dw.py transform run [database]                       # defaults to the database in the URL
     python dw.py seeds [database]                               # load the reviewed seed CSVs
+    python dw.py agents run [all|stock|operations]              # rule-based agents after a build (writes insight alerts)
     python dw.py build <new_database>                           # fresh schema build (build_db.sh)
     python dw.py psql [-c "SQL"] [-f file.sql]                  # psql on the warehouse
     python dw.py backup [file]                                  # pg_dump --format=custom, then verified
@@ -49,6 +50,9 @@ def main(argv: list[str]) -> int:
         args = [sys.executable, "-m", "loader", *rest]
     elif cmd == "transform":
         args = [sys.executable, "-m", "transform", *(rest if len(rest) > 1 else [*(rest or ["run"]), db])]
+    elif cmd == "agents":                    # python -m agents run <which> <database>
+        which = rest[1] if len(rest) > 1 else "all"
+        args = [sys.executable, "-m", "agents", "run", which, db, *rest[2:]]
     elif cmd == "seeds":
         args = [sys.executable, "-m", "loader.seeds", rest[0] if rest else db]
     elif cmd == "build":                     # same files, same order as build_db.sh, without needing bash on Windows

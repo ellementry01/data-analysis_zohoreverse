@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from .config import get_settings
 from .db import get_engine, init_db
-from .routers import analysis, auth as auth_router, data, data_issues as issues_router, memory as memory_router, workspaces
+from .routers import agents as agents_router, analysis, auth as auth_router, data, data_issues as issues_router, memory as memory_router, workspaces
 from .services import auth as auth_svc
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -39,6 +39,7 @@ app.include_router(data.router)
 app.include_router(analysis.router)
 app.include_router(memory_router.router)
 app.include_router(issues_router.router)
+app.include_router(agents_router.router)
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
