@@ -360,3 +360,11 @@ def test_the_features_flag_is_reported(client, ws, on):
     me = client.get("/api/me").json()
     feats = me.get("features") or {}
     assert feats.get("scheduled_agents") is True
+
+
+def test_spelled_out_counts_are_read_and_checked():
+    # Haiku starts a sentence with "Eighteen products", never "18 products": the number check must see that count
+    from app.services.agent.numbers import parse_numbers, ungrounded
+    assert parse_numbers("Eighteen products; twenty-one POs, forty two, 7 days, someone often") == [7.0, 18.0, 21.0, 42.0]
+    assert ungrounded("Eighteen products at one site", [18.0]) == []
+    assert ungrounded("Nineteen products", [18.0]) == ["Nineteen"]

@@ -29,7 +29,7 @@ Also see `README.md` (user guide), `QA_REPORT.md` (security audit), `../research
 # Docker (from analytics/) — app on http://localhost:8000
 docker compose up -d --build
 docker compose up -d --force-recreate app   # after editing .env
-# Backend tests (from analytics/backend) — expect 608 passed
+# Backend tests (from analytics/backend) — expect 609 passed
 TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 # Frontend checks (from analytics/frontend)
 npm run typecheck && npm run build
