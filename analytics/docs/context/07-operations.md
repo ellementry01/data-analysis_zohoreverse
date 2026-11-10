@@ -80,7 +80,7 @@ To go back: remove `AUTH_MODE=google` (or set `dev`) and recreate the app.
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **624 passed, 1 skipped** (2026-11-10; the skipped one needs a login that may create roles and runs in CI), in about 4 minutes. About 80 s of that is building the demo workspace once.
+- Current result: **633 passed, 1 skipped** (2026-11-10; the skipped one needs a login that may create roles and runs in CI), in about 4 minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)

@@ -354,3 +354,28 @@ def test_pool_settings_reach_the_engine():
 
     p = _pool()
     assert (p["pool_size"], p["max_overflow"], p["pool_timeout"]) == (5, 5, 20) and p["pool_pre_ping"]
+
+
+# ----------------------------------------------------------------------------------------------- connectors
+
+@pytest.mark.parametrize("schema", ["pg_catalog", "PG_CATALOG", "information_schema", "pg_toast", "pg_temp_3", "mysql",
+                                    "performance_schema", "sys"])
+def test_a_connector_never_reads_a_system_schema(schema):
+    """Found by the CI run, whose test login is a superuser: reading pg_catalog.pg_authid (password hashes) through a
+    connector was refused only by the source login's own permissions. Now the app refuses it, before connecting."""
+    from app.services.connectors import BaseConnector, ConnectorError
+
+    with pytest.raises(ConnectorError, match="system schema"):
+        BaseConnector({}).read_table(schema, "pg_authid")
+    with pytest.raises(ConnectorError, match="system schema"):
+        BaseConnector({}).column_types(schema, "pg_authid")
+
+
+def test_a_connector_with_a_schema_reads_only_that_schema():
+    from app.services.connectors import BaseConnector, ConnectorError
+
+    with pytest.raises(ConnectorError, match="only reads schema mart"):
+        BaseConnector({"schema": "mart"}).read_table("core", "fact_sales_line")
+    BaseConnector({"schema": "mart"}).check_schema("mart")
+    BaseConnector({"schema": "mart"}).check_schema(None)
+    BaseConnector({}).check_schema("public")

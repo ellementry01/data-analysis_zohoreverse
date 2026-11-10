@@ -69,6 +69,7 @@
 | 4 server processes, one scheduler leader by advisory lock | The load test: one process served about 3 requests/s and failed 22% of requests for 30 people (2026-11-10) |
 | Scheduled syncs skip an unchanged source; readers wait up to 10 s for a lock (was 2 s) | A sync replaces a table inside one transaction and locks it while it loads (12 s for the largest); every hour, tiles failed. Loading into a copy and swapping it in would remove the wait too, but changes ingestion: a follow-up (2026-11-10) |
 | The catalog is not cached across requests; its columns load in one query | It holds live ORM objects; one query instead of 32 per tile was enough (2026-11-10) |
+| Connectors refuse system schemas and, when set, any schema but their own, before connecting | The first CI run (superuser test login) read pg_catalog.pg_authid through a connector preview: the app relied on the source login's permissions (2026-11-10) |
 | Alert rules run in the warehouse (SQL, deterministic); the app only reads them and records decisions | PRD-001's design; the app stays read-only on the warehouse; AI never raises an alert |
 | One overdue-PO alert per purchase order, not per line | 510 overdue lines would bury the 148 POs they belong to |
 | Overdue POs use BR-031's Purchase remark instead of waiting for supplier classification (PRD-001 FR-OPS-05) | Every PO supplier is still UNCLASSIFIED (G-005); the remark is confirmed and already separates purchases from returns |

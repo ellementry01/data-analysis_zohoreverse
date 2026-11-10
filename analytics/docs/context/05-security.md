@@ -76,6 +76,7 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - **Per-person question limits** (10 a minute, 120 an hour) on everything that can call Claude; refusals audited.
 - **Logs** (`app/logsafe.py`): every handler of the app, the worker and uvicorn scrubs API keys, bearer tokens, passwords in URLs and `password=` pairs, SQL parameter values in database errors, e-mail addresses (first letter and domain kept), Indian mobile numbers and every logged URL's query string, tracebacks included.
 - **Prompt injection:** a test plants an instruction in a data value and scripts the model to obey it (save a team fact, query the app's own tables and users): every attempt is refused, nothing is saved, the planted text reaches the model only as a tool result. Tools not offered to a person (alerts, memory) can't be called at all.
+- **Connectors never read a system schema** (`pg_catalog`, `information_schema`, `mysql`, ...) nor, when a schema is set, any other schema: found by the first CI run, whose test login is a superuser and could read `pg_catalog.pg_authid` (password hashes) through a connector preview. Before, only the source login's own permissions stopped that.
 - **Dependencies:** `pip-audit` and `npm audit --omit=dev`: no known vulnerabilities (2026-11-10); both run in the GitHub checks.
 
 ## Accepted risks (QA_REPORT §4)

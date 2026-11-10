@@ -113,7 +113,20 @@ class BaseConnector:
         finally:
             eng.dispose()
 
+    SYSTEM_SCHEMAS = ("information_schema", "pg_catalog", "pg_toast", "mysql", "performance_schema", "sys")
+
+    def check_schema(self, schema: str | None) -> None:
+        """Only what list_tables shows may be read: never a system schema (password hashes live in pg_catalog), and
+        only the connector's own schema when it is set. The source login's permissions are not relied on (Phase 8)."""
+        s = (schema or "").strip().lower()
+        if s in self.SYSTEM_SCHEMAS or s.startswith(("pg_temp", "pg_toast")):
+            raise ConnectorError(f"Schema {schema} is a system schema and can't be read")
+        own = self.cfg.get("schema")
+        if own and schema and schema != own:
+            raise ConnectorError(f"This connection only reads schema {own}")
+
     def read_table(self, schema: str | None, table: str, limit: int | None = None) -> pd.DataFrame:
+        self.check_schema(schema)
         eng = self.engine()
         try:
             insp = inspect(eng)
@@ -136,6 +149,8 @@ class BaseConnector:
     def column_types(self, schema: str | None, table: str) -> dict[str, str]:
         """Ellementry data types declared by the source schema (reliable even when the table is empty)."""
         from sqlalchemy import types as T
+
+        self.check_schema(schema)
 
         eng = self.engine()
         try:
