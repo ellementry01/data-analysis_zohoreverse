@@ -34,6 +34,7 @@ jobs:
       TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ellementry_analytics_test
       TODAY_OVERRIDE: "2026-10-17"
       ANTHROPIC_API_KEY: ""
+      PGPASSWORD: postgres   # the connector tests log in as dw_owner, as on the owner's PC (where it needs no password)
     defaults:
       run:
         working-directory: analytics/backend
@@ -45,6 +46,8 @@ jobs:
           cache: pip
           cache-dependency-path: analytics/backend/requirements*.txt
       - run: pip install -r requirements-dev.txt
+      - name: The dw_owner login the connector tests use (CI only, throwaway database)
+        run: psql -h localhost -U postgres -d ellementry_analytics_test -c "CREATE ROLE dw_owner LOGIN SUPERUSER PASSWORD 'postgres'"
       - name: Sample data for the demo-workspace tests (synthetic, generated with seed 42; not kept in git)
         run: python ../sample_data/generate.py
       - name: Tests (includes the eval sets' format checks and the read-only database login)
