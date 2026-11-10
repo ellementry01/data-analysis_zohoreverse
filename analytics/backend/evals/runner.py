@@ -220,6 +220,9 @@ def label_variants(label: str) -> list[str]:
     "oct 2025" and "2025-10"."""
     low = str(label).lower()
     out = [low]
+    bare = re.sub(r"^\d+\.\s+", "", low)  # band labels carry a sort prefix ("1. sold in the last 30 days")
+    if bare != low:
+        out.append(bare)
     m = re.match(r"^(\d{4})-(\d{2})(?:-01)?(?:[t ].*)?$", low)
     if m:
         y, mo = m.group(1), int(m.group(2))
@@ -312,6 +315,22 @@ def worth_numbers(t: Transport, ws: int) -> list[float]:
     return _worth_cache[ws]
 
 
+_issue_cache: dict[int, list[float]] = {}
+
+
+def issue_numbers(t: Transport, ws: int) -> list[float]:
+    """Numbers in the known-issues register (title, summary, note): an answer may quote them when it explains a caveat,
+    as the assistant reads the register with a tool. Fetched independently of the assistant."""
+    if ws not in _issue_cache:
+        try:
+            rows = t.get(f"/api/workspaces/{ws}/data-issues")
+            _issue_cache[ws] = parse_numbers(" ".join(f"{i.get('code', '')} {i.get('title', '')} {i.get('summary', '')} "
+                                                      f"{i.get('note', '')}" for i in rows))
+        except EvalError:
+            _issue_cache[ws] = []
+    return _issue_cache[ws]
+
+
 _alert_cache: dict[tuple, list[float]] = {}
 
 
@@ -355,6 +374,7 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
             context += screen_numbers(t, ws, {"dashboard": key, "screen_state": None})
         if not case.get("dashboard") and case.get("context_dashboards") is not None:
             context += worth_numbers(t, ws)
+        context += issue_numbers(t, ws)                       # caveats quoted from the known-issues register
         if case.get("domain"):                                # Phase 7: a domain assistant (the Alerts page)
             body["domain"] = case["domain"]
             context += alert_numbers(t, ws, case["domain"])

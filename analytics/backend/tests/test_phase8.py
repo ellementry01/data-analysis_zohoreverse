@@ -379,3 +379,30 @@ def test_a_connector_with_a_schema_reads_only_that_schema():
     BaseConnector({"schema": "mart"}).check_schema("mart")
     BaseConnector({"schema": "mart"}).check_schema(None)
     BaseConnector({}).check_schema("public")
+
+
+# ----------------------------------------------------------------------------------------------- eval checker
+
+def test_band_labels_can_be_named_without_their_sort_prefix():
+    """Phase 8 live run: "Sold in the last 30 days" was marked as not naming "1. Sold in the last 30 days"."""
+    from evals.runner import label_variants
+
+    assert "sold in the last 30 days" in label_variants("1. Sold in the last 30 days")
+    assert label_variants("2025 sales") == ["2025 sales"]
+
+
+def test_numbers_from_the_issue_register_are_not_counted_as_invented():
+    """Phase 8 live run: a caveat answer quoted counts from issue D-113 ("Nykaa 2,701"), which the assistant read with
+    its issues tool; the checker only knew the dashboard's numbers and called them invented."""
+    from evals import runner
+
+    class FakeTransport:
+        def get(self, path):
+            assert path == "/api/workspaces/7/data-issues"
+            return [{"code": "D-113", "title": "Delivery dates missing", "summary": "Nykaa 2,701 and the website 951",
+                     "note": "99-100% discount lines"}]
+
+    runner._issue_cache.pop(7, None)
+    nums = runner.issue_numbers(FakeTransport(), 7)
+    assert runner.ungrounded("Nykaa accounts for 2,701 of them, the website 951; lines at 99% discount", nums) == []
+    assert runner.ungrounded("Nykaa accounts for 3,333 of them", nums) == ["3,333"]
