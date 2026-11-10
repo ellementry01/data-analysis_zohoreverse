@@ -158,6 +158,8 @@ def _owns(conv: m.Conversation, ws: m.Workspace, user: str, scope: AnswerScope |
         return False
     if scope is None:
         return conv.scope_type == "workspace"
+    if scope.scope_type == "global":   # the Ask page: its earlier threads continue with the global assistant
+        return conv.scope_type in ("global", "workspace")
     return conv.scope_type == scope.scope_type and conv.dashboard_key == scope.dashboard_key
 
 
@@ -262,7 +264,7 @@ READ_ONLY_NOTE = ("I can read and explain this dashboard, but I can't create or 
 
 def _run_scoped(db, cat, spec: QuerySpec, user, today, scope: AnswerScope | None) -> tuple[dict, QuerySpec, list[str]]:
     """Run a question's spec; on a dashboard, with the dashboard's filters in force unless the question set its own."""
-    if scope is None:
+    if scope is None or scope.screen is None:
         return run_spec(db, cat, spec, user, source="ai", today=today), spec, []
     from ..agent.context import drop_inherited, inherit_filters
 
@@ -309,7 +311,7 @@ def _answer(db, ws, cat, user, question, prev, history, engine, today, scope: An
             return {"type": "help", "engine": "semantic", "text": "Ask me about your data, for example:" if interp.kind == "help"
                     else "Hi! Ask me a question about your data.", "suggestions": suggest_questions(cat)}
         if interp.kind == "dashboard":
-            if scope is not None:  # assistants on a dashboard only read and explain
+            if scope is not None and scope.scope_type != "global":  # assistants on a dashboard only read and explain
                 return {"type": "help", "engine": "semantic", "text": READ_ONLY_NOTE}
             return _make_dashboard(db, ws, cat, user, interp, today)
         try:
@@ -377,7 +379,8 @@ def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretati
     remembered: list = []
     memory_text = ""
     if memory_on:
-        remembered = memory.retrieve(db, ws, user, scope.dashboard_key, question, cat)
+        remembered = memory.retrieve(db, ws, user, scope.dashboard_key, question, cat,
+                                     everywhere=scope.scope_type == "global")
         memory_text = memory.prompt_block(remembered, memory.profile_text(db, ws, user), user)
     try:
         out = engine.run(ctx, question, history, r, on_event, memory_text=memory_text)

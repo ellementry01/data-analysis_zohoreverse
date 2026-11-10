@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bot, MessageSquarePlus, Send, Trash2 } from "lucide-react";
+import { Bot, Brain, Globe2, MessageSquarePlus, Send, Trash2 } from "lucide-react";
 import { api } from "../api/client";
-import { Answer, ChatMessage, Msg } from "../components/ChatMessage";
+import { Answer, ChatMessage, Msg, Step, StepList } from "../components/ChatMessage";
+import { MemoryItem, ProposalCard } from "../components/MemoryNotes";
 import { cx, Spinner, useAsync, useToast } from "../components/ui";
 import { timeAgo } from "../lib/format";
 import { useWs } from "./WorkspaceLayout";
@@ -14,7 +15,13 @@ export default function AskPage() {
   const loc = useLocation() as { state?: { question?: string } };
   const toast = useToast();
   const convs = useAsync(() => api.get<{ id: number; title: string; updated_at: string; message_count: number }[]>(`/workspaces/${ws.id}/conversations`), [ws.id]);
-  const me = useAsync(() => api.get<{ llm: { enabled: boolean; model: string | null; provider?: string | null; simple_model?: string; complex_model?: string } }>("/me"), []);
+  const me = useAsync(() => api.get<{ llm: { enabled: boolean; model: string | null; provider?: string | null; simple_model?: string; complex_model?: string };
+    features?: { global_assistant?: boolean; agent_loop?: boolean; memory?: boolean } }>("/me"), []);
+  // Phase 6: the global assistant (admins only until company sign-in is on), with live steps and memory
+  const global = !!me.data?.features?.global_assistant && !!me.data?.features?.agent_loop && !!me.data?.llm.enabled && ws.role === "admin";
+  const memoryOn = global && !!me.data?.features?.memory;
+  const proposals = useAsync(() => (memoryOn ? api.get<MemoryItem[]>(`/workspaces/${ws.id}/memory/proposals`) : Promise.resolve([] as MemoryItem[])), [ws.id, memoryOn]);
+  const [live, setLive] = useState<Step[]>([]);
   const sugg = useAsync(() => api.get<string[]>(`/workspaces/${ws.id}/assistant/suggestions`), [ws.id]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -45,18 +52,37 @@ export default function AskPage() {
     setInput("");
     setMsgs((m) => [...m, { role: "user", content: question }]);
     setBusy(true);
-    try {
-      const a = await api.post<Answer>(`/workspaces/${ws.id}/assistant/ask`, { question, conversation_id: conv, engine });
+    const done = (a: Answer) => {
       setMsgs((m) => [...m, { id: a.message_id, role: "assistant", content: a.text, payload: a }]);
       if (!conv && a.conversation_id) {
         setConv(a.conversation_id);
         nav(`${base}/ask/${a.conversation_id}`, { replace: true });
       }
       convs.reload();
+      if (a.memories_saved?.some((x) => x.status === "proposed")) proposals.reload();
+    };
+    try {
+      if (global && engine !== "semantic") {
+        setLive([]);
+        let answered = false;
+        let failure: string | null = null;
+        await api.stream(`/workspaces/${ws.id}/assistant/ask/stream`, { question, conversation_id: conv, engine }, (e) => {
+          if (e.type === "step") setLive((s) => [...s, { n: e.n, tool: e.tool, label: e.label }]);
+          else if (e.type === "step_done") setLive((s) => s.map((x) => (x.n === e.n ? { ...x, ok: e.ok, label: e.label, row_count: e.rows } : x)));
+          else if (e.type === "checking") setLive((s) => [...s, { n: 99, tool: "check", label: e.label }]);
+          else if (e.type === "answer") { answered = true; done(e.answer); }
+          else if (e.type === "error") failure = e.detail;
+        });
+        if (failure) throw new Error(failure);
+        if (!answered) throw new Error("The answer was interrupted; please ask again.");
+      } else {
+        done(await api.post<Answer>(`/workspaces/${ws.id}/assistant/ask`, { question, conversation_id: conv, engine }));
+      }
     } catch (e: any) {
       setMsgs((m) => [...m, { role: "assistant", content: e.message, payload: { type: "error", text: e.message } }]);
     } finally {
       setBusy(false);
+      setLive([]);
     }
   };
 
@@ -110,7 +136,16 @@ export default function AskPage() {
               <div className="py-10 text-center">
                 <Bot className="mx-auto mb-3 h-10 w-10 text-brand-500" />
                 <h2 className="text-lg font-semibold text-slate-800">Ask anything about {ws.name}</h2>
-                <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500">Answers are computed from your data with governed metric definitions. Every answer shows the SQL that produced it. Follow-up questions keep the context.</p>
+                <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500">{global
+                  ? "This assistant knows every dashboard you can see, their known data issues and what you've asked it to remember. Ask across dashboards; each number says where it comes from."
+                  : "Answers are computed from your data with governed metric definitions. Every answer shows the SQL that produced it. Follow-up questions keep the context."}</p>
+                {global && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {["What stands out across all dashboards right now?", "What did I decide about partner stock?", "Compare what Stock and Fulfilment show for Bagru"].map((s) => (
+                      <button key={s} onClick={() => ask(s)} className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-sm text-brand-800 hover:bg-brand-100"><Globe2 className="h-3.5 w-3.5" />{s}</button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {[...(sugg.data || []), "Create a dashboard showing monthly sales, returns and inventory"].slice(0, 7).map((s) => (
                     <button key={s} onClick={() => ask(s)} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 shadow-sm hover:border-brand-300 hover:text-brand-700">{s}</button>
@@ -118,8 +153,19 @@ export default function AskPage() {
                 </div>
               </div>
             )}
+            {memoryOn && (proposals.data || []).length > 0 && (
+              <div className="mb-4 grid gap-2 md:grid-cols-2">
+                {(proposals.data || []).slice(0, 2).map((p) => <ProposalCard key={p.id} wsId={ws.id} item={p} onDone={proposals.reload} />)}
+                {(proposals.data || []).length > 2 && <Link to={`${base}/memory`} className="inline-flex items-center gap-1 text-xs text-violet-700 hover:underline"><Brain className="h-3 w-3" /> {(proposals.data || []).length - 2} more suggestions on the Memory page</Link>}
+              </div>
+            )}
             {msgs.map((m, i) => <ChatMessage key={i} m={m} onAsk={ask} wsId={ws.id} base={base} onFeedback={(f) => rate(i, m, f)} />)}
-            {busy && <div className="flex items-center gap-2 py-3 text-sm text-slate-500"><Bot className="h-5 w-5 text-brand-500" /> <Spinner label="Analysing…" /></div>}
+            {busy && (
+              <div className="py-3 text-sm text-slate-500">
+                <div className="flex items-center gap-2"><Bot className="h-5 w-5 text-brand-500" /> <Spinner label={live.length ? "Working it out…" : "Analysing…"} /></div>
+                {live.length > 0 && <div className="ml-7"><StepList steps={live} live /></div>}
+              </div>
+            )}
             <div ref={endRef} />
           </div>
         </div>
@@ -135,6 +181,7 @@ export default function AskPage() {
             <button disabled={busy || !input.trim()} className="rounded-lg bg-brand-600 p-2.5 text-white hover:bg-brand-700 disabled:opacity-50" aria-label="Send"><Send className="h-4 w-4" /></button>
           </form>
           <div className="mx-auto mt-1 max-w-4xl text-[11px] text-slate-400">
+            {global ? "Global assistant: knows every dashboard you can see, their data issues and your memories; reads only, and only what you may see. " : ""}
             {me.data?.llm.provider === "anthropic" ? `Claude: ${me.data.llm.simple_model} for everyday questions, ${me.data.llm.complex_model} for complex ones. Answers use your metric definitions; any SQL is validated and run read-only.` : me.data?.llm.enabled ? `LLM: ${me.data.llm.model} — used as a fallback in Auto mode; all generated SQL is validated and run read-only.` : "Offline semantic engine (no LLM configured). Add synonyms and metrics in the Semantic layer to teach it your vocabulary."}
           </div>
         </div>

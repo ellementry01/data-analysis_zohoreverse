@@ -96,6 +96,15 @@ def about(db: Session, ws: m.Workspace, cat, target: str | None, dash: m.Dashboa
     from .permissions import can_see_dashboard
 
     t = (target or "").strip()
+    if not t and dash is None:
+        # the global assistant: every live issue on a dashboard this person can see, or on no dashboard at all
+        out = []
+        for i in live_issues(db, ws.id):
+            keys = (i.affects or {}).get("dashboards") or []
+            ds = [d for d in db.query(m.Dashboard).filter(m.Dashboard.workspace_id == ws.id, m.Dashboard.key.in_(keys))] if keys else []
+            if not keys or any(can_see_dashboard(db, ws, d) for d in ds):
+                out.append(i)
+        return out
     if not t or (dash is not None and t == dash.key):
         return [x["issue"] for x in for_dashboard(db, dash, cat)] if dash is not None else []
     d = db.query(m.Dashboard).filter_by(workspace_id=ws.id, key=t).one_or_none()

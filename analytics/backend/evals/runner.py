@@ -190,10 +190,13 @@ def _pick(res: dict, expect: dict) -> Expected:
 def expected_value(t: Transport, ws: int, case: dict) -> Expected:
     expect = case.get("expect") or {}
     if "widget" in expect:
-        dash = _dashboard(t, ws, case["dashboard"])
+        key = expect.get("dashboard") or case.get("dashboard")   # Phase 6: Ask-page cases name the tile's dashboard
+        if not key:
+            raise EvalError("a widget expectation needs a dashboard")
+        dash = _dashboard(t, ws, key)
         w = next((x for x in dash["widgets"] if x["title"] == expect["widget"]), None)
         if not w:
-            raise EvalError(f"widget '{expect['widget']}' is not on dashboard '{case['dashboard']}'")
+            raise EvalError(f"widget '{expect['widget']}' is not on dashboard '{key}'")
         res = t.post(f"/api/workspaces/{ws}/dashboards/{dash['id']}/widgets/{w['id']}/data",
                      {"filters": _screen_filters(dash, case.get("screen_state"))})
     elif "sql" in expect:
@@ -289,12 +292,49 @@ def screen_numbers(t: Transport, ws: int, case: dict) -> list[float]:
     return nums
 
 
+_worth_cache: dict[int, list[float]] = {}
+
+
+def worth_numbers(t: Transport, ws: int) -> list[float]:
+    """Numbers in every dashboard's "worth a look" lines: the global assistant may quote them from its index."""
+    if ws not in _worth_cache:
+        nums: list[float] = []
+        for d in t.get(f"/api/workspaces/{ws}/dashboards"):
+            if not d.get("key"):
+                continue
+            try:
+                ins = t.get(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(d['key'])}/insights")
+                nums += parse_numbers(" ".join(i["text"] for i in ins["worth_a_look"]["items"]))
+            except EvalError:
+                pass
+        _worth_cache[ws] = nums
+    return _worth_cache[ws]
+
+
+def _also(t: Transport, ws: int, case: dict, answer: dict) -> list[str]:
+    """also_expect: more numbers a (cross-dashboard) answer must contain, each from a tile of a named dashboard."""
+    problems = []
+    tokens = number_tokens(" ".join(str(answer.get(k) or "") for k in ("text", "title")))
+    cells = _numeric_cells(answer)
+    for ex in case.get("also_expect") or []:
+        e = expected_value(t, ws, {"expect": ex})
+        tol = float(ex.get("tolerance", 0.005))
+        if e.value is not None and not (any(abs(c - e.value) <= max(abs(e.value) * tol, 1e-9) for c in cells)
+                                        or any(_matches(n, e.value, tol) for n in tokens)):
+            problems.append(f"expected {e.value:g} ({ex.get('widget')}, {ex.get('dashboard')}) not found in the answer")
+    return problems
+
+
 def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
     started = time.monotonic()
     try:
         expected = expected_value(t, ws, case)
         body = {"question": case["question"], "engine": engine}
         context = screen_numbers(t, ws, case) if case.get("dashboard") else []
+        for key in case.get("context_dashboards") or []:      # Ask-page cases: the dashboards the answer may quote
+            context += screen_numbers(t, ws, {"dashboard": key, "screen_state": None})
+        if not case.get("dashboard") and case.get("context_dashboards") is not None:
+            context += worth_numbers(t, ws)
         if case.get("dashboard"):
             body["screen_state"] = case.get("screen_state") or {}
             answer = t.post(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/assistant/ask", body)
@@ -306,6 +346,10 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
             # numbers quoted from the issue register ("99-100% discount") are sourced, not invented
             context = context + parse_numbers(" ".join(f"{i['title']} {i['note']} {i['what_is_needed']}" for i in issues))
         r = score(case, answer, expected, context)
+        extra = _also(t, ws, case, answer)
+        if extra:
+            r.problems += extra
+            r.passed = False
         if case.get("check_issue_codes") and case.get("dashboard"):
             # Phase 5: an answer may cite only issues the register has for this dashboard
             known = {i["code"] for i in issues}
