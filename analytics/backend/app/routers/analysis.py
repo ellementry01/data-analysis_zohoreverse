@@ -620,10 +620,35 @@ class AskIn(BaseModel):
     engine: str = Field("auto", pattern="^(auto|semantic|llm)$")
 
 
+def _global_scope(db, ws, engine: str):
+    """Phase 6: with ASSISTANT_GLOBAL (and the agent loop) on, workspace admins get the global assistant on the Ask page;
+    everyone else, and the "Semantic engine" choice, keep the Phase 0 path."""
+    from ..config import get_settings
+    from ..services.nlq import claude
+
+    s = get_settings()
+    if not (s.assistant_global and s.assistant_agent_loop and claude.enabled()) or engine == "semantic":
+        return None
+    if permissions.acting(ws)[1] != "admin":
+        return None
+    from ..services.agent import global_scope
+
+    return global_scope.scope(db, ws, load_catalog(db, ws))
+
+
 @router.post("/assistant/ask")
 def ask(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
-    audit.record(user, "assistant_ask", ws.id, "ask", {"conversation_id": body.conversation_id})
-    return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine)
+    scope = _global_scope(db, ws, body.engine)
+    audit.record(user, "assistant_ask", ws.id, "global" if scope else "ask", {"conversation_id": body.conversation_id})
+    return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
+
+
+@router.post("/assistant/ask/stream")
+def ask_stream(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
+    """The Ask page as server-sent events (same events as the dashboard chat's stream)."""
+    scope = _global_scope(db, ws, body.engine)
+    audit.record(user, "assistant_ask", ws.id, "global" if scope else "ask", {"conversation_id": body.conversation_id, "stream": True})
+    return _stream_answer(ws, user, body, scope)
 
 
 @router.get("/assistant/suggestions")
@@ -634,9 +659,12 @@ def ask_suggestions(ws: m.Workspace = Depends(viewer), db: Session = Depends(get
 
 @router.get("/conversations")
 def conversations(ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
+    """The Ask page's threads (from before the global assistant, and with it)."""
     return [{"id": c.id, "title": c.title, "created_at": iso(c.created_at), "updated_at": iso(c.updated_at),
-             "message_count": len(c.messages)}
-            for c in db.query(m.Conversation).filter_by(workspace_id=ws.id, user_email=user, scope_type="workspace", archived=False)
+             "message_count": len(c.messages), "scope_type": c.scope_type}
+            for c in db.query(m.Conversation).filter(m.Conversation.workspace_id == ws.id, m.Conversation.user_email == user,
+                                                     m.Conversation.scope_type.in_(("workspace", "global")),
+                                                     m.Conversation.archived.is_(False))
             .order_by(m.Conversation.updated_at.desc()).limit(100)]
 
 
@@ -723,6 +751,15 @@ def dashboard_ask_stream(key: str, body: DashboardAskIn, ws: m.Workspace = Depen
                          user: str = Depends(current_user)):
     """Same as /ask, as server-sent events: one `step` / `step_done` event per tool call while the answer is worked
     out, then `answer` (the full payload) or `error`. Lets the chat show progress on multi-step answers."""
+    _dashboard_chat_on()
+    scope = _dashboard_scope(db, ws, key, body.screen_state, user)   # validation errors are plain 400s, before streaming
+    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "stream": True})
+    return _stream_answer(ws, user, body, scope)
+
+
+def _stream_answer(ws: m.Workspace, user: str, body, scope):
+    """Answer in a thread with its own database session and stream its progress as server-sent events: one `step` /
+    `step_done` event per tool call, then `answer` (the full payload) or `error`."""
     import json as _json
     import queue
     import threading
@@ -731,9 +768,6 @@ def dashboard_ask_stream(key: str, body: DashboardAskIn, ws: m.Workspace = Depen
 
     from ..db import SessionLocal
 
-    _dashboard_chat_on()
-    scope = _dashboard_scope(db, ws, key, body.screen_state, user)   # validation errors are plain 400s, before streaming
-    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "stream": True})
     ws_id, acting_role = ws.id, permissions.acting(ws)[1]
     events: queue.Queue = queue.Queue()
 

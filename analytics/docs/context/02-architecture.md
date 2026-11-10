@@ -59,6 +59,7 @@ backend/
       agent/context.py             dashboard pack, screen state, filter inheritance (Phase 1)
       agent/tools.py, engine.py    read-only tools and the tool loop with limits and number check (Phase 2)
       agent/numbers.py             number finding/matching shared with the eval runner
+      agent/global_scope.py        the Ask page's global assistant: dashboard index and scope (Phase 6)
       nlq/vocab.py, parser.py      offline NL interpreter
       nlq/claude.py                Anthropic routing/planning/explaining
       nlq/llm.py                   OpenAI-compatible fallback
@@ -110,6 +111,15 @@ dashboard chat question + screen state (filters, drill, focused widget)
    -> stored in a dashboard-scoped thread (screen state, steps, model, usage); streamed steps via SSE
 ```
 Every Claude call goes through `claude._call` / `claude.call_with_tools`: model allow-list, spend caps, `ai_usage` ledger.
+
+## Global assistant flow (Phase 6; details in 04)
+```
+Ask page question (admin, ASSISTANT_GLOBAL + agent loop on, engine not "semantic")
+   -> scope global: GLOBAL_PROMPT + DASHBOARDS index (only dashboards the person may see; cached by fingerprint)
+   -> the same tool loop: get_dashboard_context(key) and get_widget_data(dashboard_key=...) for detail, run_query,
+      get_data_issues (all live issues on visible dashboards), memories from every scope -> answer
+   -> thread scope_type = global (older "workspace" threads continue); /assistant/ask/stream sends live steps
+```
 
 ## Memory (Phase 4; details in 04)
 ```

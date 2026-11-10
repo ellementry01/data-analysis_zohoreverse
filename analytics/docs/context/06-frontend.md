@@ -18,7 +18,7 @@
 | `semantic` | SemanticPage | Metrics, glossary, business rules |
 | `reports`, `reports/:reportId` | ReportsPage, ReportEditor | Shelf-based chart builder (`components/SpecBuilder.tsx`) |
 | `dashboards`, `dashboards/:dashId` | DashboardsPage, DashboardView | Grid dashboards, filters, drill-down, export. With the dashboard chat on (`/api/me` `features.dashboard_chat`, admins only for now): an **Ask** button opens `AssistantPanel` beside the grid (full screen on phones), and each widget gets an "Ask about this" button that focuses the question on it. The page sends filter values, drill-downs and the focused widget as `screen_state` |
-| `ask`, `ask/:convId` | AskPage | Ask AI chat. Engine dropdown (Claude auto-routed / Semantic engine), model badge with "(escalated)", routing reason, a "governed metrics" vs "validated SQL" tag, and SQL, data and insights tabs |
+| `ask`, `ask/:convId` | AskPage | Ask AI chat. Phase 6 (admins, `features.global_assistant` + `agent_loop`): the global assistant's intro and cross-dashboard starters, streaming with live steps (`/assistant/ask/stream`), memory chips and up to 2 "Remember this?" cards. Otherwise as before: Engine dropdown (Claude auto-routed / Semantic engine), model badge with "(escalated)", routing reason, a "governed metrics" vs "validated SQL" tag, and SQL, data and insights tabs |
 | `lineage` | LineagePage | Source → dataset → query table → report/dashboard |
 | `history` | HistoryPage | Query history |
 | `data-issues` | DataIssuesPage | Phase 5 (shown with `features.data_issues`): Open / Parked / Solved / All, search, filter by dashboard; admins add and edit issues (note for tiles, severity, status, the dashboards and metrics it touches), mark solved, park, reopen |

@@ -363,7 +363,7 @@ def _domain_of(db: Session, ws: m.Workspace, dashboard_key: str | None) -> str |
 
 
 def retrieve(db: Session, ws: m.Workspace, user: str, dashboard_key: str | None, question: str, cat=None,
-             limit: int = MAX_RETRIEVE) -> list[m.Memory]:
+             limit: int = MAX_RETRIEVE, everywhere: bool = False) -> list[m.Memory]:
     """The memories for one answer: active, visible to `user`, about this dashboard, its domain, or global; ranked by
     scope, text match, kind, recency and use; within the prompt budget. Memories whose metrics changed are flagged
     needs_review on the way and left out."""
@@ -376,8 +376,10 @@ def retrieve(db: Session, ws: m.Workspace, user: str, dashboard_key: str | None,
         scopes.append(f"domain:{domain}")
     tsv = func.to_tsvector("english", func.coalesce(m.Memory.text, "") + " " + func.coalesce(m.Memory.rationale, ""))
     rank = func.ts_rank(tsv, func.plainto_tsquery("english", (question or "")[:500]))
-    rows = (visible_query(db, ws, user).filter(m.Memory.status == "active", m.Memory.scope.in_(scopes))
-            .add_columns(rank).order_by(m.Memory.id.desc()).limit(500).all())
+    q = visible_query(db, ws, user).filter(m.Memory.status == "active")
+    if not everywhere:   # the global assistant (Phase 6) draws on every scope the person may see
+        q = q.filter(m.Memory.scope.in_(scopes))
+    rows = q.add_columns(rank).order_by(m.Memory.id.desc()).limit(500).all()
     now, flagged, scored = _now(), False, []
     issues = issue_map(db, ws.id)
     for mem, r in rows:
@@ -390,7 +392,8 @@ def retrieve(db: Session, ws: m.Workspace, user: str, dashboard_key: str | None,
                 continue
         ref = mem.last_used_at or mem.approved_at or mem.created_at or now
         age_days = max(0.0, (now - ref).total_seconds() / 86400)
-        score = (2.0 if mem.scope == here else 1.0 if mem.scope.startswith("domain:") else 0.0) + 6.0 * float(r or 0) \
+        score = (2.0 if mem.scope == here else 1.0 if mem.scope.startswith("domain:") and not everywhere else 0.0) \
+            + 6.0 * float(r or 0) \
             + (0.8 if mem.kind in ("preference", "decision") else 0.0) + 1.0 / (1.0 + age_days / 30) \
             + 0.3 * math.log1p(mem.use_count or 0)
         scored.append((score, mem))

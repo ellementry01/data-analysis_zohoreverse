@@ -55,6 +55,10 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - **Audit:** memory saves, proposals, edits, accept/reject/retire/restore/keep/share decisions, deletions and profile edits are in `audit_events`.
 - **Deletion:** deleting a memory removes it; deleting a chat keeps its memories with the excerpt they came from (the link to the chat is cleared).
 
+## Global assistant (Phase 6, 2026-11-10)
+- The index is built from `permissions.visible_dashboards`; `get_dashboard_context` and `get_widget_data` check access again (a hidden dashboard's key is not even listed in their error text); memories about a dashboard or domain reach only people who can see it; `get_data_issues` without a target lists only issues on visible dashboards. Tested with a viewer and an admin-only dashboard.
+- Admins only until company sign-in is on, like the dashboard chat.
+
 ## Data issues (Phase 5, 2026-11-07)
 - Members read the register and the dashboards' notes; only workspace admins create, edit, import or solve issues and see notifications. Every change is audited (`issue_created`, `issue_edited`, `issues_imported`).
 - `affects` accepts only dashboard keys, metrics and datasets that exist (400 otherwise).

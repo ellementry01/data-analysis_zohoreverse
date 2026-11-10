@@ -1,0 +1,129 @@
+# Phase 6 eval set: the global assistant on the Ask page (workspace 34). 25 questions: comparisons across dashboards,
+# questions that need the right dashboard found first, summaries across dashboards, known data issues, and what the
+# user can see. Expected numbers come from the dashboards' own tiles at run time (expect.dashboard / also_expect);
+# context_dashboards lists the dashboards an answer may quote from (their tiles and the "worth a look" lines count as
+# sourced). Needs --live (Claude, the owner's OK) and ASSISTANT_GLOBAL on. Pass mark (docs/AI_ASSISTANTS_PLAN.md): 85%
+# correct, 100% permission-correct.
+
+# ---------------------------------------------------------------- across dashboards
+- id: gl-net-two-boards
+  question: Compare net sales on the Executive overview with total net sales on Sales & channels, and say why they differ.
+  expect: {dashboard: executive-overview, widget: Net sales (all channels)}
+  also_expect: [{dashboard: sales-channels, widget: Net sales}]
+  context_dashboards: [executive-overview, sales-channels]
+  must_mention: [[period, date, financial year, fy]]
+- id: gl-rto-two-boards
+  question: What is the RTO rate on the Fulfilment dashboard, and how does it compare with the Executive overview's?
+  expect: {dashboard: fulfilment, widget: RTO rate (website)}
+  also_expect: [{dashboard: executive-overview, widget: "RTO rate (website; marketplaces don't report RTO)"}]
+  context_dashboards: [fulfilment, executive-overview]
+- id: gl-stock-and-cover
+  question: How much stock do we hold at cost, and how much of it is sellable according to Days of cover?
+  expect: {dashboard: stock, widget: Stock value at cost}
+  also_expect: [{dashboard: days-of-cover, widget: Sellable stock at cost}]
+  context_dashboards: [stock, days-of-cover]
+- id: gl-instamart-and-returns
+  question: How many units did Instamart sell, and how many units were returned overall on the Returns dashboard?
+  expect: {dashboard: instamart, widget: Units sold by Instamart}
+  also_expect: [{dashboard: returns, widget: Units returned}]
+  context_dashboards: [instamart, returns]
+- id: gl-po-and-transit
+  question: How much is open on purchase orders, and how much is in transit to our own sites?
+  expect: {dashboard: purchasing-transfers, widget: Open PO quantity (Purchase lines)}
+  also_expect: [{dashboard: purchasing-transfers, widget: In transit to own sites (recent)}]
+  context_dashboards: [purchasing-transfers]
+- id: gl-return-rate-two-boards
+  question: What return rate do the Returns dashboard and the Sales & channels dashboard show?
+  expect: {dashboard: returns, widget: Return rate (units)}
+  also_expect: [{dashboard: sales-channels, widget: Return rate (units)}]
+  context_dashboards: [returns, sales-channels]
+- id: gl-retail-vs-total
+  question: This financial year, how much of net sales was retail?
+  expect: {dashboard: executive-overview, widget: Retail net sales}
+  also_expect: [{dashboard: executive-overview, widget: Net sales (all channels)}]
+  context_dashboards: [executive-overview]
+- id: gl-bagru-deliveries
+  question: According to the Executive overview, how many deliveries went out from Bagru this year?
+  expect: {dashboard: executive-overview, widget: Deliveries from Bagru}
+  context_dashboards: [executive-overview]
+
+# ---------------------------------------------------------------- find the right dashboard first
+- id: gl-find-lead-time
+  question: Which dashboard shows supplier lead time, and what is it?
+  expect: {dashboard: purchasing-transfers, widget: "Supplier lead time, days"}
+  context_dashboards: [purchasing-transfers]
+  must_mention: [[purchasing]]
+- id: gl-find-delivery-time
+  question: Where can I see delivery times, and what is the average?
+  expect: {dashboard: fulfilment, widget: Delivery time (days)}
+  context_dashboards: [fulfilment]
+  must_mention: [[fulfilment]]
+- id: gl-stock-value
+  question: What is our stock worth at cost?
+  expect: {dashboard: stock, widget: Stock value at cost}
+  context_dashboards: [stock]
+- id: gl-net-sales-fy
+  question: What were net sales this financial year?
+  expect: {dashboard: executive-overview, widget: Net sales (all channels)}
+  context_dashboards: [executive-overview, sales-channels]
+- id: gl-orders
+  question: How many orders went through the warehouse system?
+  expect: {dashboard: fulfilment, widget: Orders}
+  context_dashboards: [fulfilment]
+- id: gl-returns-value
+  question: What is the total value of returns?
+  expect: {dashboard: returns, widget: Returns value}
+  context_dashboards: [returns]
+- id: gl-instamart-sent
+  question: How many units have we sent to Instamart?
+  expect: {dashboard: instamart, widget: Units sent to Instamart}
+  context_dashboards: [instamart]
+
+# ---------------------------------------------------------------- summaries and issues across dashboards
+- id: gl-what-stands-out
+  question: What stands out across all the dashboards right now?
+  context_dashboards: [executive-overview, sales-channels, stock, fulfilment, returns, purchasing-transfers, discontinued-slow-stock, days-of-cover, instamart, data-health]
+  must_mention: [[executive, net sales, sales], [returns, fulfilment, stock, delivery, cover]]
+- id: gl-fulfilment-summary
+  question: Summarise the fulfilment situation in two or three sentences.
+  context_dashboards: [fulfilment]
+  must_mention: [[rto], [late, delivery]]
+- id: gl-most-issues
+  question: Which dashboard has the most known data issues?
+  context_dashboards: []
+  must_mention: [[stock]]
+  check_invented: false
+- id: gl-rto-issues
+  question: What known data issues affect the RTO numbers?
+  context_dashboards: [fulfilment, executive-overview]
+  must_mention: [[D-112]]
+- id: gl-high-issues
+  question: Which open data issues are high severity?
+  context_dashboards: []
+  must_mention: [[D-004, D-019, D-023, D-038, D-080, D-089]]
+  check_invented: false
+
+# ---------------------------------------------------------------- what exists for this user
+- id: gl-list-dashboards
+  question: List all the dashboards I can see.
+  context_dashboards: []
+  must_mention: [[executive overview], [data health], [instamart], [days of cover], [fulfilment]]
+  check_invented: false
+- id: gl-no-marketing
+  question: What does the Marketing dashboard show?
+  context_dashboards: []
+  must_mention: [[no marketing, not a marketing, isn't a marketing, there is no, don't have, do not have, not see, can't find, cannot find, no dashboard]]
+  must_not_mention: ["the marketing dashboard shows"]
+  check_invented: false
+- id: gl-data-health
+  question: What does the Data health dashboard track?
+  context_dashboards: [data-health]
+  must_mention: [[file, source, quality, check, gap]]
+- id: gl-slow-stock
+  question: Which dashboard would tell me about slow-moving stock, and what does it show?
+  context_dashboards: [discontinued-slow-stock, days-of-cover]
+  must_mention: [[discontinued, slow]]
+- id: gl-days-of-cover
+  question: What is the Days of cover dashboard for?
+  context_dashboards: [days-of-cover]
+  must_mention: [[cover], [run out, overstock, sell]]
