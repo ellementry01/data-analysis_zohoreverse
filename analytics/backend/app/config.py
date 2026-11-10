@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     # Optional dedicated read-only login used for AI / ad-hoc SQL. Falls back to database_url
     # with a READ ONLY transaction, statement timeout and schema scoping.
     readonly_database_url: str | None = None
+    # The login READONLY_DATABASE_URL uses (scripts/setup_readonly_role.py). New workspace schemas are granted to it.
+    readonly_role: str = "ellementry_reader"
+    # Connections per server process and engine (the app's own, the read-only one). With WEB_CONCURRENCY processes the
+    # total is processes x 2 x (pool + overflow): keep it under PostgreSQL's max_connections (100 by default).
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
+    db_pool_timeout_s: int = 20
 
     # Metadata lives in its own schema; each workspace's analytical data lives in schema ws_<id>.
     meta_schema: str = "ellementry_meta"
@@ -73,6 +80,9 @@ class Settings(BaseSettings):
     assistant_global: bool = False
     assistant_scheduled: bool = False   # Phase 7: alerts from the warehouse rules, decisions, briefing
     briefing_every_days: int = 0        # Phase 7: write the executive briefing after a sync every N days (0 = on request)
+    # Phase 8: questions to the assistants (and briefings) per person, per minute and per hour (0 = no limit)
+    assistant_rate_per_minute: int = 10
+    assistant_rate_per_hour: int = 120
 
     # Sign-in (Phase 3). "dev": identity from the X-User-Email header or DEFAULT_USER, for local development and tests
     # only (refused unless PUBLIC_BASE_URL is localhost). "google": Google Workspace sign-in (OIDC), sessions in a

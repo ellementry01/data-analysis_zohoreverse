@@ -244,7 +244,26 @@ def test_connection(conn: m.Connector) -> dict:
     return {"status": status}
 
 
-def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset) -> dict:
+def content_hash(df) -> str | None:
+    """A fingerprint of a table's columns, types and every value (None when a value can't be hashed)."""
+    import hashlib
+
+    import pandas as pd
+
+    try:
+        h = hashlib.sha256()
+        h.update(repr([(str(c), str(t)) for c, t in df.dtypes.items()]).encode())
+        h.update(pd.util.hash_pandas_object(df, index=False).values.tobytes())
+        return h.hexdigest()
+    except (TypeError, ValueError):
+        return None
+
+
+def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset, force: bool = True) -> dict:
+    """Copy the source table into the workspace. With force=False (the scheduled syncs) an unchanged source is not
+    written again: replacing a table locks it while it loads, and dashboards reading it would have to wait (Phase 8)."""
+    from datetime import datetime, timezone
+
     from .datasets import import_dataframe
 
     src = ds.source_info or {}
@@ -257,5 +276,12 @@ def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset) -> dict:
         types = c.column_types(src.get("source_schema"), src["source_table"])
     except Exception:  # some drivers cannot reflect views; new columns then fall back to inference
         types = None
+    fp = content_hash(df)
+    if not force and fp and src.get("content_hash") == fp:
+        ds.last_refreshed_at = datetime.now(timezone.utc)
+        db.commit()
+        return {"rows": int(len(df)), "unchanged": True}
     import_dataframe(db, ws, ds.name, df, "connector", src, dataset=ds, source_types=types)
-    return {"rows": int(len(df))}
+    ds.source_info = {**(ds.source_info or {}), "content_hash": fp}
+    db.commit()
+    return {"rows": int(len(df)), "unchanged": False}

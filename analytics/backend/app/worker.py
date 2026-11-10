@@ -9,7 +9,9 @@ import time
 
 from .services import jobs
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+from .logsafe import install as _install_logging  # noqa: E402
+
+_install_logging()  # no secrets or customer personal data in logs
 _stop = False
 
 

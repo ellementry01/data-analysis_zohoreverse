@@ -112,6 +112,12 @@ Code: `backend/app/services/nlq/claude.py` (Anthropic) and `nlq/assistant.py` (o
 - Prices are USD per million tokens in `ai_usage.PRICES` (Haiku 5.5: $0.10 in / $0.50 out up to a 100K-token prompt, $0.50 / $2.50 above; Sonnet 5.5: $2 / $10; cache reads 0.1×, cache writes 1.25× input), converted with `USD_INR_RATE`, overridable with `AI_PRICES_JSON`.
 - Caps: `AI_DAILY_LIMIT_USER_INR` (per user, Indian calendar day) and `AI_MONTHLY_LIMIT_INR` (everyone). At the cap `check_budget` raises, `_call` turns that into `ClaudeUnavailable`, and the offline engine answers with "AI spend limit reached …".
 
+## Hardening (Phase 8, 2026-11-10)
+- Per-person question limits (10 a minute, 120 an hour by default) on everything that can call Claude; offline answers are free and never limited. The daily and monthly rupee caps still apply on top.
+- Every answer records its time (`payload.seconds`) for the Monitoring tab; thumbs-down answers keep their steps.
+- `run_query` refuses a measure with neither a metric nor a field with a clear message (it used to fail inside the engine with an unhelpful error).
+- Evaluation runs are recorded in the app; `python -m evals gate` blocks a release when the latest live run of a set is below its pass mark or older than the last change to the assistant code (services/agent, services/nlq, memory, domain agents, worth a look, data issues).
+
 ## Engine selection (the Ask box dropdown)
 - `auto` and `llm` use Claude when a key is set. Without a key they use the OpenAI-compatible LLM if `LLM_BASE_URL` is set, and otherwise the offline engine.
 - `semantic` forces the offline engine.

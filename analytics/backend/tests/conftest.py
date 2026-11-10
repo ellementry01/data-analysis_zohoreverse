@@ -5,6 +5,8 @@ import pytest
 # Tests run against a separate database (created by scripts/setup_db.ps1 or manually).
 os.environ.setdefault("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", "postgresql+psycopg://dw_owner@localhost:5432/ellementry_analytics_test"))
 os.environ["ENABLE_SCHEDULER"] = "false"
+os.environ["ASSISTANT_RATE_PER_MINUTE"] = "0"   # the per-person limit has its own tests (test_phase8.py)
+os.environ["ASSISTANT_RATE_PER_HOUR"] = "0"
 os.environ.setdefault("TODAY_OVERRIDE", "2026-10-17")
 import tempfile  # noqa: E402
 os.environ.setdefault("UPLOAD_DIR", os.path.join(tempfile.gettempdir(), "ellementry_test_uploads"))

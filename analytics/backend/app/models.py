@@ -529,3 +529,24 @@ class Job(Base):
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class EvalRun(Base):
+    """One run of an evaluation set (backend/evals), posted by the runner: the monitoring page shows them over time and
+    `python -m evals gate` compares the latest live run of each set with its pass mark (Phase 8)."""
+    __tablename__ = "eval_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    set_name: Mapped[str] = mapped_column(String(80))
+    live: Mapped[bool] = mapped_column(Boolean, default=False)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    passed: Mapped[int] = mapped_column(Integer, default=0)
+    numbers_checked: Mapped[int] = mapped_column(Integer, default=0)
+    numbers_correct: Mapped[int] = mapped_column(Integer, default=0)
+    invented: Mapped[int] = mapped_column(Integer, default=0)
+    cost_inr: Mapped[float] = mapped_column(Float, default=0)
+    median_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    failures: Mapped[list] = mapped_column(JSON, default=list)   # [{id, problems}]: no answer texts
+    git_commit: Mapped[str] = mapped_column(String(40), default="")
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

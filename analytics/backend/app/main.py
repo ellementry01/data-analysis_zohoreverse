@@ -10,15 +10,18 @@ from sqlalchemy import text
 
 from .config import get_settings
 from .db import get_engine, init_db
-from .routers import agents as agents_router, analysis, auth as auth_router, data, data_issues as issues_router, memory as memory_router, workspaces
+from .routers import agents as agents_router, monitor as monitor_router, analysis, auth as auth_router, data, data_issues as issues_router, memory as memory_router, workspaces
 from .services import auth as auth_svc
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+from .logsafe import install as _install_logging  # noqa: E402
+
+_install_logging()  # no secrets or customer personal data in logs
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _install_logging()                 # again, once uvicorn's own handlers exist
     auth_svc.check_startup(settings)   # refuses an unsafe sign-in configuration before serving anything
     init_db()
     if settings.enable_scheduler:
@@ -38,6 +41,7 @@ app.include_router(workspaces.router)
 app.include_router(data.router)
 app.include_router(analysis.router)
 app.include_router(memory_router.router)
+app.include_router(monitor_router.router)
 app.include_router(issues_router.router)
 app.include_router(agents_router.router)
 

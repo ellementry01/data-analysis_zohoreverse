@@ -18,10 +18,15 @@ _ro_engine: Engine | None = None
 SessionLocal = sessionmaker(autoflush=False, expire_on_commit=False)
 
 
+def _pool() -> dict:
+    return {"pool_pre_ping": True, "future": True, "pool_size": settings.db_pool_size,
+            "max_overflow": settings.db_max_overflow, "pool_timeout": settings.db_pool_timeout_s}
+
+
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine(settings.database_url, pool_pre_ping=True, future=True)
+        _engine = create_engine(settings.database_url, **_pool())
         SessionLocal.configure(bind=_engine)
     return _engine
 
@@ -31,7 +36,7 @@ def get_readonly_engine() -> Engine:
     global _ro_engine
     if _ro_engine is None:
         if settings.readonly_database_url:
-            _ro_engine = create_engine(settings.readonly_database_url, pool_pre_ping=True, future=True)
+            _ro_engine = create_engine(settings.readonly_database_url, **_pool())
         else:
             _ro_engine = get_engine()
     return _ro_engine
@@ -67,6 +72,14 @@ def init_db() -> None:
     cfg = Config(os.path.join(here, "alembic.ini"))
     cfg.set_main_option("script_location", os.path.join(here, "alembic"))
     cfg.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
-    with get_engine().begin() as conn:
-        conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.meta_schema}"'))
-    command.upgrade(cfg, "head")
+    # several server processes start at once (WEB_CONCURRENCY): one migrates, the others wait for it, then find nothing to do
+    with get_engine().connect() as lock:
+        lock.execute(text("SELECT pg_advisory_lock(7202612)"))
+        lock.commit()
+        try:
+            with get_engine().begin() as conn:
+                conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.meta_schema}"'))
+            command.upgrade(cfg, "head")
+        finally:
+            lock.execute(text("SELECT pg_advisory_unlock(7202612)"))
+            lock.commit()

@@ -670,3 +670,30 @@ def test_connector_config_sanitizing(client, workspace, monkeypatch):
     with SessionLocal() as db:
         stored = db.get(m.Connector, r.json()["id"]).config
     assert "password" not in stored and stored["password_encrypted"] and "s3cret" not in json.dumps(stored)
+
+
+def test_scheduled_sync_skips_an_unchanged_source(client, workspace, source_table):
+    """Phase 8: replacing a table locks it while it loads, so the hourly sync leaves an unchanged source alone; a changed
+    one is loaded, and the Sync button always reloads."""
+    from app import models as m
+    from app.db import SessionLocal, get_engine
+    from app.services.connectors import sync_dataset
+
+    ws = workspace["id"]
+    cfg = {"host": "localhost", "port": 5432, "database": "ellementry_analytics_test", "user": "dw_owner", "schema": source_table}
+    cid = client.post(api(ws, "/connectors"), json={"name": "Local PG", "kind": "postgresql", "config": cfg}).json()["id"]
+    ds = client.post(api(ws, f"/connectors/{cid}/import"),
+                     json={"tables": [{"schema": source_table, "table": "items", "name": "Items"}]}).json()[0]
+    with SessionLocal() as db:
+        d, w = db.get(m.Dataset, ds["id"]), db.get(m.Workspace, ws)
+        assert sync_dataset(db, w, d)["unchanged"] is False            # the first sync records the fingerprint
+        assert d.source_info.get("content_hash")
+        before = d.last_refreshed_at
+        assert sync_dataset(db, w, d, force=False)["unchanged"] is True
+        assert d.last_refreshed_at > before                            # still counts as checked
+        with get_engine().begin() as c:
+            c.execute(text(f"UPDATE {source_table}.items SET amount = amount + 1 WHERE id = 2"))
+        assert sync_dataset(db, w, d, force=False)["unchanged"] is False
+        assert sync_dataset(db, w, d, force=False)["unchanged"] is True
+    r = client.post(api(ws, f"/datasets/{ds['id']}/sync"))              # the button: always reload
+    assert r.status_code == 200 and r.json()["unchanged"] is False

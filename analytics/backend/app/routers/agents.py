@@ -83,8 +83,10 @@ def write_briefing(ws: m.Workspace = Depends(admin), db: Session = Depends(get_s
     cat = _on(db, ws)
     if not da.available(cat):
         raise HTTPException(409, "The warehouse alert views are not imported into this workspace yet")
+    from ..services import rate_limit
     from ..services.ai_usage import ai_context
 
+    rate_limit.check(db, user, ws.id)
     with ai_context(user=user, workspace_id=ws.id):
         b = da.briefing(db, ws, cat, user=user)
     audit.record(user, "briefing", ws.id, f"briefing:{b.id}", {"written_by": b.written_by})

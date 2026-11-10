@@ -31,6 +31,8 @@ Migrations run automatically on app start: `0001_initial.py`, `0002_assistant_gr
 
 - **Phase 7 tables:** `agent_decisions` (workspace, warehouse alert id and code, acknowledged | dismissed, note, who, when, the alert's message, the decision memory), `briefings` (facts JSON, fingerprint, data date, text, written by Sonnet or `code`, usage), `agent_sync_state` (the newest alert and run already announced). Migration `0006_domain_agents`.
 
+- `eval_runs` (Phase 8, migration 0007): one row per evaluation-set run posted by `python -m evals run` (set, live or offline, passed/total, numbers checked/correct, invented, cost, median time, failures as case ids and problems with no answer texts, git commit, note, who, when). Read by the Monitoring tab and `python -m evals gate`.
+
 ## API (all under `/api`; workspace routes are `/api/workspaces/{ws_id}/…`)
 - **Auth:** `AUTH_MODE=google`: a session cookie from Google sign-in, or an API token (`Authorization: Bearer`); `AUTH_MODE=dev`: the `X-User-Email` header, defaulting to `DEFAULT_USER=owner@local` (see 05). Each route declares the role it needs through `deps.viewer/editor/admin`. A dataset id is always checked against the workspace (`dataset_of`).
 - **auth.py (Phase 3):** `GET /api/auth/config` (public: sign-in mode), `GET /api/auth/login?next=` -> Google, `GET /api/auth/callback`, `POST /api/auth/logout`; platform admins: `GET/POST/DELETE /api/admin/tokens`, `GET /api/admin/users`, `PATCH /api/admin/users/{email}` (`active`, `is_platform_admin`), `GET /api/admin/audit?action=&who=&before=&limit=`; workspace admins: `GET/POST/DELETE /api/workspaces/{ws}/access-rules`.
@@ -111,3 +113,9 @@ compare: previous_period | previous_year;  sort: [{field: alias, dir}];  limit; 
   - follow-ups ("only Amazon", "by category", "as a pie"), which modify the previous spec
   - "create a dashboard showing…"
 - When Claude is on, the parser is still used for chitchat, help and dashboard intents, and as routing hints.
+
+## Monitoring and evaluation runs (Phase 8, `routers/monitor.py`, platform admins)
+- `GET /api/admin/monitor?days=14`: AI cost (total, per day in India time, per person with questions asked and questions refused by the limit, per purpose, per model), answers (count, median and 95th-percentile time overall and per engine, answers with a number warning, thumbs up/down; the newest 5,000 answers), tool calls and errors per tool with the latest error, the job queue (by status, oldest waiting, recent failures).
+- `GET /api/admin/monitor/thumbs-down?days=30`: answers marked wrong, with the question, the answer, the note, model, time, warnings and the steps (tool, input, ok, error, row count; no data rows).
+- `POST /api/admin/eval-runs` (the runner records each run), `GET /api/admin/eval-runs?set_name=&live=`.
+- Per-person question limits (`services/rate_limit.py`): the four ask routes and `POST /agents/briefing` answer 429 with a plain message and `Retry-After` past `ASSISTANT_RATE_PER_MINUTE` / `ASSISTANT_RATE_PER_HOUR`; counted from `audit_events` (`assistant_ask`, `briefing`), so it holds across processes; questions with the offline engine (or without Claude) are neither limited nor counted; a refusal is audited as `rate_limited`.

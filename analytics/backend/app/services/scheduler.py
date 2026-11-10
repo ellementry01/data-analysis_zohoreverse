@@ -1,4 +1,9 @@
-"""In-process scheduler for periodic connector syncs."""
+"""In-process scheduler for periodic connector syncs, the job queue and memory upkeep.
+
+The server may run several processes (WEB_CONCURRENCY, Phase 8). The syncs and the hourly upkeep must run once, so only
+the process holding a PostgreSQL advisory lock (the leader) runs them; when it stops, its connection closes, the lock is
+released and another process takes over at its next tick. The job queue runs in every process: each job is claimed
+once (SKIP LOCKED)."""
 from __future__ import annotations
 
 import logging
@@ -11,6 +16,65 @@ from ..db import SessionLocal, get_engine
 
 log = logging.getLogger(__name__)
 _scheduler: BackgroundScheduler | None = None
+LEADER_LOCK = 7202611            # any constant; the same in every process of this app
+_leader_conn = None
+
+
+def is_leader() -> bool:
+    """True when this process holds (or now takes) the scheduler lock. The lock lives on a dedicated connection."""
+    global _leader_conn
+    from sqlalchemy import text
+
+    try:
+        if _leader_conn is not None:
+            _leader_conn.execute(text("SELECT 1"))
+            _leader_conn.commit()
+            return True
+        conn = get_engine().connect()
+        got = bool(conn.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": LEADER_LOCK}).scalar())
+        conn.commit()
+        if got:
+            _leader_conn = conn
+            log.info("this process runs the scheduled syncs")
+        else:
+            conn.close()
+        return got
+    except Exception:  # noqa: BLE001  (lost connection: the lock went with it; try again next tick)
+        log.warning("scheduler lock check failed", exc_info=True)
+        if _leader_conn is not None:
+            try:
+                _leader_conn.invalidate()
+            except Exception:  # noqa: BLE001
+                pass
+        _leader_conn = None
+        return False
+
+
+def release_leader() -> None:
+    global _leader_conn
+    if _leader_conn is not None:
+        from sqlalchemy import text
+
+        try:
+            # unlock explicitly: close() only hands a pooled connection back, and the session (with the lock) lives on
+            _leader_conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LEADER_LOCK})
+            _leader_conn.commit()
+            _leader_conn.close()
+        except Exception:  # noqa: BLE001
+            try:
+                _leader_conn.invalidate()   # discard the session itself: the lock goes with it
+            except Exception:  # noqa: BLE001
+                pass
+        _leader_conn = None
+
+
+def _leader_only(fn):
+    def run():
+        if is_leader():
+            return fn()
+        return None
+    run.__name__ = fn.__name__
+    return run
 
 
 def run_due_schedules() -> int:
@@ -28,9 +92,10 @@ def run_due_schedules() -> int:
             ds = db.get(m.Dataset, s.dataset_id)
             ws = db.get(m.Workspace, s.workspace_id)
             try:
-                res = sync_dataset(db, ws, ds)
-                s.last_status = f"ok: {res['rows']} rows"
-                synced.add(s.workspace_id)
+                res = sync_dataset(db, ws, ds, force=False)
+                s.last_status = f"ok: {res['rows']} rows" + (", unchanged" if res.get("unchanged") else "")
+                if not res.get("unchanged"):
+                    synced.add(s.workspace_id)
             except Exception as e:  # keep scheduling other datasets
                 db.rollback()
                 s = db.get(m.RefreshSchedule, s.id)
@@ -107,10 +172,11 @@ def start() -> None:
     if _scheduler:
         return
     _scheduler = BackgroundScheduler(daemon=True)
-    _scheduler.add_job(run_due_schedules, "interval", minutes=1, id="sync", max_instances=1, coalesce=True)
+    _scheduler.add_job(_leader_only(run_due_schedules), "interval", minutes=1, id="sync", max_instances=1, coalesce=True)
     if get_settings().enable_worker:
         _scheduler.add_job(run_jobs, "interval", seconds=30, id="jobs", max_instances=1, coalesce=True)
-    _scheduler.add_job(queue_memory_upkeep, "interval", hours=1, id="memory_upkeep", max_instances=1, coalesce=True)
+    _scheduler.add_job(_leader_only(queue_memory_upkeep), "interval", hours=1, id="memory_upkeep", max_instances=1,
+                       coalesce=True)
     _scheduler.start()
 
 
@@ -119,3 +185,4 @@ def stop() -> None:
     if _scheduler:
         _scheduler.shutdown(wait=False)
         _scheduler = None
+    release_leader()

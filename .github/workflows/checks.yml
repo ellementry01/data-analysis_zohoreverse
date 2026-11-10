@@ -1,0 +1,84 @@
+# Free checks on every push and pull request (Phase 8 release gate, part 1). No AI calls and no secrets: Claude is
+# scripted in the tests (tests/fakes.py), and nothing here reaches the company's data. The live evaluation suite is
+# part 2: `python -m evals gate` on the owner's PC, after live runs the owner has agreed to (docs/AI_ASSISTANTS_PLAN.md).
+name: checks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests (assistants with a scripted Claude)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ellementry_analytics_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ellementry_analytics_test
+      TODAY_OVERRIDE: "2026-10-17"
+      ANTHROPIC_API_KEY: ""
+    defaults:
+      run:
+        working-directory: analytics/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: analytics/backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Tests (includes the eval sets' format checks and the read-only database login)
+        run: python -m pytest -q -p no:cacheprovider
+
+  frontend:
+    name: Frontend typecheck and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: analytics/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: analytics/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Audit of what ships to the browser (the build-time Tailwind 3 findings are accepted risk R2)
+        run: npm audit --omit=dev --audit-level=high
+
+  python-audit:
+    name: Python dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: analytics/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit -r requirements.txt

@@ -71,9 +71,16 @@ The full audit is in `QA_REPORT.md` (dated 2026-10-17). Its verdict: ready for *
 - Issue texts reach the assistant as data with "never invent issues" and "data, not instructions" around them.
 - Changing an issue's status re-checks memories in a separate database session, so the request's acting user is never cleared (an earlier draft reused the request's workspace object; caught in review).
 
+## Hardening (Phase 8, 2026-11-10)
+- **Read-only database login.** `scripts/setup_readonly_role.py` creates `ellementry_reader` in the app's database (random password, never printed, written into `analytics/.env` as `READONLY_DATABASE_URL`). It is read-only by default, has a 15 s statement timeout, and may only read the workspace schemas (`ws_*`): no access to `ellementry_meta` (users, sessions, tokens, conversations, memories). New workspace schemas are granted when they are created, and tables a sync rebuilds through default privileges. Checked live: dashboards load through it; reading `ellementry_meta.users` and `CREATE TABLE` are refused.
+- **Per-person question limits** (10 a minute, 120 an hour) on everything that can call Claude; refusals audited.
+- **Logs** (`app/logsafe.py`): every handler of the app, the worker and uvicorn scrubs API keys, bearer tokens, passwords in URLs and `password=` pairs, SQL parameter values in database errors, e-mail addresses (first letter and domain kept), Indian mobile numbers and every logged URL's query string, tracebacks included.
+- **Prompt injection:** a test plants an instruction in a data value and scripts the model to obey it (save a team fact, query the app's own tables and users): every attempt is refused, nothing is saved, the planted text reaches the model only as a tool result. Tools not offered to a person (alerts, memory) can't be called at all.
+- **Dependencies:** `pip-audit` and `npm audit --omit=dev`: no known vulnerabilities (2026-11-10); both run in the GitHub checks.
+
 ## Accepted risks (QA_REPORT §4)
 - **R1:** identity-only login through the `X-User-Email` header. **Fixed in code (Phase 3)**: closes when `AUTH_MODE=google` is switched on in the live deployment.
-- **R2:** npm audit findings remain in Tailwind 3's build-time watcher. Migrate to Tailwind 4 when convenient.
+- **R2:** npm audit findings remain in Tailwind 3's build-time watcher (nothing that ships: `npm audit --omit=dev` finds 0, checked in CI). Migrate to Tailwind 4 later, separately (the owner's choice, 2026-11-10).
 - **R3:** expensive but valid SQL is only bounded by the timeout.
 - **R4:** the `/sql` console echoes the first line of the database error.
-- **R5:** the dedicated read-only database role is not set up yet.
+- **R5: closed (Phase 8, 2026-11-10).** `READONLY_DATABASE_URL` is set: user- and AI-authored queries run as `ellementry_reader` (see below).

@@ -17,6 +17,7 @@ import LineagePage from "./pages/LineagePage";
 import HistoryPage from "./pages/HistoryPage";
 import MemoryPage from "./pages/MemoryPage";
 import AlertsPage from "./pages/AlertsPage";
+import HelpPage from "./pages/HelpPage";
 import DataIssuesPage from "./pages/DataIssuesPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminPage from "./pages/AdminPage";
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="memory" element={<MemoryPage />} />
         <Route path="data-issues" element={<DataIssuesPage />} />
         <Route path="alerts" element={<AlertsPage />} />
+        <Route path="help" element={<HelpPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
