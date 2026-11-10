@@ -50,16 +50,26 @@ def _after_sync(db, ws_ids: set[int]) -> None:
     fingerprints, so an unchanged re-sync costs one cheap check)."""
     from ..config import get_settings
 
-    if not ws_ids or not get_settings().assistant_data_issues:
+    if not ws_ids:
         return
-    from . import worth_a_look
+    if get_settings().assistant_data_issues:
+        from . import worth_a_look
 
-    try:
+        try:
+            for ws_id in ws_ids:
+                worth_a_look.queue(db, ws_id)
+        except Exception:  # noqa: BLE001
+            log.exception("could not queue worth-a-look")
+            db.rollback()
+    if get_settings().assistant_scheduled:   # Phase 7: announce new alerts, queue the briefing when due
+        from . import domain_agents
+
         for ws_id in ws_ids:
-            worth_a_look.queue(db, ws_id)
-    except Exception:  # noqa: BLE001
-        log.exception("could not queue worth-a-look")
-        db.rollback()
+            try:
+                domain_agents.after_sync(db, ws_id)
+            except Exception:  # noqa: BLE001
+                log.exception("could not process agent alerts")
+                db.rollback()
 
 
 def run_jobs() -> int:

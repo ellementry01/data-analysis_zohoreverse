@@ -303,6 +303,15 @@ What the build never does: guess. A movement whose location is unknown is not pl
 the source does not state per item stays empty; an unlisted partner stays UNCLASSIFIED until the
 partner list is confirmed complete. Each of these is counted and reported.
 
+## Agents (schema 2.16)
+
+```bash
+python dw.py agents run all            # after every successful transform run; or: stock | operations
+DW_DATABASE=<copy> python dw.py pytest -q tests/test_agents.py   # 14 tests on a restored, disposable copy
+```
+
+Rules in `agents/rules.py` (one SQL query each), switched on in `insight.alert_rule.is_active`: STK-A01 stock-out with demand, STK-A02 low cover (`stock.low_cover_days`), OPS-A02 purchase order overdue (`ops.po_overdue_critical_days`). Each run: preconditions (latest build SUCCEEDED, no ERROR check, settings valid), one `insight.model_run`, alerts in one transaction, one open event per condition, auto-resolve. Read through `mart.v_agent_alerts`, `v_agent_rules`, `v_agent_runs`. Thresholds are PRD-001 PROPOSED values until the business confirms them.
+
 Views for dashboards and agents (`mart` schema): `v_net_sales_daily`, `v_stock_position_latest`,
 `v_days_of_cover`, `v_transfer_in_transit`, `v_open_purchase_orders`, `v_supplier_lead_time`,
 `v_returns_daily`, `v_partner_review`, `v_data_coverage`, `v_data_quality_latest`.

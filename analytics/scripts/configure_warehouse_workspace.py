@@ -27,7 +27,10 @@ IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every 
            ("v_stock_movement_check", "stock_movement_check"),     # 2.11: opening + movements vs closing, per stock period
            ("v_slow_stock", "slow_stock"),                         # 2.13: stock with days since the SKU last sold
            ("v_partner_stock_monthly", "partner_stock_monthly"),   # 2.13: sent / returned / sold at sale-or-return partners
-           ("v_return_reasons", "return_reasons")]                 # 2.13: Amazon FBA return reasons
+           ("v_return_reasons", "return_reasons"),                 # 2.13: Amazon FBA return reasons
+           ("v_agent_alerts", "agent_alerts"),                     # 2.16: alerts from the agent runner (Phase 7)
+           ("v_agent_rules", "agent_rules"),                       # 2.16: the alert rules and their current thresholds
+           ("v_agent_runs", "agent_runs")]                         # 2.16: agent runs (succeeded / failed)
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 LABEL_COLUMNS = [
     ("fulfilment", "Order status",

@@ -60,6 +60,8 @@ backend/
       agent/tools.py, engine.py    read-only tools and the tool loop with limits and number check (Phase 2)
       agent/numbers.py             number finding/matching shared with the eval runner
       agent/global_scope.py        the Ask page's global assistant: dashboard index and scope (Phase 6)
+      agent/domain_scope.py        the Stock / Operations / Executive assistants opened from the Alerts page (Phase 7)
+      domain_agents.py             warehouse alerts, decisions, notices after a sync, the executive briefing (Phase 7)
       nlq/vocab.py, parser.py      offline NL interpreter
       nlq/claude.py                Anthropic routing/planning/explaining
       nlq/llm.py                   OpenAI-compatible fallback
@@ -121,6 +123,15 @@ Ask page question (admin, ASSISTANT_GLOBAL + agent loop on, engine not "semantic
    -> thread scope_type = global (older "workspace" threads continue); /assistant/ask/stream sends live steps
 ```
 
+## Scheduled domain agents (Phase 7; details in 04 and 08)
+```
+warehouse build (dw.py transform run) -> dw.py agents run all -> insight.alert_event (one open event per condition,
+   auto-resolved) -> mart.v_agent_alerts / v_agent_rules / v_agent_runs -> hourly sync -> datasets agent_alerts, ...
+   -> after the sync: new alerts and failed runs announced once (notifications); briefing queued when BRIEFING_EVERY_DAYS is due
+Alerts page (admins) -> Acknowledge / Dismiss -> agent_decisions + a decision memory (the warehouse is never written)
+   -> Explain -> Ask page with domain=stock|operations|executive -> the same tool loop + get_alerts
+```
+
 ## Memory (Phase 4; details in 04)
 ```
 before an answer:  memories the asker may see (this dashboard, its domain, global) ranked by text match, kind,
@@ -136,4 +147,4 @@ after (jobs):      thread summary when long; memory extraction once the chat has
 ## Background jobs
 `scheduler.py` runs APScheduler in-process when `ENABLE_SCHEDULER=true`. It re-syncs connector datasets on `refresh_schedules`; workspace 34 has every dataset scheduled every 60 minutes. Prep transforms and calculated columns are replayed after every refresh or replace.
 
-Since Phase 4 it also works through the **job queue** (`services/jobs.py`, table `jobs`) every 30 seconds (unless `ENABLE_WORKER=false`): conversation summaries, memory extraction and profile rewrites run there, never in a request. A job is claimed with `SELECT ... FOR UPDATE SKIP LOCKED` (so a separate `python -m app.worker` process can share the queue), retried after 2, 4 ... minutes up to 3 attempts, then kept as `failed` with its error; a job left `running` by a dead process is picked up again after 10 minutes; finished jobs are deleted after 14 days. Hourly (memory on): the staleness check and due weekly profile rewrites are queued. After a sync that ran (Phase 5, data issues on), a `worth_a_look` job per workspace recomputes the dashboards whose fingerprint (definitions, metric definitions, row counts, today) changed.
+Since Phase 4 it also works through the **job queue** (`services/jobs.py`, table `jobs`) every 30 seconds (unless `ENABLE_WORKER=false`): conversation summaries, memory extraction and profile rewrites run there, never in a request. A job is claimed with `SELECT ... FOR UPDATE SKIP LOCKED` (so a separate `python -m app.worker` process can share the queue), retried after 2, 4 ... minutes up to 3 attempts, then kept as `failed` with its error; a job left `running` by a dead process is picked up again after 10 minutes; finished jobs are deleted after 14 days. Hourly (memory on): the staleness check and due weekly profile rewrites are queued. After a sync that ran (Phase 5, data issues on), a `worth_a_look` job per workspace recomputes the dashboards whose fingerprint (definitions, metric definitions, row counts, today) changed. Phase 7 (scheduled agents on): the same hook announces new warehouse alerts and failed agent runs once (`agent_sync_state`) and queues a `briefing` job when `BRIEFING_EVERY_DAYS` has passed since the last briefing.

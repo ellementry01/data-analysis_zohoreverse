@@ -380,7 +380,7 @@ def _run_agent(db, ws, cat, user, question, history, today, interp: Interpretati
     memory_text = ""
     if memory_on:
         remembered = memory.retrieve(db, ws, user, scope.dashboard_key, question, cat,
-                                     everywhere=scope.scope_type == "global")
+                                     everywhere=scope.scope_type == "global" or scope.scope_type.startswith("domain:"))
         memory_text = memory.prompt_block(remembered, memory.profile_text(db, ws, user), user)
     try:
         out = engine.run(ctx, question, history, r, on_event, memory_text=memory_text)

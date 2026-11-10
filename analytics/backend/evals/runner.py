@@ -17,6 +17,7 @@ An eval set is a YAML file in evals/sets/. Each case asks one question and state
       must_mention: [[website, site]]           # every item must appear (an item may be a list = any of)
       must_not_mention: []
       check_invented: true                      # default: every number in the answer must come from its data
+      domain: stock                             # Phase 7: ask a domain assistant (stock | operations | executive)
 
 Numbers are matched with rounding in mind: "₹3.86 Cr" matches 3,86,12,345 and "7.8%" matches 0.0784.
 
@@ -311,6 +312,25 @@ def worth_numbers(t: Transport, ws: int) -> list[float]:
     return _worth_cache[ws]
 
 
+_alert_cache: dict[tuple, list[float]] = {}
+
+
+def alert_numbers(t: Transport, ws: int, domain: str) -> list[float]:
+    """Phase 7: numbers in the alerts and rules a domain assistant was given (messages, inputs, thresholds)."""
+    key = (ws, domain)
+    if key not in _alert_cache:
+        q = "" if domain == "executive" else f"&domain={urllib.parse.quote(domain)}"
+        alerts = t.get(f"/api/workspaces/{ws}/agents/alerts?status=ALL{q}")
+        summ = t.get(f"/api/workspaces/{ws}/agents/summary")
+        text = " ".join(f"{a['alert_id']} {a['message']} {a.get('metric_value')} {a.get('threshold_value')} "
+                        f"{json.dumps(a.get('details') or {})}" for a in alerts)
+        text += " " + " ".join(f"{r.get('current_settings') or ''} {r.get('open')} {r.get('critical')} {r.get('undecided')}"
+                               for r in summ.get("rules") or [])
+        text += f" {summ.get('open')} {summ.get('critical')} {summ.get('undecided')}"
+        _alert_cache[key] = parse_numbers(text)
+    return _alert_cache[key]
+
+
 def _also(t: Transport, ws: int, case: dict, answer: dict) -> list[str]:
     """also_expect: more numbers a (cross-dashboard) answer must contain, each from a tile of a named dashboard."""
     problems = []
@@ -335,6 +355,9 @@ def run_case(t: Transport, ws: int, case: dict, engine: str) -> CaseResult:
             context += screen_numbers(t, ws, {"dashboard": key, "screen_state": None})
         if not case.get("dashboard") and case.get("context_dashboards") is not None:
             context += worth_numbers(t, ws)
+        if case.get("domain"):                                # Phase 7: a domain assistant (the Alerts page)
+            body["domain"] = case["domain"]
+            context += alert_numbers(t, ws, case["domain"])
         if case.get("dashboard"):
             body["screen_state"] = case.get("screen_state") or {}
             answer = t.post(f"/api/workspaces/{ws}/dashboards/key/{urllib.parse.quote(case['dashboard'])}/assistant/ask", body)
