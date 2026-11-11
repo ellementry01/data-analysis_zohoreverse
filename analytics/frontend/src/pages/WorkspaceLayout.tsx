@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import { UserMenu } from "../components/UserMenu";
 import { NotificationsBell } from "../components/DataNotes";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
-import { AlertTriangle, BarChart3, BookOpen, Brain, Database, FileUp, GitBranch, History, Home, LayoutDashboard, MessageSquareText, Network, Settings, TerminalSquare, BellRing } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, Brain, Database, FileUp, GitBranch, History, Home, LayoutDashboard, MessageSquareText, Network, Settings, TerminalSquare, BellRing, LifeBuoy } from "lucide-react";
 import { api, Model, Workspace } from "../api/client";
 import { cx, ErrorBox, Spinner, useAsync } from "../components/ui";
 
@@ -23,6 +23,7 @@ const NAV = [
   { to: "reports", label: "Reports", icon: BarChart3 },
   { to: "alerts", label: "Alerts", icon: BellRing, alerts: true },
   { to: "memory", label: "Memory", icon: Brain, memory: true },
+  { to: "help", label: "Help", icon: LifeBuoy },
   { sep: "Data" },
   { to: "data", label: "Datasets", icon: Database },
   { to: "import", label: "Import data", icon: FileUp },

@@ -102,7 +102,10 @@ def load_catalog(db: Session, workspace: m.Workspace) -> Catalog:
 
     hidden = hidden_dataset_ids(db, workspace)
     datasets = {}
-    for d in db.query(m.Dataset).filter_by(workspace_id=workspace.id).all():
+    from sqlalchemy.orm import selectinload
+
+    # columns in one query for all datasets (not one per dataset): this runs on every dashboard tile
+    for d in db.query(m.Dataset).options(selectinload(m.Dataset.columns)).filter_by(workspace_id=workspace.id).all():
         if d.id in hidden:
             continue
         cols = {c.name: Col(c.name, c.display_name, c.data_type, c.is_derived, c.description) for c in d.columns if not c.hidden}

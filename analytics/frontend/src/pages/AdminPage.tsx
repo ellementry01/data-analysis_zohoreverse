@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Copy, KeyRound, ScrollText, Users } from "lucide-react";
+import { Activity, ArrowLeft, Copy, KeyRound, ScrollText, Users } from "lucide-react";
 import { api } from "../api/client";
 import { useMe } from "../components/UserMenu";
 import { Badge, Button, Card, ErrorBox, inputCls, Label, Spinner, Tabs, useAsync, useToast } from "../components/ui";
 import { timeAgo } from "../lib/format";
+import MonitorTab from "./AdminMonitor";
 
 interface AdminUser { email: string; name: string; active: boolean; is_platform_admin: boolean; last_login_at: string | null; workspaces: Record<string, string> }
 interface Token { id: number; name: string; user_email: string; created_at: string; last_used_at: string | null; expires_at: string | null; revoked: boolean; token?: string }
 interface AuditEvent { id: number; at: string; user_email: string; action: string; target: string; detail: any; ip: string }
 
-/** Platform administration: who can sign in, tokens for scripts, and the audit log. */
+/** Platform administration: who can sign in, tokens for scripts, the audit log and monitoring of the assistants. */
 export default function AdminPage() {
   const me = useMe();
   const [tab, setTab] = useState("users");
@@ -27,11 +28,13 @@ export default function AdminPage() {
         { id: "users", label: <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Users</span> },
         { id: "tokens", label: <span className="inline-flex items-center gap-1"><KeyRound className="h-3.5 w-3.5" /> API tokens</span> },
         { id: "audit", label: <span className="inline-flex items-center gap-1"><ScrollText className="h-3.5 w-3.5" /> Audit log</span> },
+        { id: "monitor", label: <span className="inline-flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Monitoring</span> },
       ]} />
       <div className="mt-4">
         {tab === "users" && <UsersTab self={me.data.email} />}
         {tab === "tokens" && <TokensTab />}
         {tab === "audit" && <AuditTab />}
+        {tab === "monitor" && <MonitorTab />}
       </div>
     </div>
   );
@@ -120,7 +123,7 @@ function TokensTab() {
   );
 }
 
-const ACTIONS = ["", "sign_in", "sign_in_failed", "sign_out", "assistant_ask", "access_rule_added", "access_rule_removed", "member_set", "member_removed", "user_updated", "token_created", "token_revoked"];
+const ACTIONS = ["", "sign_in", "sign_in_failed", "sign_out", "assistant_ask", "rate_limited", "briefing", "alert_decision", "memory_saved", "access_rule_added", "access_rule_removed", "member_set", "member_removed", "user_updated", "token_created", "token_revoked"];
 
 function AuditTab() {
   const [action, setAction] = useState("");

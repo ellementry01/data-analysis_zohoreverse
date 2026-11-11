@@ -7,6 +7,7 @@ The assistant never reports numbers that did not come back from the database.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from datetime import date
 
@@ -188,6 +189,7 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
     db.commit()
     conv_id, user_msg_id = conv.id, user_msg.id
 
+    started = time.monotonic()
     cat = load_catalog(db, ws)
     payload: dict = {"engine": None}
     try:
@@ -199,6 +201,7 @@ def answer(db: Session, ws: m.Workspace, user: str, question: str, conversation_
         db.rollback()
         conv = db.get(m.Conversation, conv_id)
         payload = {"type": "error", "text": f"Sorry, I could not answer that: {str(e).splitlines()[0]}", "engine": payload.get("engine")}
+    payload.setdefault("seconds", round(time.monotonic() - started, 1))   # every answer's time, for the monitoring page
     stored = {**payload}
     if "rows" in stored:
         stored["rows"] = stored["rows"][:STORE_ROWS]

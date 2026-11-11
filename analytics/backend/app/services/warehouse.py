@@ -32,6 +32,19 @@ def raw_table(slug: str) -> str:
 
 def ensure_schema(conn: Connection, schema: str) -> None:
     conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {q(schema)}"))
+    grant_reader(conn, schema)
+
+
+def grant_reader(conn: Connection, schema: str) -> None:
+    """Let the read-only login (READONLY_DATABASE_URL, scripts/setup_readonly_role.py) read this workspace schema. Tables
+    created later are covered by the default privileges the setup script gives it; nothing happens without the role."""
+    from ..config import get_settings
+
+    role = get_settings().readonly_role
+    if role and conn.execute(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": role}).first():
+        conn.execute(text(f"GRANT USAGE ON SCHEMA {q(schema)} TO {q(role)}"))
+        conn.execute(text(f"GRANT SELECT ON ALL TABLES IN SCHEMA {q(schema)} TO {q(role)}"))
+        conn.execute(text(f"ALTER DEFAULT PRIVILEGES IN SCHEMA {q(schema)} GRANT SELECT ON TABLES TO {q(role)}"))
 
 
 def drop_schema(conn: Connection, schema: str) -> None:

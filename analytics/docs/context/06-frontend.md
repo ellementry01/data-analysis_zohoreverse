@@ -26,6 +26,8 @@
 | `memory` | MemoryPage | Phase 4 (shown when `/api/me` reports `memory`, `agent_loop` and `dashboard_chat`): tabs Remembered / Suggestions / Needs review / Retired / Team facts to approve (admins); search and filters by layer and dashboard; add a memory (decisions with "why", facts can be suggested to the team); edit, retire, restore, share, keep, delete; the acceptance rate of learned suggestions; the profile card (edit, rewrite from memories) |
 | `settings` | SettingsPage | User switcher (sets `X-User-Email`), members, Claude card showing the provider and models |
 
+Phase 8: **Administration → Monitoring** (`pages/AdminMonitor.tsx`): period picker, cost / answers / answer time / queue tiles, cost per day, per person (with refused questions), by purpose and model, answer time by engine, assistant tools with errors, failed jobs, answers marked wrong (expand for the answer and every step), evaluation runs. **Help** (`/w/:wsId/help`, `pages/HelpPage.tsx`, in the main menu for everyone): a five-minute guide (dashboards, asking, the assistants, what they can't do, privacy, when something looks wrong).
+
 ## Shared pieces
 - **`api/client.ts`:** a fetch wrapper that adds `X-User-Email` from localStorage and handles errors and toasts. The app name lives here too.
 - **`components/Chart.tsx`:** the ECharts renderer for kpi, line, area, bar, hbar, stacked, combo, pie, donut, scatter, heatmap, table and pivot. It escapes HTML in tooltips with `escapeHtml`.

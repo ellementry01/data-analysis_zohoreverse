@@ -55,6 +55,14 @@ docker compose ps
 | `ENABLE_WORKER` | true | Run the background job queue inside the app's scheduler; set false when a separate `python -m app.worker` process runs it |
 | `CORS_ORIGINS` | the :5173 origins | |
 
+## Phase 8 operations (2026-11-10)
+- **Server processes:** `WEB_CONCURRENCY` (docker-compose, default 4). Each process has two pools (the app's own login and the read-only one) of `DB_POOL_SIZE` 5 + `DB_MAX_OVERFLOW` 5, waiting `DB_POOL_TIMEOUT_S` 20 s: 4 x 2 x 10 = 80 connections at most, under PostgreSQL's 100. Raise processes and pools together.
+- **Question limits:** `ASSISTANT_RATE_PER_MINUTE` (10), `ASSISTANT_RATE_PER_HOUR` (120); 0 = off. The test suite switches them off in `conftest.py` (their own tests switch them on).
+- **Read-only login:** `python scripts/setup_readonly_role.py` (from `analytics/`, stack running) creates or updates `ellementry_reader` and writes `READONLY_DATABASE_URL` into `.env` (old file kept as `.env.bak`); then `docker compose up -d --force-recreate app`. Run it again to change the password.
+- **Load test:** `python scripts/load_test.py --users 30 --seconds 180` (from `analytics/`, no AI: dashboards and offline questions as temporary viewers `loadtest-NN@example.com`, removed afterwards with their conversations; their audit events stay). Result 2026-11-10: 30 people for 3 minutes (dashboards and offline questions, no AI): before the fixes about 3 requests/s, 22% errors (connection pool exhausted after 30 s); after them 33 requests/s, 0.12% errors, a whole dashboard 2.8 s median / 5.5 s p95, one tile 0.95 s / 2.3 s, an offline question 1.6 s / 3.4 s (targets met). With the three largest tables re-synced under that load: no errors, but p95 9.2 s per dashboard while the syncs ran.
+- **Release gate:** GitHub runs `.github/workflows/checks.yml` on every push (backend tests on PostgreSQL 16 with a scripted Claude, frontend typecheck and build, `npm audit --omit=dev`, `pip-audit`); no secrets or AI calls. Before merging assistant changes: the affected sets live (owner's OK), then `python -m evals gate` from `backend/` (exit 0 = open). Every `python -m evals run` is recorded in the app unless `--no-record`. A live run of all six sets is about 200 questions: lift the hourly limit (`ASSISTANT_RATE_PER_HOUR=0`) for the run and, if today's spend is high, the daily cap, then put both back. If Docker Desktop is not running after a restart, start `%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe`.
+- **Runbooks:** `docs/RUNBOOKS.md` (Claude down, spend cap, wrong memory, someone leaves, thumbs-down, rollback, releasing, alert runner failed, leaked key).
+
 ## Company sign-in (Google Workspace): switching it on
 The code is in place (Phase 3); the live app stays in `AUTH_MODE=dev` until these steps are done. Only the owner does steps 1-4 (they need the company Google admin account and produce a secret).
 1. In the Google Cloud console (console.cloud.google.com), signed in with the company Google Workspace account, create a project (e.g. "Ellementry Analytics").
@@ -72,7 +80,7 @@ To go back: remove `AUTH_MODE=google` (or set `dev`) and recreate the app.
 ```powershell
 $env:TODAY_OVERRIDE="2026-10-17"; python -m pytest -q
 ```
-- Current result: **609 passed** (2026-11-10), in about 4 minutes. About 80 s of that is building the demo workspace once.
+- Current result: **635 passed, 1 skipped** (2026-11-11; the skipped one needs a login that may create roles and runs in CI), in about 4 minutes. About 80 s of that is building the demo workspace once.
 - Test files:
   - `test_ingest`, `test_query_engine`, `test_datasets_api`, `test_dashboards`
   - `test_assistant` (NL plus a mocked OpenAI-compatible LLM)

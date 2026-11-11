@@ -113,7 +113,20 @@ class BaseConnector:
         finally:
             eng.dispose()
 
+    SYSTEM_SCHEMAS = ("information_schema", "pg_catalog", "pg_toast", "mysql", "performance_schema", "sys")
+
+    def check_schema(self, schema: str | None) -> None:
+        """Only what list_tables shows may be read: never a system schema (password hashes live in pg_catalog), and
+        only the connector's own schema when it is set. The source login's permissions are not relied on (Phase 8)."""
+        s = (schema or "").strip().lower()
+        if s in self.SYSTEM_SCHEMAS or s.startswith(("pg_temp", "pg_toast")):
+            raise ConnectorError(f"Schema {schema} is a system schema and can't be read")
+        own = self.cfg.get("schema")
+        if own and schema and schema != own:
+            raise ConnectorError(f"This connection only reads schema {own}")
+
     def read_table(self, schema: str | None, table: str, limit: int | None = None) -> pd.DataFrame:
+        self.check_schema(schema)
         eng = self.engine()
         try:
             insp = inspect(eng)
@@ -136,6 +149,8 @@ class BaseConnector:
     def column_types(self, schema: str | None, table: str) -> dict[str, str]:
         """Ellementry data types declared by the source schema (reliable even when the table is empty)."""
         from sqlalchemy import types as T
+
+        self.check_schema(schema)
 
         eng = self.engine()
         try:
@@ -244,7 +259,26 @@ def test_connection(conn: m.Connector) -> dict:
     return {"status": status}
 
 
-def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset) -> dict:
+def content_hash(df) -> str | None:
+    """A fingerprint of a table's columns, types and every value (None when a value can't be hashed)."""
+    import hashlib
+
+    import pandas as pd
+
+    try:
+        h = hashlib.sha256()
+        h.update(repr([(str(c), str(t)) for c, t in df.dtypes.items()]).encode())
+        h.update(pd.util.hash_pandas_object(df, index=False).values.tobytes())
+        return h.hexdigest()
+    except (TypeError, ValueError):
+        return None
+
+
+def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset, force: bool = True) -> dict:
+    """Copy the source table into the workspace. With force=False (the scheduled syncs) an unchanged source is not
+    written again: replacing a table locks it while it loads, and dashboards reading it would have to wait (Phase 8)."""
+    from datetime import datetime, timezone
+
     from .datasets import import_dataframe
 
     src = ds.source_info or {}
@@ -257,5 +291,12 @@ def sync_dataset(db: Session, ws: m.Workspace, ds: m.Dataset) -> dict:
         types = c.column_types(src.get("source_schema"), src["source_table"])
     except Exception:  # some drivers cannot reflect views; new columns then fall back to inference
         types = None
+    fp = content_hash(df)
+    if not force and fp and src.get("content_hash") == fp:
+        ds.last_refreshed_at = datetime.now(timezone.utc)
+        db.commit()
+        return {"rows": int(len(df)), "unchanged": True}
     import_dataframe(db, ws, ds.name, df, "connector", src, dataset=ds, source_types=types)
-    return {"rows": int(len(df))}
+    ds.source_info = {**(ds.source_info or {}), "content_hash": fp}
+    db.commit()
+    return {"rows": int(len(df)), "unchanged": False}

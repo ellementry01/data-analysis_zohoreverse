@@ -64,7 +64,7 @@ authentication by design.
 | R2 | 7 `npm audit` findings (5 high, 2 moderate) remain, all in **Tailwind 3's build-time file watcher** (braces/micromatch ReDoS). | They never ship to the browser and only process our own source files during `npm run build`. | Migrate to Tailwind 4 when convenient. This is a styling-system migration and needs a visual regression pass. |
 | R3 | Expensive but valid SQL (cartesian joins, huge `lpad`) can still run until `statement_timeout` (15 s) stops it. | Bounded by the timeout, row cap and container memory limit. | Optionally lower timeouts for the SQL console and AI. |
 | R4 | `/sql` error messages echo the first line of the database error. | Users need it to fix their SQL, and it never contains other tenants' data. | Keep. |
-| R5 | AI/SQL queries use the app's database login, protected by READ ONLY transactions and the validator. | Defence in depth is already in place. | For stronger isolation, create the `ellementry_reader` role (`scripts/create_readonly_role.sql`) and set `READONLY_DATABASE_URL`. That would have contained SEC-1 at the database layer. |
+| R5 | ~~AI/SQL queries use the app's database login.~~ **Closed 2026-11-10 (Phase 8):** they run as `ellementry_reader` (`scripts/setup_readonly_role.py`), which can only read the workspace schemas. | | |
 
 ## 5. Known functional limitations (non-security)
 - "By warehouse" on the sales register can group by the warehouse code rather than the name.

@@ -221,6 +221,9 @@ def run_query(ctx: ToolContext, spec: dict, title: str = "") -> ToolOutcome:
         qs = QuerySpec.model_validate(spec)
     except ValidationError as e:
         raise ToolError(f"Invalid QuerySpec: {e.errors()[0].get('loc')} {e.errors()[0].get('msg')}") from e
+    if not qs.measures and not qs.dimensions or any(not (x.metric or x.field) for x in qs.measures):
+        raise ToolError("Invalid QuerySpec: every measure needs a metric name (or a dataset.column field with an agg), "
+                        "and a query needs at least one measure or dimension.")
     _assign_aliases(qs)
     try:
         res, qs, notes = _run_scoped(ctx.db, ctx.cat, qs, ctx.user, ctx.today, ctx.scope)

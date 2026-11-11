@@ -10,7 +10,7 @@ from ..deps import admin, current_user, editor, viewer
 from ..serializers import dashboard_out, glossary_out, iso, metric_out, report_out, rule_out, widget_out
 from ..services.analytics import QueryExecutionError, QueryError, UnsafeSQLError, insights, run_spec, suggest_chart
 from ..services import dashboards as dash_svc
-from ..services import audit, permissions
+from ..services import audit, permissions, rate_limit
 from ..services.catalog import load_catalog
 from ..services.executor import log_query, run_readonly
 from ..services.expressions import ExpressionError, validate_expression
@@ -655,7 +655,8 @@ def _global_scope(db, ws, engine: str):
 @router.post("/assistant/ask")
 def ask(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
     scope = _ask_scope(db, ws, body)
-    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id})
+    rate_limit.check(db, user, ws.id, body.engine)
+    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id, "engine": body.engine})
     return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
 
 
@@ -663,7 +664,8 @@ def ask(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(ge
 def ask_stream(body: AskIn, ws: m.Workspace = Depends(viewer), db: Session = Depends(get_session), user: str = Depends(current_user)):
     """The Ask page as server-sent events (same events as the dashboard chat's stream)."""
     scope = _ask_scope(db, ws, body)
-    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id, "stream": True})
+    rate_limit.check(db, user, ws.id, body.engine)
+    audit.record(user, "assistant_ask", ws.id, scope.scope_type if scope else "ask", {"conversation_id": body.conversation_id, "stream": True, "engine": body.engine})
     return _stream_answer(ws, user, body, scope)
 
 
@@ -744,7 +746,8 @@ def dashboard_ask(key: str, body: DashboardAskIn, ws: m.Workspace = Depends(admi
                   user: str = Depends(current_user)):
     _dashboard_chat_on()
     scope = _dashboard_scope(db, ws, key, body.screen_state, user)
-    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id})
+    rate_limit.check(db, user, ws.id, body.engine)
+    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "engine": body.engine})
     return assistant.answer(db, ws, user, body.question, body.conversation_id, engine=body.engine, scope=scope)
 
 
@@ -770,7 +773,8 @@ def dashboard_ask_stream(key: str, body: DashboardAskIn, ws: m.Workspace = Depen
     out, then `answer` (the full payload) or `error`. Lets the chat show progress on multi-step answers."""
     _dashboard_chat_on()
     scope = _dashboard_scope(db, ws, key, body.screen_state, user)   # validation errors are plain 400s, before streaming
-    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "stream": True})
+    rate_limit.check(db, user, ws.id, body.engine)
+    audit.record(user, "assistant_ask", ws.id, f"dashboard:{key}", {"conversation_id": body.conversation_id, "stream": True, "engine": body.engine})
     return _stream_answer(ws, user, body, scope)
 
 

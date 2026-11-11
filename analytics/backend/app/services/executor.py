@@ -41,7 +41,8 @@ def run_readonly(sql: str, params: dict, schema: str, timeout_ms: int | None = N
         try:
             conn.execute(text("SET TRANSACTION READ ONLY"))
             conn.execute(text(f"SET LOCAL statement_timeout = {timeout_ms}"))
-            conn.execute(text("SET LOCAL lock_timeout = 2000"))
+            # a table being replaced by a sync is locked while it loads: wait for it (within the statement timeout)
+            conn.execute(text("SET LOCAL lock_timeout = 10000"))
             conn.execute(text("SET LOCAL work_mem = '64MB'"))
             conn.execute(text(f"SET LOCAL search_path = {q(schema)}"))
             res = conn.execute(text(sql), params)
