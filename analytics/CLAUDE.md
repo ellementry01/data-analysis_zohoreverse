@@ -35,4 +35,4 @@ TODAY_OVERRIDE=2026-10-17 python -m pytest -q
 npm run typecheck && npm run build
 ```
 
-Last updated: 2026-11-10 (warehouse schema 2.16, ten dashboards; AI assistants Phases 0-7 merged (sign-in not yet switched on), Phase 8 hardening built on branch `phase-8-hardening`; resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
+Last updated: 2026-11-11 (warehouse schema 2.16, ten dashboards; AI assistants Phases 0-8 merged (sign-in not yet switched on; the rollout waves wait for hosting and Google sign-in); resume from "Resume here" in 09). Keep `docs/context/` current when you change behaviour, and add a line to 09's decision log.
