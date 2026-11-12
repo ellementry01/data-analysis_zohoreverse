@@ -2,6 +2,8 @@
 
 A read-only review of `ellementry_dw` (schema 2.16), the files in `exports/` and the issue log, against how the app is used now. Nothing was changed. Numbers are from the live warehouse on 12 Nov 2026.
 
+**Status, 12 Nov 2026 (after the owner's reply):** everything in section 5 that needed no decision is done in warehouse schema 2.17 and is live: Amazon self-shipped returns loaded, the ERP stock movement summary loaded (59,450 of 86,832 gap units explained), Instamart stock shown as a floor (at least 4,770 units), Titan, Culver Max, Expo Digital and Natures Basket classified as B2B (unclassified sales Rs 5.89 Cr -> Rs 2.17 Cr), registers tidied (92 solved, 35 unsolved). Still with the owner: near-free lines, one-off B2B buyers, the discontinued split, the monthly refresh.
+
 Limits the owner has stated, taken as fixed:
 - Stock comes as month-end reports. Daily stock uploads are not possible.
 - Instamart's past inventory cannot be fetched.
