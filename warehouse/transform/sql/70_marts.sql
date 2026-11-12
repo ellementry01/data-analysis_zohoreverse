@@ -388,8 +388,19 @@ WHERE sp.basis LIKE 'SNAPSHOT%' AND sp.item_type = 'TRADING' AND sp.on_hand_qty 
 -- Stock at sale-or-return partners (Instamart, Blinkit) by month, from the ledger: sent, returned, sold through, and the
 -- running balance. Movements since the period start only: there is no opening balance (G-028), so closing_qty is
 -- 'stock sent and not yet sold or returned since Apr 2025', not a stock count.
+-- 2.17: min_opening_qty is the least opening stock the partner must have held: for each product, how far its running
+-- balance (day by day) falls below zero, added up. closing_qty_at_least = closing_qty + min_opening_qty is therefore a
+-- floor for the partner's stock, never the true figure (a stock count is needed for that).
 CREATE OR REPLACE VIEW mart.v_partner_stock_monthly AS
-WITH mv AS (
+WITH daily AS (
+    SELECT m.location_key, m.product_key, m.movement_date_key, sum(m.quantity) AS q
+    FROM core.fact_stock_movement m
+    JOIN core.dim_location l ON l.location_key = m.location_key AND l.location_type = 'PARTNER_CONSIGNMENT'
+    GROUP BY 1, 2, 3),
+running AS (SELECT location_key, product_key, sum(q) OVER (PARTITION BY location_key, product_key ORDER BY movement_date_key) AS bal FROM daily),
+floor_ AS (SELECT location_key, sum(greatest(-lowest, 0)) AS min_opening_qty
+           FROM (SELECT location_key, product_key, min(bal) AS lowest FROM running GROUP BY 1, 2) x GROUP BY 1),
+mv AS (
     SELECT l.location_key, d.month_start_date, mt.movement_code, sum(m.quantity) AS q, sum(m.quantity * p.current_cost) AS v
     FROM core.fact_stock_movement m
     JOIN core.dim_location l ON l.location_key = m.location_key AND l.location_type = 'PARTNER_CONSIGNMENT'
@@ -409,8 +420,10 @@ m AS (SELECT g.location_key, g.month_start_date,
       FROM grid g LEFT JOIN mv ON mv.location_key = g.location_key AND mv.month_start_date = g.month_start_date
       GROUP BY 1, 2)
 SELECT m.month_start_date, l.location_code, l.location_name, l.operated_by AS partner, m.sent_qty, m.returned_qty, m.sold_qty, m.net_qty,
-       sum(m.net_qty) OVER w AS closing_qty, sum(m.net_value_cost) OVER w AS closing_value_cost
+       sum(m.net_qty) OVER w AS closing_qty, sum(m.net_value_cost) OVER w AS closing_value_cost,
+       coalesce(fl.min_opening_qty, 0) AS min_opening_qty, sum(m.net_qty) OVER w + coalesce(fl.min_opening_qty, 0) AS closing_qty_at_least
 FROM m JOIN core.dim_location l ON l.location_key = m.location_key
+LEFT JOIN floor_ fl ON fl.location_key = m.location_key
 WINDOW w AS (PARTITION BY m.location_key ORDER BY m.month_start_date);
 
 -- Return reasons (Amazon FBA customer returns): units by reason and condition. reason_group / reason come from

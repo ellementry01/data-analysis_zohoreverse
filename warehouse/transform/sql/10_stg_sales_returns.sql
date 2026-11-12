@@ -141,3 +141,20 @@ SELECT batch_id, source_row_number, return_day AS return_date, btrim(order_id) A
        nullif(btrim(fulfillment_center_id), '') AS fulfilment_centre, nullif(btrim(detailed_disposition), '') AS disposition,
        nullif(btrim(reason), '') AS reason_code
 FROM ranked WHERE batch_id = latest_batch;
+
+-- Amazon seller-fulfilled returns (2.17): self-shipped Amazon orders. One row per return request line; a line present
+-- in several loads is taken from the newest. Rejected / undelivered parcels all carry the reason UND-UNKNOWN, so the
+-- return type is appended (UND-REJECTED, UND-UNDELIVERED). Listing suffixes are stripped as for FBA returns.
+DROP TABLE IF EXISTS stg.amazon_seller_returns;
+CREATE TABLE stg.amazon_seller_returns AS
+WITH src AS (
+    SELECT r.*, row_number() OVER (PARTITION BY btrim(r.order_id), coalesce(btrim(r.order_item_id), ''), coalesce(btrim(r.amazon_rma_id), '')
+                                   ORDER BY r.batch_id DESC, r.source_row_number) AS rn
+    FROM raw.amazon_seller_returns r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
+SELECT batch_id, source_row_number, nullif(btrim(return_request_date), '')::DATE AS return_date, btrim(order_id) AS order_number,
+       btrim(merchant_sku) AS source_sku_code,
+       stg.sku(regexp_replace(btrim(merchant_sku), '([-_]+(fba[0-9]*|gbl|new|v))+$', '', 'i')) AS sku_code,
+       stg.num(return_quantity) AS quantity, nullif(btrim(return_type), '') AS return_type,
+       CASE WHEN upper(btrim(return_reason)) = 'UND-UNKNOWN' AND nullif(btrim(return_type), '') IS NOT NULL
+            THEN 'UND-' || upper(btrim(return_type)) ELSE upper(nullif(btrim(return_reason), '')) END AS reason_code
+FROM src WHERE rn = 1;

@@ -1,4 +1,4 @@
-# Ellementry Data Warehouse — v2.15
+# Ellementry Data Warehouse — v2.17
 
 Target: PostgreSQL 16+ (local; runs on the PostgreSQL 18 service on this PC), portable to a cloud warehouse later.
 Status: v2.4 = v2.3 plus the supply / fulfilment / stock dashboard fixes (below). v2.3 = v2.2 (business-first model,
@@ -18,6 +18,8 @@ python load_manifest.py ../exports                    # load every new file list
 python dw.py transform run                            # rebuild stg -> core -> marts (all or nothing)
 python reconcile.py ../exports                        # totals from the files vs the warehouse
 python -m loader.normalise_platform_sales <workbook> BLINKIT_SALES|INSTAMART_SALES ../exports/sellout --log ../exports/sellout/NORMALISE_LOG.tsv
+python -m loader.normalise_amazon_seller_returns <folder of .tsv reports> ../exports/returns/AMAZON_SELLER_RETURNS__<from>_<to>.csv --log ../exports/returns/NORMALISE_LOG.tsv
+python -m loader.normalise_doc_stock_movement <DocumentWiseStockMovement.xls> ../exports/state/ERP_DOC_STOCK_MOVEMENT__<from>_<to>.csv --log ../exports/state/NORMALISE_LOG.tsv
 DW_DATABASE=dw_test python dw.py pytest -q            # tests, never against ellementry_dw
 ```
 
@@ -124,6 +126,30 @@ account) are sale-or-return partners in `ref.partner_list` (BR-035), each with a
 HYD and Mansarovar (new, first bill 11 Oct 2026) running; Jaipur Meeraki ('Jaipur Store') and CG Road closed. Unclassified
 domestic sales fell from about Rs 10.5 Cr to Rs 5.89 Cr; franchise net sales Rs 2.91 Cr, SIS Rs 0.84 Cr.
 
+2.17 (`sql/250_review_sources.sql`, warehouse review of 12 Nov 2026): two exports that had been received but never loaded,
+and three things read from data already in the warehouse.
+- **Amazon seller-fulfilled returns** (`AMAZON_SELLER_RETURNS`: Seller Central "Manage Seller Fulfilled Returns" reports,
+  joined by `python -m loader.normalise_amazon_seller_returns <folder> <out.csv>`): return reasons for the Amazon orders
+  we ship ourselves, in the existing `core.fact_return_reason_line` (channel `AMAZON_SELF_SHIP`). Rejected and undelivered
+  parcels all carry the reason `UND-UNKNOWN`, so the report's return type is appended (`UND-REJECTED`,
+  `UND-UNDELIVERED`): 521 of 2,078 units were not delivered, the RTO the WMS never records for Amazon (D-112).
+- **ERP Document Wise Stock Movement** (`ERP_DOC_STOCK_MOVEMENT`, flattened by
+  `python -m loader.normalise_doc_stock_movement <report.xls> <out.csv>`; load with `--as-of` = the last day of its period):
+  units per product and ERP document type for a whole period, all locations together, in `core.fact_erp_document_movement`.
+  It has no dates or locations inside the period, so it never enters the stock ledger. `ref.code_mapping`
+  `ERP_DOCUMENT_COVERAGE` says which document types no other export carries (scrap, stock increase / decrease, inventory
+  transfer, sub-contractor DN / GIN, return to supplier). New view `mart.v_unexplained_stock_by_document`: per product over
+  the whole period the net stock gap is 86,832 units, those documents account for 59,450, and 27,382 remain (D-124).
+- **Partner stock floor**: `mart.v_partner_stock_monthly` gains `min_opening_qty` (how far each product's running balance
+  falls below zero, added up: the least opening stock the partner must have held) and `closing_qty_at_least`. Instamart:
+  at least 1,541 units on 1 Apr 2025, so at least 4,770 on 15 Sep 2026 (rebuilt balance 3,229). A floor, never a count.
+- **Partner list** (owner, 12 Nov 2026): Titan Company (4 accounts), Culver Max Entertainment, Expo Digital India and
+  Natures Basket are outright B2B customers. Unclassified domestic sales: Rs 5.89 Cr -> Rs 2.17 Cr.
+- **Registers**: gaps G-001 (daily stock: accepted limit, stock is month-end), G-021 (cost) and G-027 (GRN register)
+  closed; the check `po_lines_with_several_receipts` no longer warns once the GRN register is loaded. New checks:
+  `return_reason_units_reconcile` and `erp_document_movement_reconcile` (ERROR), `return_reason_unmapped`,
+  `return_reason_unknown_product`, `erp_document_type_unmapped` (WARN).
+
 ## Layout
 
 ```
@@ -157,6 +183,8 @@ sql/200_po_export_date.sql    schema 2.12: Pending PO exports dated 26 Sep 2026 
 sql/210_return_reasons.sql    schema 2.13: Amazon FBA customer returns (return reasons)
 sql/220_grn_register.sql      schema 2.14: ERP goods-receipt register (receipts with their own dates)
 sql/230_store_status.sql      schema 2.15: store status sheet; 'SIS' operator for partner stock locations
+sql/240_agents.sql            schema 2.16: agent runner (alert rules, events, thresholds)
+sql/250_review_sources.sql    schema 2.17: Amazon seller-fulfilled returns; ERP document-wise stock movement summary
 sql/990_column_definitions.sql GENERATED, always last: a definition on every core / insight column
 transform/                    the build: python -m transform run <db>; transform/sql/*.sql run in order
 tests/test_transform.py       8 transform tests (rerun stability, quality gate rollback, safety switch, ledger rules)

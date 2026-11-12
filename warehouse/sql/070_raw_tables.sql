@@ -40,6 +40,82 @@ COMMENT ON COLUMN raw.amazon_customer_returns.reason IS 'Source header: reason';
 COMMENT ON COLUMN raw.amazon_customer_returns.license_plate_number IS 'Source header: license-plate-number';
 COMMENT ON COLUMN raw.amazon_customer_returns.customer_comments IS 'Source header: customer-comments';
 
+-- AMAZON_SELLER_RETURNS
+CREATE TABLE raw.amazon_seller_returns (
+    batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
+    source_row_number  INTEGER NOT NULL,
+    order_id                                 TEXT,
+    order_date                               TEXT,
+    return_request_date                      TEXT,
+    return_request_status                    TEXT,
+    amazon_rma_id                            TEXT,
+    seller_rma_id                            TEXT,
+    label_type                               TEXT,
+    label_cost                               TEXT,
+    currency_code                            TEXT,
+    return_carrier                           TEXT,
+    tracking_id                              TEXT,
+    label_to_be_paid_by                      TEXT,
+    a_to_z_claim                             TEXT,
+    is_prime                                 TEXT,
+    asin                                     TEXT,
+    merchant_sku                             TEXT,
+    item_name                                TEXT,
+    return_quantity                          TEXT,
+    return_reason                            TEXT,
+    in_policy                                TEXT,
+    return_type                              TEXT,
+    resolution                               TEXT,
+    invoice_number                           TEXT,
+    return_delivery_date                     TEXT,
+    order_amount                             TEXT,
+    order_quantity                           TEXT,
+    safet_action_reason                      TEXT,
+    safet_claim_id                           TEXT,
+    safet_claim_state                        TEXT,
+    safet_claim_creation_time                TEXT,
+    safet_claim_reimbursement_amount         TEXT,
+    refunded_amount                          TEXT,
+    category                                 TEXT,
+    order_item_id                            TEXT,
+    PRIMARY KEY (batch_id, source_row_number)
+);
+COMMENT ON TABLE raw.amazon_seller_returns IS 'As received from AMAZON_SELLER_RETURNS. Contract: loader/contracts/AMAZON_SELLER_RETURNS.json';
+COMMENT ON COLUMN raw.amazon_seller_returns.order_id IS 'Source header: Order ID';
+COMMENT ON COLUMN raw.amazon_seller_returns.order_date IS 'Source header: Order date';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_request_date IS 'Source header: Return request date';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_request_status IS 'Source header: Return request status';
+COMMENT ON COLUMN raw.amazon_seller_returns.amazon_rma_id IS 'Source header: Amazon RMA ID';
+COMMENT ON COLUMN raw.amazon_seller_returns.seller_rma_id IS 'Source header: Seller RMA ID';
+COMMENT ON COLUMN raw.amazon_seller_returns.label_type IS 'Source header: Label type';
+COMMENT ON COLUMN raw.amazon_seller_returns.label_cost IS 'Source header: Label cost';
+COMMENT ON COLUMN raw.amazon_seller_returns.currency_code IS 'Source header: Currency code';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_carrier IS 'Source header: Return carrier';
+COMMENT ON COLUMN raw.amazon_seller_returns.tracking_id IS 'Source header: Tracking ID';
+COMMENT ON COLUMN raw.amazon_seller_returns.label_to_be_paid_by IS 'Source header: Label to be paid by';
+COMMENT ON COLUMN raw.amazon_seller_returns.a_to_z_claim IS 'Source header: A-to-z claim';
+COMMENT ON COLUMN raw.amazon_seller_returns.is_prime IS 'Source header: Is prime';
+COMMENT ON COLUMN raw.amazon_seller_returns.asin IS 'Source header: ASIN';
+COMMENT ON COLUMN raw.amazon_seller_returns.merchant_sku IS 'Source header: Merchant SKU';
+COMMENT ON COLUMN raw.amazon_seller_returns.item_name IS 'Source header: Item Name';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_quantity IS 'Source header: Return quantity';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_reason IS 'Source header: Return reason';
+COMMENT ON COLUMN raw.amazon_seller_returns.in_policy IS 'Source header: In policy';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_type IS 'Source header: Return type';
+COMMENT ON COLUMN raw.amazon_seller_returns.resolution IS 'Source header: Resolution';
+COMMENT ON COLUMN raw.amazon_seller_returns.invoice_number IS 'Source header: Invoice number';
+COMMENT ON COLUMN raw.amazon_seller_returns.return_delivery_date IS 'Source header: Return delivery date';
+COMMENT ON COLUMN raw.amazon_seller_returns.order_amount IS 'Source header: Order Amount';
+COMMENT ON COLUMN raw.amazon_seller_returns.order_quantity IS 'Source header: Order quantity';
+COMMENT ON COLUMN raw.amazon_seller_returns.safet_action_reason IS 'Source header: SafeT Action reason';
+COMMENT ON COLUMN raw.amazon_seller_returns.safet_claim_id IS 'Source header: SafeT claim ID';
+COMMENT ON COLUMN raw.amazon_seller_returns.safet_claim_state IS 'Source header: SafeT claim state';
+COMMENT ON COLUMN raw.amazon_seller_returns.safet_claim_creation_time IS 'Source header: SafeT claim creation time';
+COMMENT ON COLUMN raw.amazon_seller_returns.safet_claim_reimbursement_amount IS 'Source header: SafeT claim reimbursement amount';
+COMMENT ON COLUMN raw.amazon_seller_returns.refunded_amount IS 'Source header: Refunded Amount';
+COMMENT ON COLUMN raw.amazon_seller_returns.category IS 'Source header: Category';
+COMMENT ON COLUMN raw.amazon_seller_returns.order_item_id IS 'Source header: Order Item ID';
+
 -- BLINKIT_INVENTORY
 CREATE TABLE raw.blinkit_inventory (
     batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
@@ -161,6 +237,28 @@ COMMENT ON COLUMN raw.blinkit_sales.sgst_value IS 'Source header: SGST Value';
 COMMENT ON COLUMN raw.blinkit_sales.cess_value IS 'Source header: CESS Value';
 COMMENT ON COLUMN raw.blinkit_sales.total_tax IS 'Source header: Total Tax';
 COMMENT ON COLUMN raw.blinkit_sales.total_gross_bill_amount IS 'Source header: Total Gross Bill Amount';
+
+-- ERP_DOC_STOCK_MOVEMENT
+CREATE TABLE raw.erp_doc_stock_movement (
+    batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
+    source_row_number  INTEGER NOT NULL,
+    product_no                               TEXT,
+    product_description                      TEXT,
+    document_type                            TEXT,
+    quantity                                 TEXT,
+    value                                    TEXT,
+    period_from                              TEXT,
+    period_to                                TEXT,
+    PRIMARY KEY (batch_id, source_row_number)
+);
+COMMENT ON TABLE raw.erp_doc_stock_movement IS 'As received from ERP_DOC_STOCK_MOVEMENT. Contract: loader/contracts/ERP_DOC_STOCK_MOVEMENT.json';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.product_no IS 'Source header: Product No.';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.product_description IS 'Source header: Product Description';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.document_type IS 'Source header: Document Type';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.quantity IS 'Source header: Quantity';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.value IS 'Source header: Value';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.period_from IS 'Source header: Period From';
+COMMENT ON COLUMN raw.erp_doc_stock_movement.period_to IS 'Source header: Period To';
 
 -- ERP_DOMESTIC_RETURN
 CREATE TABLE raw.erp_domestic_return (

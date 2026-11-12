@@ -44,3 +44,44 @@ LEFT JOIN snap o ON o.snapshot_date_key = k.prev_key AND o.location_key = k.loca
 LEFT JOIN snap c ON c.snapshot_date_key = k.cur_key AND c.location_key = k.location_key AND c.product_key = k.product_key
 LEFT JOIN mvp m ON m.cur_key = k.cur_key AND m.location_key = k.location_key AND m.product_key = k.product_key
 WHERE pr.item_type NOT IN ('CHARGE','SERVICE');
+
+-- 2.17 What the ERP's own documents explain. Per product, for the period of the loaded Document Wise Stock Movement
+-- report: the net stock that moved with no document in the exports (all ERP locations and months of the stock check
+-- together), beside the units the ERP moved on document types no export carries (scrap, stock increase / decrease,
+-- inventory transfer, sub-contractor issue and receipt, return to supplier). explained_qty is the part of the
+-- unexplained stock those documents account for (same direction only); still_unexplained_qty is the rest.
+-- The report has no dates or locations inside its period, so this is a whole-period, company-wide reading.
+CREATE OR REPLACE VIEW mart.v_unexplained_stock_by_document AS
+WITH per AS (SELECT min(period_from) AS period_from, max(period_to) AS period_to FROM core.fact_erp_document_movement),
+u AS (SELECT c.sku_code, sum(c.unexplained_qty) AS unexplained_qty
+      FROM mart.v_stock_movement_check c, per WHERE c.period_to > per.period_from AND c.period_to <= per.period_to GROUP BY 1),
+d AS (SELECT p.sku_code,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'Scrap Note'), 0) AS scrap_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'Increase Stock'), 0) AS stock_increase_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'Decrease Stock'), 0) AS stock_decrease_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'Inventory Transfer'), 0) AS inventory_transfer_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'DN Sub Contractor'), 0) AS sent_to_subcontractor_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'GIN (SubContractor)'), 0) AS back_from_subcontractor_qty,
+             coalesce(sum(f.quantity) FILTER (WHERE f.document_type = 'Return To Supplier'), 0) AS returned_to_supplier_qty,
+             sum(f.quantity) AS documents_not_in_exports_qty
+      FROM core.fact_erp_document_movement f JOIN core.dim_product p ON p.product_key = f.product_key
+      WHERE NOT f.is_in_other_exports AND f.product_key <> -1 GROUP BY 1),
+j AS (SELECT coalesce(u.sku_code, d.sku_code) AS sku_code, coalesce(u.unexplained_qty, 0) AS unexplained_qty,
+             coalesce(d.scrap_qty, 0) AS scrap_qty, coalesce(d.stock_increase_qty, 0) AS stock_increase_qty,
+             coalesce(d.stock_decrease_qty, 0) AS stock_decrease_qty, coalesce(d.inventory_transfer_qty, 0) AS inventory_transfer_qty,
+             coalesce(d.sent_to_subcontractor_qty, 0) AS sent_to_subcontractor_qty,
+             coalesce(d.back_from_subcontractor_qty, 0) AS back_from_subcontractor_qty,
+             coalesce(d.returned_to_supplier_qty, 0) AS returned_to_supplier_qty,
+             coalesce(d.documents_not_in_exports_qty, 0) AS documents_not_in_exports_qty
+      FROM u FULL JOIN d ON d.sku_code = u.sku_code),
+e AS (SELECT j.*, CASE WHEN sign(j.unexplained_qty) = sign(j.documents_not_in_exports_qty) AND j.unexplained_qty <> 0
+                       THEN sign(j.unexplained_qty) * least(abs(j.unexplained_qty), abs(j.documents_not_in_exports_qty)) ELSE 0 END AS explained_qty
+      FROM j)
+SELECT per.period_from, per.period_to, pr.sku_code, pr.product_name, pr.item_type, pr.category, pr.lifecycle_status,
+       e.unexplained_qty, e.scrap_qty, e.stock_increase_qty, e.stock_decrease_qty, e.inventory_transfer_qty,
+       e.sent_to_subcontractor_qty, e.back_from_subcontractor_qty, e.returned_to_supplier_qty, e.documents_not_in_exports_qty,
+       e.explained_qty, e.unexplained_qty - e.explained_qty AS still_unexplained_qty,
+       (e.unexplained_qty - e.explained_qty) * pr.current_cost AS still_unexplained_value_cost
+FROM e JOIN core.dim_product pr ON pr.sku_code = e.sku_code CROSS JOIN per
+WHERE per.period_from IS NOT NULL AND pr.item_type NOT IN ('CHARGE','SERVICE')
+  AND (e.unexplained_qty <> 0 OR e.documents_not_in_exports_qty <> 0);

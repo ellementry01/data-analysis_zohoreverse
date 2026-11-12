@@ -157,8 +157,9 @@ INSERT INTO dq SELECT 'return_without_original_sale', 'core.fact_return_line', '
 FROM core.fact_return_line WHERE original_sales_line_id IS NULL;
 
 INSERT INTO dq SELECT 'po_lines_with_several_receipts', 'core.fact_goods_receipt_line', 'WARN', count(*),
-       format('%s receipts listed with one date and one total quantity; lead time approximate (gap G-027)', coalesce(sum(receipt_count), 0))
-FROM core.fact_goods_receipt_line WHERE receipt_count > 1;
+       format('%s receipts listed with one date and one total quantity; lead time approximate (load the GRN register)', coalesce(sum(receipt_count), 0))
+FROM core.fact_goods_receipt_line WHERE receipt_count > 1
+  AND NOT EXISTS (SELECT 1 FROM core.fact_grn_line);   -- with the GRN register loaded (2.14) receipts carry their own dates
 
 -- PO Document Remark (BR-031, proposed): lines the export does not mark Purchase / Return, and lines whose remark
 -- contradicts the counterparty's classification. Both must be explained before the rule is confirmed.
@@ -210,7 +211,40 @@ INSERT INTO dq SELECT 'stock_movement_unexplained', 'mart.v_stock_movement_check
        format('location x SKU x period rows where closing stock <> opening + recorded movements: %s units left without a document, %s arrived without one (%s stock days)',
               coalesce(-sum(unexplained_qty) FILTER (WHERE unexplained_qty < 0), 0), coalesce(sum(unexplained_qty) FILTER (WHERE unexplained_qty > 0), 0),
               (SELECT count(DISTINCT snapshot_date_key) FROM core.fact_inventory_snapshot WHERE source_name = 'ERP_INVENTORY_SNAPSHOT'))
+       || coalesce((SELECT format('. Per product over the whole period the net gap is %s units; ERP documents no export carries (scrap, stock increase / decrease, inventory transfer, sub-contractor, return to supplier) account for %s, %s remain (mart.v_unexplained_stock_by_document)',
+                                  sum(abs(unexplained_qty)), sum(abs(explained_qty)), sum(abs(still_unexplained_qty)))
+                    FROM mart.v_unexplained_stock_by_document HAVING count(*) > 0), '')
 FROM mart.v_stock_movement_check WHERE unexplained_qty <> 0;
+
+-- 2.17 Return-reason reports: every returned unit in the period reaches core, per source.
+INSERT INTO dq SELECT 'return_reason_units_reconcile', 'core.fact_return_reason_line', 'ERROR', abs(a - b),
+       format('staging %s units vs core %s units (Amazon FBA and seller-fulfilled return reports, period rows with a quantity)', a, b)
+FROM (SELECT (SELECT coalesce(sum(quantity), 0) FROM (SELECT quantity, return_date FROM stg.amazon_returns
+                                                      UNION ALL SELECT quantity, return_date FROM stg.amazon_seller_returns) s
+              WHERE quantity > 0 AND return_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx)) a,
+             (SELECT coalesce(sum(quantity), 0) FROM core.fact_return_reason_line) b) x;
+
+INSERT INTO dq SELECT 'return_reason_unmapped', 'core.fact_return_reason_line', 'WARN', count(*),
+       'return reason codes with no group in ref.code_mapping (shown as Other): ' || coalesce(string_agg(DISTINCT f.source_name || ' ' || f.reason_code, ', '), '-')
+FROM core.fact_return_reason_line f
+WHERE NOT EXISTS (SELECT 1 FROM ref.code_mapping g WHERE g.domain = 'RETURN_REASON_GROUP' AND g.source_name = f.source_name AND g.source_value = f.reason_code);
+
+INSERT INTO dq SELECT 'return_reason_unknown_product', 'core.fact_return_reason_line', 'WARN', count(*),
+       'return-report lines whose SKU is not a known product: ' || coalesce(string_agg(DISTINCT f.source_sku_code, ', '), '-')
+FROM core.fact_return_reason_line f WHERE f.product_key = -1;
+
+-- 2.17 ERP document movement summary: units reconcile to staging; document types must be mapped before they explain stock.
+INSERT INTO dq SELECT 'erp_document_movement_reconcile', 'core.fact_erp_document_movement', 'ERROR', abs(a - b),
+       format('staging %s units vs core %s units (newest Document Wise Stock Movement report inside the period)', a, b)
+FROM (SELECT (SELECT coalesce(sum(quantity), 0) FROM stg.erp_doc_stock_movement s
+              WHERE s.batch_id = (SELECT max(x.batch_id) FROM stg.erp_doc_stock_movement x
+                                  WHERE x.period_from >= (SELECT period_start FROM ctx) AND x.period_to <= (SELECT period_end FROM ctx))) a,
+             (SELECT coalesce(sum(quantity), 0) FROM core.fact_erp_document_movement) b) x;
+
+INSERT INTO dq SELECT 'erp_document_type_unmapped', 'core.fact_erp_document_movement', 'WARN', count(DISTINCT f.document_type),
+       'ERP document types not in ref.code_mapping ERP_DOCUMENT_COVERAGE (never used to explain stock): ' || coalesce(string_agg(DISTINCT f.document_type, ', '), '-')
+FROM core.fact_erp_document_movement f
+WHERE NOT EXISTS (SELECT 1 FROM ref.code_mapping c WHERE c.domain = 'ERP_DOCUMENT_COVERAGE' AND c.source_name = f.source_name AND c.source_value = f.document_type);
 
 -- ============================================================ write results
 INSERT INTO meta.dq_check_result (transform_run_id, check_name, target_table, severity, outcome, failed_row_count, details)

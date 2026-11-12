@@ -1,0 +1,157 @@
+{
+  "source_name": "AMAZON_SELLER_RETURNS",
+  "status": "verified",
+  "verified_against": "AMAZON_SELLER_RETURNS__2025-04-01_2026-09-14.csv (Seller Central seller-fulfilled returns, normalised)",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "CSV"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 34,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "Order ID",
+      "column": "order_id"
+    },
+    {
+      "header": "Order date",
+      "column": "order_date"
+    },
+    {
+      "header": "Return request date",
+      "column": "return_request_date"
+    },
+    {
+      "header": "Return request status",
+      "column": "return_request_status"
+    },
+    {
+      "header": "Amazon RMA ID",
+      "column": "amazon_rma_id"
+    },
+    {
+      "header": "Seller RMA ID",
+      "column": "seller_rma_id"
+    },
+    {
+      "header": "Label type",
+      "column": "label_type"
+    },
+    {
+      "header": "Label cost",
+      "column": "label_cost"
+    },
+    {
+      "header": "Currency code",
+      "column": "currency_code"
+    },
+    {
+      "header": "Return carrier",
+      "column": "return_carrier"
+    },
+    {
+      "header": "Tracking ID",
+      "column": "tracking_id"
+    },
+    {
+      "header": "Label to be paid by",
+      "column": "label_to_be_paid_by"
+    },
+    {
+      "header": "A-to-z claim",
+      "column": "a_to_z_claim"
+    },
+    {
+      "header": "Is prime",
+      "column": "is_prime"
+    },
+    {
+      "header": "ASIN",
+      "column": "asin"
+    },
+    {
+      "header": "Merchant SKU",
+      "column": "merchant_sku"
+    },
+    {
+      "header": "Item Name",
+      "column": "item_name"
+    },
+    {
+      "header": "Return quantity",
+      "column": "return_quantity"
+    },
+    {
+      "header": "Return reason",
+      "column": "return_reason"
+    },
+    {
+      "header": "In policy",
+      "column": "in_policy"
+    },
+    {
+      "header": "Return type",
+      "column": "return_type"
+    },
+    {
+      "header": "Resolution",
+      "column": "resolution"
+    },
+    {
+      "header": "Invoice number",
+      "column": "invoice_number"
+    },
+    {
+      "header": "Return delivery date",
+      "column": "return_delivery_date"
+    },
+    {
+      "header": "Order Amount",
+      "column": "order_amount"
+    },
+    {
+      "header": "Order quantity",
+      "column": "order_quantity"
+    },
+    {
+      "header": "SafeT Action reason",
+      "column": "safet_action_reason"
+    },
+    {
+      "header": "SafeT claim ID",
+      "column": "safet_claim_id"
+    },
+    {
+      "header": "SafeT claim state",
+      "column": "safet_claim_state"
+    },
+    {
+      "header": "SafeT claim creation time",
+      "column": "safet_claim_creation_time"
+    },
+    {
+      "header": "SafeT claim reimbursement amount",
+      "column": "safet_claim_reimbursement_amount"
+    },
+    {
+      "header": "Refunded Amount",
+      "column": "refunded_amount"
+    },
+    {
+      "header": "Category",
+      "column": "category"
+    },
+    {
+      "header": "Order Item ID",
+      "column": "order_item_id"
+    }
+  ],
+  "business_date": {
+    "header": "Return request date",
+    "format": "text_ymd"
+  },
+  "as_of_required": false
+}

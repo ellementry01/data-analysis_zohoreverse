@@ -15,6 +15,7 @@ DELETE FROM core.fact_purchase_order_line;
 DELETE FROM core.fact_sales_line;
 DELETE FROM core.fact_stock_transfer_line;
 DELETE FROM core.fact_return_reason_line;
+DELETE FROM core.fact_erp_document_movement;
 DELETE FROM core.fact_grn_line;
 DELETE FROM core.fact_partner_sellout;
 DELETE FROM core.fact_inventory_snapshot;
@@ -384,3 +385,30 @@ LEFT JOIN (SELECT f.partner_key, min(f.document_type) AS document_type FROM core
 LEFT JOIN LATERAL (SELECT f.po_line_id FROM core.fact_purchase_order_line f
                    WHERE f.po_number = g.po_number AND f.product_key = p.product_key ORDER BY f.line_occurrence LIMIT 1) pol ON TRUE
 WHERE g.received_qty > 0 AND g.grn_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);
+
+-- Amazon seller-fulfilled returns (2.17): self-shipped Amazon orders, same table as the FBA returns. Units and reason
+-- only; no condition on return in this report. Channel: Amazon self-ship.
+INSERT INTO core.fact_return_reason_line (source_name, return_date_key, channel_key, product_key, source_sku_code, order_number,
+    reason_code, disposition, fulfilment_centre, quantity, batch_id, source_row_number)
+SELECT 'AMAZON_SELLER_RETURNS', stg.date_key(s.return_date),
+       coalesce((SELECT channel_key FROM core.dim_channel WHERE channel_code = 'AMAZON_SELF_SHIP'), -1),
+       coalesce(p.product_key, -1), s.source_sku_code, s.order_number, coalesce(s.reason_code, 'NO_REASON_GIVEN'),
+       NULL, NULL, s.quantity, s.batch_id, s.source_row_number
+FROM stg.amazon_seller_returns s
+LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
+WHERE s.quantity > 0 AND s.return_date BETWEEN (SELECT period_start FROM ctx) AND (SELECT period_end FROM ctx);
+
+-- --------------------------------------------------------------------- ERP document movement summary (2.17)
+-- Units per product and ERP document type for the newest report whose period lies inside the build period. A document
+-- type counts as 'in other exports' unless ref.code_mapping (ERP_DOCUMENT_COVERAGE) says NOT_IN_EXPORTS: an unmapped
+-- type is never used to explain stock (and is reported by the check erp_document_type_unmapped).
+INSERT INTO core.fact_erp_document_movement (source_name, period_from, period_to, product_key, source_sku_code, document_type,
+    is_in_other_exports, quantity, value_amount, batch_id, source_row_number)
+SELECT 'ERP_DOC_STOCK_MOVEMENT', s.period_from, s.period_to, coalesce(p.product_key, -1), s.source_sku_code, s.document_type,
+       coalesce(cm.standard_value, 'IN_OTHER_EXPORTS') <> 'NOT_IN_EXPORTS', s.quantity, s.value_amount, s.batch_id, s.source_row_number
+FROM stg.erp_doc_stock_movement s
+LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code
+LEFT JOIN ref.code_mapping cm ON cm.domain = 'ERP_DOCUMENT_COVERAGE' AND cm.source_name = 'ERP_DOC_STOCK_MOVEMENT' AND cm.source_value = s.document_type
+WHERE s.quantity <> 0
+  AND s.batch_id = (SELECT max(x.batch_id) FROM stg.erp_doc_stock_movement x
+                    WHERE x.period_from >= (SELECT period_start FROM ctx) AND x.period_to <= (SELECT period_end FROM ctx));

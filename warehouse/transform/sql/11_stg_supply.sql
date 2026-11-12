@@ -141,3 +141,15 @@ SELECT s.batch_id, s.source_row_number, btrim(s.grn_no) AS grn_number, stg.any_d
        s.product_no AS source_sku_code, stg.sku(s.product_no) AS sku_code, nullif(btrim(s.product_description), '') AS product_name,
        stg.num(s.received_quantity) AS received_qty, stg.num(s.rate) AS rate, stg.num(s.amount) AS amount
 FROM src s WHERE s.batch_id = s.latest_batch;
+
+-- ERP Document Wise Stock Movement (2.17): units per product and document type for one period. The newest load of a
+-- period wins. OPENING and CLOSING are balances, not movements: left out here.
+DROP TABLE IF EXISTS stg.erp_doc_stock_movement;
+CREATE TABLE stg.erp_doc_stock_movement AS
+WITH src AS (
+    SELECT r.*, max(r.batch_id) OVER (PARTITION BY btrim(r.period_from), btrim(r.period_to)) AS latest_batch
+    FROM raw.erp_doc_stock_movement r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
+SELECT batch_id, source_row_number, btrim(period_from)::DATE AS period_from, btrim(period_to)::DATE AS period_to,
+       btrim(product_no) AS source_sku_code, stg.sku(product_no) AS sku_code, btrim(document_type) AS document_type,
+       stg.num(quantity) AS quantity, stg.num(value) AS value_amount
+FROM src WHERE batch_id = latest_batch AND upper(btrim(document_type)) NOT IN ('OPENING', 'CLOSING');

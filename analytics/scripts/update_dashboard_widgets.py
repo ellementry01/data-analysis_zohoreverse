@@ -7,8 +7,8 @@ recreates every dashboard, which changes the ids (the keys stay the same).
     python scripts/update_dashboard_widgets.py --meta-only --all     # only set each dashboard's key and domain
 
 Dashboards are found by key (DASHBOARD_META), else by name. Widgets are matched by title; descriptions and filters
-are updated too. A widget whose title is new or renamed is not created here: run build_executive_dashboards.py for
-that (and share the new ids). --meta-only changes nothing but the key and domain.
+are updated too. A renamed widget is found by its old title when build_executive_dashboards.RENAMED_FROM lists it. A
+widget whose title is new is not created here: run build_executive_dashboards.py for that (and share the new ids). --meta-only changes nothing but the key and domain.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from build_executive_dashboards import DASHBOARD_META, DASHBOARDS  # noqa: E402
+from build_executive_dashboards import DASHBOARD_META, DASHBOARDS, RENAMED_FROM  # noqa: E402
 
 
 
@@ -73,7 +73,7 @@ def main() -> int:
         by_title = {w["title"]: w for w in d["widgets"]}
         missing = 0
         for title, ct, spec, _layout, options in widgets:
-            w = by_title.get(title)
+            w = by_title.get(title) or by_title.get(RENAMED_FROM.get((name, title)))   # renamed in place: found by its old title
             if not w:
                 print(f"  {name} / {title}: not on the live dashboard (run build_executive_dashboards.py)"); missing += 1
                 continue
