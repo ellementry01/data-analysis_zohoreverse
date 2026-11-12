@@ -42,6 +42,15 @@ LATE = {"metric": "late_shipment_rate", "label": "Shipped late"}
 DELIVERY_DAYS = {"metric": "avg_ship_to_deliver_days", "label": "Delivery time (days)"}
 IM_SELLOUT = {"field": "quick_commerce_sell_out_daily.platform", "op": "eq", "value": "Instamart"}
 IM_STOCK = {"field": "partner_stock_monthly.partner", "op": "eq", "value": "INSTAMART"}
+# Amazon's FBA report states the condition on return; the self-shipped report (warehouse 2.17) does not
+FBA_ONLY = {"field": "return_reasons.sub_channel_name", "op": "eq", "value": "FBA"}
+# Widgets renamed in place: (dashboard, new title) -> the title it had before. update_dashboard_widgets.py finds the
+# live widget by its old title and renames it, so the dashboard and widget ids stay the same.
+RENAMED_FROM = {
+    ("Returns", "Amazon returns by reason (units)"): "Amazon FBA returns by reason (units)",
+    ("Instamart", "Stock with Instamart (at least)"): "Stock with Instamart (since Apr 2025)",
+    ("Instamart", "Stock with Instamart over time (at least)"): "Stock with Instamart over time",
+}
 # BR-031 confirmed (warehouse 2.10): the warehouse already leaves return-inward lines out; the filter is a safety net
 PURCHASE_PO = {"field": "open_purchase_orders.document_type", "op": "eq", "value": "PURCHASE"}
 PURCHASE_LT = {"field": "supplier_lead_time.document_type", "op": "eq", "value": "PURCHASE"}
@@ -129,7 +138,8 @@ DASHBOARDS = [
 
     ("Returns",
      "Customer and partner returns, excluding GST. The ERP records no return reasons (gap G-009); the reasons below come from "
-     "Amazon's FBA customer-returns report (Amazon-fulfilled orders only, units).",
+     "Amazon's own reports, in units: FBA orders and Amazon orders we ship ourselves. 'Not delivered' is parcels refused or "
+     "undelivered. The condition on return is known for FBA only.",
      [{"id": "period", "type": "date_range", "label": "Period", "field": "@time", "value": ALL_DATA}],
      [kpi("Returns value", "returns_value", 0, 0, w=3, compare=None),
       kpi("Units returned", "units_returned", 3, 0, w=3, compare=None),
@@ -145,10 +155,11 @@ DASHBOARDS = [
              "sort": [{"field": "return_window", "dir": "asc"}]}, 6, 7, 6, 5),
       chart("Top 15 returned products", "table", top("returns_daily.product_name", "returns_value", 15,
             extra=[{"metric": "units_returned"}]), 0, 12, 12, 6),
-      chart("Amazon FBA returns by reason (units)", "hbar", top("return_reasons.reason_group", "amazon_units_returned", 10), 0, 18, 6, 5,
-            drill=["return_reasons.reason"]),
+      chart("Amazon returns by reason (units)", "hbar", top("return_reasons.reason_group", "amazon_units_returned", 10), 0, 18, 6, 5,
+            drill=["return_reasons.sub_channel_name", "return_reasons.reason"]),
       chart("Condition when returned (Amazon FBA)", "donut",
-            {"dimensions": [{"field": "return_reasons.condition_on_return"}], "measures": [{"metric": "amazon_units_returned"}]}, 6, 18, 6, 5),
+            {"dimensions": [{"field": "return_reasons.condition_on_return"}], "measures": [{"metric": "amazon_units_returned"}],
+             "filters": [FBA_ONLY]}, 6, 18, 6, 5),
       chart("Amazon return reasons in detail", "table",
             top("return_reasons.reason", "amazon_units_returned", 20, extra=[]), 0, 23, 6, 6),
       chart("Products returned most on Amazon (units)", "table",
@@ -322,7 +333,8 @@ DASHBOARDS = [
     ("Instamart",
      "Instamart, sale-or-return. Sent / returned = our invoices and credit notes to Instamart's six buying accounts (rule BR-034); "
      "sold = Instamart's consumer sell-out (demand, never our revenue: BR-024). Stock with Instamart = sent minus returned minus "
-     "sold since 1 Apr 2025; Instamart's opening stock is unknown, so it is not a stock count.",
+     "sold since 1 Apr 2025, plus the least stock Instamart must have held on 1 Apr 2025 (without it some products would show "
+     "below zero). Instamart's past stock cannot be fetched, so this is a floor, not a stock count.",
      [{"id": "period", "type": "date_range", "label": "Period", "field": "@time", "value": ALL_DATA}],
      [kpi("Units sold by Instamart", "qc_units_sold", 0, 0, compare=None, filters=[IM_SELLOUT]),
       kpi("Sell-out value (GMV)", "qc_sell_out_value", 2, 0, compare=None, filters=[IM_SELLOUT]),
@@ -330,12 +342,12 @@ DASHBOARDS = [
           filters=[{"field": "net_sales_daily.channel_name", "op": "eq", "value": "Instamart"}]),
       kpi("Units sent to Instamart", "partner_units_sent", 6, 0, compare=None, filters=[IM_STOCK]),
       kpi("Units returned by Instamart", "partner_units_returned", 8, 0, compare=None, filters=[IM_STOCK]),
-      kpi("Stock with Instamart (since Apr 2025)", "partner_stock_balance", 10, 0, compare=None, filters=[IM_STOCK]),
+      kpi("Stock with Instamart (at least)", "partner_stock_at_least", 10, 0, compare=None, filters=[IM_STOCK]),
       chart("Units sent vs sold, by month", "bar",
             {"dimensions": [MONTH], "measures": [{"metric": "partner_units_sent"}, {"metric": "partner_units_sold"},
                                                  {"metric": "partner_units_returned"}], "filters": [IM_STOCK]}, 0, 2, 8, 5),
-      chart("Stock with Instamart over time", "line",
-            {"dimensions": [MONTH], "measures": [{"metric": "partner_stock_balance"}], "filters": [IM_STOCK]}, 8, 2, 4, 5),
+      chart("Stock with Instamart over time (at least)", "line",
+            {"dimensions": [MONTH], "measures": [{"metric": "partner_stock_at_least"}], "filters": [IM_STOCK]}, 8, 2, 4, 5),
       chart("Top 15 products sold on Instamart", "table",
             top("quick_commerce_sell_out_daily.product_name", "qc_units_sold", 15, [IM_SELLOUT], [{"metric": "qc_sell_out_value"}]), 0, 7, 6, 6),
       chart("Instamart sales by city", "hbar", top("quick_commerce_sell_out_daily.city", "qc_units_sold", 15, [IM_SELLOUT]), 6, 7, 6, 6)]),

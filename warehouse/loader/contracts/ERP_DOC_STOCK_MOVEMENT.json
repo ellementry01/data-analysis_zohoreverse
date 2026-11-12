@@ -1,0 +1,46 @@
+{
+  "source_name": "ERP_DOC_STOCK_MOVEMENT",
+  "status": "verified",
+  "verified_against": "ERP_DOC_STOCK_MOVEMENT__2025-04-01_2026-09-15.csv (ERP Document Wise Stock Movement, normalised)",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "CSV"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 7,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "Product No.",
+      "column": "product_no"
+    },
+    {
+      "header": "Product Description",
+      "column": "product_description"
+    },
+    {
+      "header": "Document Type",
+      "column": "document_type"
+    },
+    {
+      "header": "Quantity",
+      "column": "quantity"
+    },
+    {
+      "header": "Value",
+      "column": "value"
+    },
+    {
+      "header": "Period From",
+      "column": "period_from"
+    },
+    {
+      "header": "Period To",
+      "column": "period_to"
+    }
+  ],
+  "business_date": null,
+  "as_of_required": true
+}

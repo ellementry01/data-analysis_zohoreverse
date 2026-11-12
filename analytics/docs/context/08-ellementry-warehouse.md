@@ -1,6 +1,6 @@
 # 08 — Ellementry warehouse and its connection (workspace 34)
 
-*Updated 2026-11-04: schema 2.15, ten dashboards (Stock and Fulfilment COO-ready), backups in the project's `backups/` folder.*
+*Updated 2026-11-12: schema 2.17 (warehouse review), ten dashboards (Stock and Fulfilment COO-ready), backups in the project's `backups/` folder.*
 
 ## Where things are
 - **Warehouse code:** `warehouse/` in this repo (moved from `ellementry_source_code/ellementry_data/ellementry_dw` on 2026-10-22, history kept).
@@ -11,7 +11,7 @@
   - Normalised files (Blinkit/Instamart sell-out, GRN register) have a `NORMALISE_LOG.tsv` next to them.
 - **Working reports:** `reports/` (not in git): `S2_mrp_differences_by_location.csv`, `bagru_unexplained_stock.csv`, `bagru_unexplained_stock_explained.csv`.
 - **Database:**
-  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.16**.
+  - PostgreSQL 18 on the host (`postgresql-x64-18`, port 5432), database **`ellementry_dw`**, **schema 2.17**.
   - Admin login: `warehouse/.env` → `ADMIN_DATABASE_URL`, read by `dw.py`. Never print it; never ask the user for it.
 - **Other databases on the server:**
   - `ellementry_dw_trial`: a full copy; every migration and load is tried here first.
@@ -43,6 +43,8 @@
 | WMS dispatch (this is the OMS report) | 45,246 shipments |
 | Blinkit / Instamart sell-out, normalised | 6,867 rows |
 | Amazon FBA customer returns (reasons) | 3,499 lines |
+| **Amazon seller-fulfilled returns (self-shipped orders, 2.17)** | 1,877 lines, 2,078 units |
+| **ERP Document Wise Stock Movement (whole period, all locations, 2.17)** | 14,478 product x document rows |
 
 **Reconciliation.** `reconcile.py` recomputes totals from the files with pandas. **28 of 28 checks agree to the paisa** on the trial and live databases after every change. The DQ gate adds `grn_rows_reconcile` (ERROR) and `grn_unknown_product_or_supplier` (WARN) for the GRN register.
 
@@ -68,6 +70,7 @@
 | 2.13 | 210 | Amazon return reasons (`v_return_reasons`); `v_slow_stock`; `v_partner_stock_monthly`; cover bands and cost in `v_days_of_cover`; BR-034 Instamart accounts |
 | 2.14 | 220 | ERP GRN register: `core.fact_grn_line`; receipts in the stock ledger and lead time come from it when loaded |
 | 2.15 | 230 | Store status sheet: 12 franchise accounts and Shoppers Stop (SIS) are sale-or-return partners with partner stock locations (BR-035); own stores' running / closed status |
+| 2.17 | 250 | Warehouse review (12 Nov 2026): Amazon seller-fulfilled returns in `fact_return_reason_line` (channel Amazon self-ship; 521 of 2,078 units not delivered); ERP Document Wise Stock Movement in `core.fact_erp_document_movement` and `mart.v_unexplained_stock_by_document` (86,832 units net gap per product, 59,450 explained by scrap / adjustment / sub-contractor / supplier-return documents, 27,382 remain); `v_partner_stock_monthly.min_opening_qty` and `closing_qty_at_least` (Instamart at least 4,770 units on 15 Sep 2026); Titan, Culver Max, Expo Digital and Natures Basket classified as B2B (unclassified Rs 5.89 Cr -> Rs 2.17 Cr); gaps G-001, G-021, G-027 closed |
 | 2.16 | 240 | Agent runner (Phase 7): rules STK-A01 stock-out with demand, STK-A02 low cover, OPS-A02 PO overdue in `insight.alert_rule`; `insight.alert_event` gains severity, identity_key (one open event per condition), document_ref, details, last_seen; thresholds in `meta.pipeline_setting`; views `mart.v_agent_alerts`, `v_agent_rules`, `v_agent_runs` |
 
 ## Business rules that matter for every number
@@ -93,7 +96,7 @@
 | 72 | sales_orders_daily | v_sales_orders_daily | 9,501 | calendar_date |
 | 59 | returns_daily | v_returns_daily | 16,245 | calendar_date |
 | 76 | returns_to_sale | v_return_to_sale | 18,788 | return_date |
-| 81 | return_reasons | v_return_reasons (Amazon FBA) | 3,499 | return_date |
+| 81 | return_reasons | v_return_reasons (Amazon FBA and, from 2.17, Amazon self-shipped) | 5,376 | return_date |
 | 54 | stock_position_latest | v_stock_position_latest | 4,974 | as_of_date |
 | 75 | stock_position_daily | v_stock_position_daily (19 stock days) | 95,786 | snapshot_date |
 | 78 | stock_movement_check | v_stock_movement_check | 98,863 | month_start_date |
@@ -173,18 +176,25 @@ The user chose **not to fix yet** ("Not now"); the fixes below are the next job 
 2. **Days of cover:** `mart.v_days_of_cover` now has `PARTNER_CONSIGNMENT` rows (₹1.60 Cr: Shoppers Stop ₹38 L, RLS Gurugram ₹32 L, …), which are sent-minus-credit-notes balances, not stock (D-089, G-028). Add a `location_type neq PARTNER_CONSIGNMENT` filter to every Days of cover widget in `build_executive_dashboards.py` (like `OWN_STOCK` on Stock), or a calculated location group.
 3. **Returns:** `returns_value` and `sales_return_rate` mix partner credit notes (franchise ₹74 L, Blinkit ₹53 L, unclassified ₹81 L) with customer returns, so the 11% headline is not a customer return rate; "Return rate by retail channel" shows Exports 98% and Flipkart 57% on tiny volumes (returns of sales before the period). Use a retail-only (`D2C_CHANNEL_ACCOUNT`) return rate for the headline, show partner returns separately, and drop or minimum-volume-filter the tiny channels.
 
-## Still open (full list in `warehouse/docs/ISSUE_LOG.md`: 90 solved, 37 unsolved)
+## Still open (full list in `warehouse/docs/ISSUE_LOG.md`: 92 solved, 35 unsolved; review in `docs/WAREHOUSE_REVIEW_2026-11-12.md`)
 - **Stock (15 open):**
   - Rest of the Bagru gap (D-124): scrap, stock adjustments, inventory transfers and subcontractor movements are not loaded by date and location. The ERP's detailed movement report fails ("Divide by zero"); the Summary could be run month by month. The Purchase Register needs the ERP login linked to a department.
   - Partner opening stock (D-080, G-028); Instamart opening stock and daily inventory (D-125, the business is on it).
   - Transfer locations only in the document prefix (D-038); daily stock saving from now on (D-004).
   - Decisions: negative ERP stock (D-118, the business is on it), Amazon FBA inventory report (D-052), what DFAL is (D-073).
   - Confirmations of evidence-based location mappings: D-071 (partly answered by the store sheet), D-072, D-075 (Lucknow only), D-127; as-of dates D-103, D-106.
-- **Partner list (D-019):** franchise, SIS and Instamart accounts are now classified; ₹5.89 Cr (4,566 lines) is still unclassified, top names Expo Digital India, Blink Commerce, Titan, Natures Basket. Needed: confirm the rest are outright B2B, then switch on `partner_list_complete`. The factory list (G-005) is also still needed.
+- **Partner list (D-019):** franchise, SIS and Instamart accounts are classified, and since 12 Nov 2026 Titan, Culver Max, Expo Digital and Natures Basket are B2B customers (owner). ₹2.17 Cr (3,381 lines) is still unclassified, top names Blink Commerce (Blinkit, parked), Sundry Customer, The Home Story, Madhur Mangal. About 210 names have one to three bills and no returns (₹0.88 Cr). Needed: the owner's yes to classify those as outright B2B, then switch on `partner_list_complete`. The factory list (G-005) is also still needed.
 - **Partner returns on two routes (D-089):** Shoppers Stop and closed franchises send goods back on credit notes (GIR) and on return POs (GRN). Both add stock at Bagru; only credit notes reduce the partner's stock. Partner balances (sent minus credit notes, no opening, no sell-out) are therefore not real stock and stay off the tiles.
 - **Fulfilment:** the WMS dispatch report is the OMS report. Missing delivery dates and marketplace RTO must come from seller-panel or courier exports (D-112, D-113); courier codes need confirming (D-111).
 - **Blinkit is parked** (D-005, D-050, D-051, D-092) until data from the new seller arrangement arrives. **Zepto** has no data yet.
 - **Mappings added from data evidence are `is_confirmed = false`**, with the evidence in the notes, until the business confirms them.
+
+## Limits the owner has accepted (12 Nov 2026)
+- **Stock is month-end.** Daily stock uploads are not possible (G-001 closed, D-004 solved as an accepted limit). Stock dashboards and alerts read the latest month-end (or mid-month) report.
+- **Instamart's past inventory cannot be fetched.** The dashboard shows a floor (`closing_qty_at_least`); one portal download on any single day, with sales loaded to that day, would give the true figure.
+- **Blinkit is parked** until the new seller arrangement has data.
+- **"Discontinued" means "do not reorder, sell what is left"**; some discontinued products are no longer sold at all. The owner will say later how to split the two; until then stock-out and low-cover alerts cover continued products only.
+- **Not decided yet:** near-free lines (D-023), the rule for one-off B2B buyers (D-019), and the move from the fixed period (data ends 15 Sep 2026) to a monthly refresh.
 
 ## Agent runner (schema 2.16, Phase 7, 2026-11-10)
 `warehouse/agents/` (`python dw.py agents run all`, after a successful build). Preconditions: the latest `meta.transform_run` SUCCEEDED and no failed ERROR check; every setting a rule names exists and is a number. Each agent (STOCK, OPERATIONS) writes one `insight.model_run` (parameters = the settings used, `data_as_of_date` = the build's period end) and its alerts in one transaction (FAILED and nothing else on any error). A rule whose process has no data for the latest month (`mart.v_data_coverage` = NONE) is skipped and named in the run notes.

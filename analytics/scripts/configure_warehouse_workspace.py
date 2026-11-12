@@ -30,7 +30,9 @@ IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every 
            ("v_return_reasons", "return_reasons"),                 # 2.13: Amazon FBA return reasons
            ("v_agent_alerts", "agent_alerts"),                     # 2.16: alerts from the agent runner (Phase 7)
            ("v_agent_rules", "agent_rules"),                       # 2.16: the alert rules and their current thresholds
-           ("v_agent_runs", "agent_runs")]                         # 2.16: agent runs (succeeded / failed)
+           ("v_agent_runs", "agent_runs"),                         # 2.16: agent runs (succeeded / failed)
+           # 2.17: per product, stock that moved with no document vs the ERP documents no export carries
+           ("v_unexplained_stock_by_document", "unexplained_stock_by_document")]
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 LABEL_COLUMNS = [
     ("fulfilment", "Order status",
@@ -159,10 +161,33 @@ def main() -> int:
          "expression": "SUM(selling_value)", "filters": [],
          "description": SRC + ". What consumers paid on the platform (Instamart reports GMV at MRP). Demand, never our revenue (BR-024).",
          "synonyms": ["instamart gmv", "sell out value"], "format": "currency", "higher_is_better": True},
-        {"name": "amazon_units_returned", "label": "Amazon FBA units returned (with reason)", "dataset_id": ds("return_reasons"),
+        {"name": "amazon_units_returned", "label": "Amazon units returned (with reason)", "dataset_id": ds("return_reasons"),
          "expression": "SUM(units_returned)", "filters": [], "time_column": "return_date",
-         "description": SRC + ". Amazon FBA customer returns with Amazon's reason and condition. Units only.",
-         "synonyms": ["return reasons", "amazon returns"], "format": "number", "higher_is_better": False},
+         "description": SRC + ". Amazon returns with Amazon's reason: FBA orders (with the condition on return) and, since "
+                              "warehouse 2.17, self-shipped orders (sub_channel_name 'Self-ship / Easyship'; reason group 'Not "
+                              "delivered' = rejected or undelivered parcels). Units only.",
+         "synonyms": ["return reasons", "amazon returns", "amazon rto", "amazon not delivered"], "format": "number",
+         "higher_is_better": False},
+        {"name": "partner_stock_at_least", "label": "Stock with partner, at least", "dataset_id": ds("partner_stock_monthly"),
+         "expression": "SUM(closing_qty_at_least)", "filters": [], "time_column": "month_start_date", "semi_additive": True,
+         "description": SRC + " (2.17). Sent minus returned minus sold since 1 Apr 2025, plus the least opening stock the partner "
+                              "must have held (how far each product's running balance falls below zero). A floor, not a stock count.",
+         "synonyms": ["instamart stock at least", "minimum stock at instamart"], "format": "number", "higher_is_better": True},
+        {"name": "stock_gap_units", "label": "Stock moved without a document, net per product (units)",
+         "dataset_id": ds("unexplained_stock_by_document"), "expression": "SUM(ABS(unexplained_qty))", "filters": [],
+         "description": SRC + " (2.17). Per product over the whole stock-check period, all ERP locations together: the net units "
+                              "that arrived or left with no document in the exports.",
+         "synonyms": ["stock gap", "unexplained stock per product"], "format": "number", "higher_is_better": False},
+        {"name": "stock_gap_explained_units", "label": "Stock gap explained by ERP documents (units)",
+         "dataset_id": ds("unexplained_stock_by_document"), "expression": "SUM(ABS(explained_qty))", "filters": [],
+         "description": SRC + " (2.17). The part of the stock gap accounted for by ERP documents no export carries: scrap notes, "
+                              "stock increase / decrease, inventory transfer, sub-contractor issue and receipt, return to supplier.",
+         "synonyms": ["explained stock gap", "scrap and adjustments"], "format": "number", "higher_is_better": True},
+        {"name": "stock_gap_remaining_units", "label": "Stock gap still unexplained (units)",
+         "dataset_id": ds("unexplained_stock_by_document"), "expression": "SUM(ABS(still_unexplained_qty))", "filters": [],
+         "description": SRC + " (2.17). The stock gap left after the ERP's scrap, adjustment, sub-contractor and supplier-return "
+                              "documents.",
+         "synonyms": ["remaining stock gap", "still unexplained stock"], "format": "number", "higher_is_better": False},
         {"name": "dq_failed_checks", "label": "Quality checks flagging rows", "dataset_id": ds("data_quality_latest"),
          "expression": "SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END)", "filters": [],
          "description": SRC + ". Checks of the latest build that flag at least one row (warnings: known gaps).",
