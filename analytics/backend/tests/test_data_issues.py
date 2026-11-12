@@ -84,14 +84,15 @@ def test_the_real_issue_log_parses_completely():
     mod = _script()
     text = (ROOT / "warehouse" / "docs" / "ISSUE_LOG.md").read_text(encoding="utf-8")
     rows, solved = mod.rows_for_import(text)
-    header = text.split("**")[1]                         # "90 solved, 37 unsolved."
+    header = text.split("**")[1]                         # "92 solved, 35 unsolved."
     n_solved, n_unsolved = int(header.split()[0]), int(header.split()[2])
     assert len(rows) == n_unsolved and len(solved) == n_solved
     codes = [r["code"] for r in rows]
     assert len(codes) == len(set(codes)) and not set(codes) & set(solved)
     by = {r["code"]: r for r in rows}
-    assert by["D-005"]["status"] == "parked" and by["D-071"]["status"] == "awaiting" and by["D-004"]["status"] == "open"
-    assert by["D-004"]["severity"] == "high" and by["D-118"]["severity"] == "low"
+    assert by["D-005"]["status"] == "parked" and by["D-071"]["status"] == "awaiting" and by["D-019"]["status"] == "open"
+    assert by["D-019"]["severity"] == "high" and by["D-127"]["severity"] == "low"
+    assert {"D-004", "D-118"} <= set(solved)             # closed by the warehouse review of 12 Nov 2026
     assert by["D-112"]["affects"]["metrics"] == ["rto_rate"] and "fulfilment" in by["D-112"]["affects"]["dashboards"]
     # every mapping names only metrics and dashboards that exist in workspace 34 (as built by the dashboard script)
     import sys

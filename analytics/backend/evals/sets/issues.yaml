@@ -38,12 +38,12 @@
   dashboard: stock
   question: How many units do we have on hand?
   expect: {widget: Units on hand}
-  must_mention: [[D-118]]
+  must_not_mention: [D-118]          # solved 12 Nov 2026 (shown as the ERP reports it): no longer a known issue
   check_issue_codes: true
 - id: is-st-history
   dashboard: stock
   question: How has month-end stock value moved over the last year?
-  must_mention: [[D-004]]
+  must_not_mention: [D-004]          # solved 12 Nov 2026 (accepted limit: stock is month-end)
   check_issue_codes: true
 - id: is-re-days
   dashboard: returns
