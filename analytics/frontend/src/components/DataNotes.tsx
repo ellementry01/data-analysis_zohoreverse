@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Bell, ChevronDown, ChevronRight, Lightbulb, MessageSquareText, TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "../api/client";
 import { timeAgo } from "../lib/format";
-import { cx } from "./ui";
+import { cx, useDismiss } from "./ui";
 
 /** Phase 5 (backend routers/data_issues.py). */
 export interface IssueBrief {
@@ -102,11 +102,7 @@ export function NotificationsBell({ wsId }: { wsId: number }) {
   const box = useRef<HTMLDivElement>(null);
   const load = () => { api.get<{ unread: number; items: Note[] }>(`/workspaces/${wsId}/notifications`).then(setData).catch(() => setData(null)); };
   useEffect(() => { load(); const t = setInterval(load, 120000); return () => { clearInterval(t); }; }, [wsId]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const close = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", close);
-    return () => { document.removeEventListener("mousedown", close); };
-  }, []);
+  useDismiss(box, open, () => setOpen(false));
   if (!data) return null;
   const readAll = async () => { await api.post(`/workspaces/${wsId}/notifications/read`, {}); load(); };
   return (

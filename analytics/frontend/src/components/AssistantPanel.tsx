@@ -5,7 +5,7 @@ import { api, DashFilter, Dashboard, Widget } from "../api/client";
 import { timeAgo } from "../lib/format";
 import { Answer, ChatMessage, Msg, Step, StepList } from "./ChatMessage";
 import { MemoryItem, ProposalCard } from "./MemoryNotes";
-import { cx, Spinner, useAsync, useToast } from "./ui";
+import { cx, Spinner, useAsync, useDismiss, useToast } from "./ui";
 
 export interface DrillState { [widgetId: number]: { field: string; value: any }[] }
 
@@ -30,6 +30,9 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showThreads, setShowThreads] = useState(false);
+  const threadsBox = useRef<HTMLDivElement>(null);
+  const threadsBtn = useRef<HTMLButtonElement>(null);
+  useDismiss([threadsBox, threadsBtn], showThreads, () => setShowThreads(false));
   const [live, setLive] = useState<Step[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,14 +133,14 @@ export function AssistantPanel({ wsId, base, dash, filters, drill, focus, onClea
           <div className="text-[11px] text-slate-400">Knows this dashboard and what you're looking at</div>
         </div>
         {memory && <Link to={`${base}/memory`} title="What the assistant remembers" aria-label="Memory" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Brain className="h-4 w-4" /></Link>}
-        <button onClick={() => setShowThreads(!showThreads)} title="Past conversations" aria-label="Past conversations"
+        <button ref={threadsBtn} onClick={() => setShowThreads(!showThreads)} title="Past conversations" aria-label="Past conversations" aria-expanded={showThreads}
           className={cx("rounded p-1 hover:bg-slate-100", showThreads ? "text-brand-600" : "text-slate-500")}><History className="h-4 w-4" /></button>
         <button onClick={fresh} title="New conversation" aria-label="New conversation" className="rounded p-1 text-slate-500 hover:bg-slate-100"><MessageSquarePlus className="h-4 w-4" /></button>
         <button onClick={onClose} title="Close" aria-label="Close assistant" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>
       </div>
 
       {showThreads && (
-        <div className="max-h-64 overflow-y-auto border-b border-slate-200 bg-white px-2 py-2">
+        <div ref={threadsBox} className="max-h-64 overflow-y-auto border-b border-slate-200 bg-white px-2 py-2">
           {threads.loading && <div className="px-2 text-xs text-slate-400">Loading…</div>}
           {!threads.loading && (threads.data || []).length === 0 && <div className="px-2 text-xs text-slate-400">No past conversations on this dashboard yet.</div>}
           {(threads.data || []).map((t) => (

@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, RefObject, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Loader2, X } from "lucide-react";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -73,6 +73,22 @@ export function ErrorBox({ error }: { error: any }) {
       <span className="break-words">{String(error?.message || error)}</span>
     </div>
   );
+}
+
+/** Close a dropdown or popover when the user clicks or taps anywhere outside it, or presses Escape. Pass the button that
+ * opens it as a second ref when it sits outside the popover, so that clicking the button toggles instead of reopening. */
+export function useDismiss(ref: RefObject<HTMLElement> | RefObject<HTMLElement>[], open: boolean, onClose: () => void) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const refs = Array.isArray(ref) ? ref : [ref];
+    const outside = (e: Event) => { if (refs.every((r) => !r.current?.contains(e.target as Node))) close.current(); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); close.current(); } };
+    document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("keydown", key, true);
+    return () => { document.removeEventListener("pointerdown", outside, true); document.removeEventListener("keydown", key, true); };
+  }, [open, ref]);
 }
 
 export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
