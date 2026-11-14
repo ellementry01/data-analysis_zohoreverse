@@ -205,8 +205,9 @@ export function KpiCard({ res }: { res: QueryResult }) {
   const good = ch === null ? null : m.higher_is_better === false ? ch <= 0 : ch >= 0;   // e.g. a rising return rate is bad
   const up = ch !== null && ch >= 0;
   return (
-    <div className="flex h-full flex-col justify-center">
-      <div className="text-3xl font-semibold tracking-tight text-slate-900">{fmtNumber(v, m.format)}</div>
+    <div className="flex h-full flex-col justify-center" style={{ containerType: "inline-size" }}>
+      {/* shrinks with a narrow tile instead of breaking "₹3.86 Cr" over two lines */}
+      <div className="whitespace-nowrap font-semibold tracking-tight text-slate-900" style={{ fontSize: "clamp(1rem, 17cqw, 1.875rem)", lineHeight: 1.2 }}>{fmtNumber(v, m.format)}</div>
       {ch !== null && ch !== undefined && (
         <div className={cx("mt-1 flex items-center gap-1 text-xs font-medium", good ? "text-emerald-600" : "text-red-600")}>
           {up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}

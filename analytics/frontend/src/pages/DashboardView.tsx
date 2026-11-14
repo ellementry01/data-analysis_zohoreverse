@@ -9,7 +9,7 @@ import { Insights, IssueBrief, IssueStrip, TileIssueBadge, WorthALook } from "..
 import { ChartView, CHART_TYPES, PointClick } from "../components/Chart";
 import { exportPng } from "../components/ResultPanel";
 import { addToSpec, DateRangePicker, fieldMap, FieldList, fieldOptions, SpecShelves, withAliases } from "../components/SpecBuilder";
-import { Badge, Button, cx, ErrorBox, inputCls, Label, Modal, Select, Spinner, Tabs, useAsync, useToast } from "../components/ui";
+import { Badge, Button, cx, ErrorBox, inputCls, Label, Modal, Select, Spinner, Tabs, useAsync, useDismiss, useToast } from "../components/ui";
 import { describeRange, fmtDateLabel } from "../lib/format";
 import { useWs } from "./WorkspaceLayout";
 
@@ -179,20 +179,34 @@ export default function DashboardView() {
 
 function ValuesFilter({ wsId, dashId, filter, onChange }: { wsId: number; dashId: number; filter: DashFilter; onChange: (v: any[]) => void }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  useDismiss(box, open, () => { setOpen(false); setSearch(""); });
   const vals = useAsync(() => (open ? api.get<any[]>(`/workspaces/${wsId}/dashboards/${dashId}/values?field=${encodeURIComponent(filter.field)}`) : Promise.resolve([])), [open, filter.field]);
   const sel: any[] = filter.value || [];
+  const all = vals.data || [];
+  const shown = search ? all.filter((v) => String(v).toLowerCase().includes(search.toLowerCase())) : all;
+  const summary = !sel.length ? "All" : sel.length <= 2 ? sel.join(", ") : `${sel.length} selected`;
   return (
-    <div className="relative">
-      <button onClick={() => setOpen(!open)} className={cx(inputCls, "w-auto min-w-[120px] text-left")}>{sel.length ? sel.join(", ") : "All"}</button>
+    <div ref={box} className="relative">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} title={sel.join(", ") || undefined}
+        className={cx(inputCls, "w-auto min-w-[120px] max-w-[260px] truncate text-left")}>{summary}</button>
       {open && (
-        <div className="absolute z-30 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-          <div className="mb-1 flex justify-between text-xs"><button className="text-brand-600" onClick={() => onChange([])}>Clear</button><button onClick={() => setOpen(false)}><X className="h-3.5 w-3.5" /></button></div>
-          {vals.loading && <div className="text-xs text-slate-400">Loading…</div>}
-          {(vals.data || []).map((v) => (
-            <label key={String(v)} className="flex items-center gap-2 py-0.5 text-sm">
-              <input type="checkbox" checked={sel.includes(v)} onChange={(e) => onChange(e.target.checked ? [...sel, v] : sel.filter((x) => x !== v))} /> {String(v)}
-            </label>
-          ))}
+        <div className="absolute z-30 mt-1 w-64 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <button className="text-brand-600 disabled:text-slate-300" disabled={!sel.length} onClick={() => onChange([])}>Clear</button>
+            <button onClick={() => { setOpen(false); setSearch(""); }} aria-label="Close"><X className="h-3.5 w-3.5" /></button>
+          </div>
+          {all.length > 8 && <input autoFocus className={cx(inputCls, "mb-1 py-1 text-xs")} placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} />}
+          <div className="max-h-60 overflow-auto">
+            {vals.loading && <div className="text-xs text-slate-400">Loading…</div>}
+            {!vals.loading && shown.length === 0 && <div className="py-1 text-xs text-slate-400">{search ? "No match" : "No values"}</div>}
+            {shown.map((v) => (
+              <label key={String(v)} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-slate-50">
+                <input type="checkbox" checked={sel.includes(v)} onChange={(e) => onChange(e.target.checked ? [...sel, v] : sel.filter((x) => x !== v))} /> {String(v)}
+              </label>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -286,15 +300,17 @@ function WidgetCard({ w, dashId, filters, compare, tick, edit, onEdit, onRemove,
       .then((r) => api.download(`/workspaces/${ws.id}/query/export?format=xlsx`, r.applied_spec, `${w.title}.xlsx`));
   };
   return (
-    <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-card">
+    <div className="group relative flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-card">
       <div className={cx("flex items-center gap-1.5 border-b border-slate-100 px-3 py-1.5", edit && "drag-handle bg-slate-50")}>
         {edit && <GripHorizontal className="h-3.5 w-3.5 text-slate-400" />}
         {drill.length > 0 && <button onClick={() => setDrill(drill.slice(0, -1))} className="text-brand-600" title="Back"><ChevronLeft className="h-4 w-4" /></button>}
-        <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700" title={w.title}>
+        <div className={cx("min-w-0 flex-1 text-sm font-semibold text-slate-700", w.chart_type === "kpi" ? "line-clamp-2 leading-tight" : "truncate")} title={w.title}>
           {w.title}{drill.map((s, i) => <span key={i} className="font-normal text-brand-600"> › {s.label}</span>)}
         </div>
         <TileIssueBadge issues={issues} />
-        <div className="no-print flex items-center gap-0.5 text-slate-400">
+        {/* On screens with a mouse the tile's buttons float over the title only while hovered, so narrow tiles keep their full title */}
+        <div className={cx("no-print flex items-center gap-0.5 text-slate-400", !edit &&
+          "[@media(hover:hover)]:absolute [@media(hover:hover)]:right-1.5 [@media(hover:hover)]:top-1 [@media(hover:hover)]:rounded [@media(hover:hover)]:bg-white [@media(hover:hover)]:px-1 [@media(hover:hover)]:py-0.5 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:shadow-sm group-hover:opacity-100 focus-within:opacity-100")}>
           {!["kpi", "table", "pivot"].includes(w.chart_type) && <button onClick={() => exportPng(chart.current, w.title)} title="Download PNG" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Image className="h-3.5 w-3.5" /></button>}
           <button onClick={csv} title="Export data to Excel" className="rounded p-0.5 hover:bg-slate-100 hover:text-slate-700"><Download className="h-3.5 w-3.5" /></button>
           {onAsk && !edit && <button onClick={onAsk} title="Ask about this" aria-label={`Ask about ${w.title}`} className="rounded p-0.5 hover:bg-slate-100 hover:text-brand-600"><MessageSquareText className="h-3.5 w-3.5" /></button>}
