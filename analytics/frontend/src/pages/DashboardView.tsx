@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import GridLayout, { Layout, WidthProvider } from "react-grid-layout";
 import type * as echarts from "echarts";
-import { ArrowLeft, ChevronLeft, Copy, Download, Filter, GripHorizontal, Image, LayoutTemplate, Maximize2, MessageSquareText, Pencil, Plus, Printer, RefreshCw, Settings2, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ClipboardCheck, Copy, Download, Filter, GripHorizontal, Image, LayoutTemplate, Maximize2, MessageSquareText, Pencil, Plus, Printer, RefreshCw, Settings2, Trash2, X } from "lucide-react";
 import { api, Dashboard, DashFilter, emptySpec, QueryResult, QuerySpec, Report, SpecFilter, Widget } from "../api/client";
 import { AssistantPanel, DrillState } from "../components/AssistantPanel";
 import { Insights, IssueBrief, IssueStrip, TileIssueBadge, WorthALook } from "../components/DataNotes";
@@ -16,6 +16,12 @@ import { useWs } from "./WorkspaceLayout";
 const Grid = WidthProvider(GridLayout);
 
 interface DrillStep { label: string; filters: SpecFilter[]; dimension?: any; time_range?: any }
+
+/** Buttons that open a companion dashboard, found by its stable key (ids change when a dashboard is rebuilt). */
+const RELATED: Record<string, { key: string; label: string; back?: boolean }> = {
+  stock: { key: "stock-availability", label: "Check availability" },
+  "stock-availability": { key: "stock", label: "Stock", back: true },
+};
 
 export default function DashboardView() {
   const { dashId } = useParams();
@@ -48,6 +54,9 @@ export default function DashboardView() {
   const [full, setFull] = useState<Widget | null>(null);
   const layoutTimer = useRef<any>(null);
   const d = q.data;
+  const related = d?.key ? RELATED[d.key] : undefined;
+  const relatedQ = useAsync(() => (related ? api.get<Dashboard[]>(`/workspaces/${ws.id}/dashboards`) : Promise.resolve([] as Dashboard[])), [ws.id, related?.key]);
+  const relatedId = related && (relatedQ.data || []).find((x) => x.key === related.key)?.id;
 
   useEffect(() => {
     if (d) setFilterValues(Object.fromEntries(d.filters.map((f) => [f.id, f.value])));
@@ -104,6 +113,13 @@ export default function DashboardView() {
         ) : <h1 className="text-xl font-semibold text-slate-900">{d.name}</h1>}
         {d.is_template && <Badge tone="violet">template</Badge>}
         <div className="ml-auto flex flex-wrap gap-2">
+          {related && relatedId && !edit && (
+            <Link to={`${base}/dashboards/${relatedId}`} title={related.back ? `Back to the ${related.label} dashboard` : "Compare each product's stock with its ideal stock"}
+              className={cx("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+                related.back ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" : "bg-brand-600 text-white hover:bg-brand-700")}>
+              {related.back ? <ArrowLeft className="h-3.5 w-3.5" /> : <ClipboardCheck className="h-3.5 w-3.5" />} {related.label}
+            </Link>
+          )}
           {chatAvailable && <Button size="sm" variant={chatOpen ? "primary" : "secondary"} onClick={() => setChatOpen(!chatOpen)} title="Ask the dashboard's assistant"><MessageSquareText className="h-3.5 w-3.5" /> Ask</Button>}
           <Button size="sm" onClick={() => setTick((t) => t + 1)} title="Refresh data"><RefreshCw className="h-3.5 w-3.5" /></Button>
           <Button size="sm" onClick={() => window.print()} title="Print or save as PDF"><Printer className="h-3.5 w-3.5" /> PDF</Button>

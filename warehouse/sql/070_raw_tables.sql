@@ -1263,6 +1263,44 @@ COMMENT ON COLUMN raw.product_master.prod_name IS 'Source header: Prod Name';
 COMMENT ON COLUMN raw.product_master.prod_type IS 'Source header: Prod Type';
 COMMENT ON COLUMN raw.product_master.unit IS 'Source header: Unit';
 
+-- SKU_PLANNING_MASTER
+CREATE TABLE raw.sku_planning_master (
+    batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),
+    source_row_number  INTEGER NOT NULL,
+    sku                                      TEXT,
+    product_name                             TEXT,
+    list_group                               TEXT,
+    top_40                                   TEXT,
+    grade                                    TEXT,
+    amazon_now                               TEXT,
+    instamart                                TEXT,
+    launch_date                              TEXT,
+    replacement_sku                          TEXT,
+    factory                                  TEXT,
+    moq                                      TEXT,
+    mlt_days                                 TEXT,
+    po_pending                               TEXT,
+    po_delivery_date                         TEXT,
+    warehouse_stock                          TEXT,
+    PRIMARY KEY (batch_id, source_row_number)
+);
+COMMENT ON TABLE raw.sku_planning_master IS 'As received from SKU_PLANNING_MASTER. Contract: loader/contracts/SKU_PLANNING_MASTER.json';
+COMMENT ON COLUMN raw.sku_planning_master.sku IS 'Source header: SKU';
+COMMENT ON COLUMN raw.sku_planning_master.product_name IS 'Source header: Product Name';
+COMMENT ON COLUMN raw.sku_planning_master.list_group IS 'Source header: List Group';
+COMMENT ON COLUMN raw.sku_planning_master.top_40 IS 'Source header: Top 40';
+COMMENT ON COLUMN raw.sku_planning_master.grade IS 'Source header: Grade';
+COMMENT ON COLUMN raw.sku_planning_master.amazon_now IS 'Source header: Amazon Now';
+COMMENT ON COLUMN raw.sku_planning_master.instamart IS 'Source header: Instamart';
+COMMENT ON COLUMN raw.sku_planning_master.launch_date IS 'Source header: Launch Date';
+COMMENT ON COLUMN raw.sku_planning_master.replacement_sku IS 'Source header: Replacement SKU';
+COMMENT ON COLUMN raw.sku_planning_master.factory IS 'Source header: Factory';
+COMMENT ON COLUMN raw.sku_planning_master.moq IS 'Source header: MOQ';
+COMMENT ON COLUMN raw.sku_planning_master.mlt_days IS 'Source header: MLT Days';
+COMMENT ON COLUMN raw.sku_planning_master.po_pending IS 'Source header: PO Pending';
+COMMENT ON COLUMN raw.sku_planning_master.po_delivery_date IS 'Source header: PO Delivery Date';
+COMMENT ON COLUMN raw.sku_planning_master.warehouse_stock IS 'Source header: Warehouse Stock';
+
 -- WMS_DISPATCH
 CREATE TABLE raw.wms_dispatch (
     batch_id           BIGINT  NOT NULL REFERENCES meta.load_batch (batch_id),

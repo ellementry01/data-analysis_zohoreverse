@@ -16,6 +16,7 @@ DELETE FROM core.fact_sales_line;
 DELETE FROM core.fact_stock_transfer_line;
 DELETE FROM core.fact_return_reason_line;
 DELETE FROM core.fact_erp_document_movement;
+DELETE FROM core.dim_product_planning;
 DELETE FROM core.fact_grn_line;
 DELETE FROM core.fact_partner_sellout;
 DELETE FROM core.fact_inventory_snapshot;
@@ -412,3 +413,13 @@ LEFT JOIN ref.code_mapping cm ON cm.domain = 'ERP_DOCUMENT_COVERAGE' AND cm.sour
 WHERE s.quantity <> 0
   AND s.batch_id = (SELECT max(x.batch_id) FROM stg.erp_doc_stock_movement x
                     WHERE x.period_from >= (SELECT period_start FROM ctx) AND x.period_to <= (SELECT period_end FROM ctx));
+
+-- --------------------------------------------------------------------- 2.18 planning fields per product (team reorder sheet)
+INSERT INTO core.dim_product_planning (as_of_date, product_key, source_sku_code, list_group, is_top_40, grade, on_amazon_now,
+    on_instamart, launch_date, replacement_sku_code, factory_name, moq, mlt_days, mlt_as_written, sheet_po_pending_qty,
+    sheet_po_delivery_date, sheet_warehouse_stock, batch_id, source_row_number)
+SELECT s.as_of_date, coalesce(p.product_key, -1), s.source_sku_code, s.list_group, s.is_top_40, s.grade, s.on_amazon_now,
+       s.on_instamart, s.launch_date, s.replacement_sku_code, s.factory_name, s.moq, s.mlt_days, s.mlt_as_written,
+       s.sheet_po_pending_qty, s.sheet_po_delivery_date, s.sheet_warehouse_stock, s.batch_id, s.source_row_number
+FROM stg.sku_planning_master s
+LEFT JOIN core.dim_product p ON p.sku_code = s.sku_code;

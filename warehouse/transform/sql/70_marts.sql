@@ -441,3 +441,102 @@ JOIN core.dim_channel c ON c.channel_key = f.channel_key
 JOIN core.dim_product p ON p.product_key = f.product_key
 LEFT JOIN ref.code_mapping gr ON gr.domain = 'RETURN_REASON_GROUP' AND gr.source_name = f.source_name AND gr.source_value = f.reason_code
 LEFT JOIN ref.code_mapping lb ON lb.domain = 'RETURN_REASON_LABEL' AND lb.source_name = f.source_name AND lb.source_value = f.reason_code;
+
+-- 2.18 Stock availability (owner, 14 Nov 2026): for every continued trading product, the stock it should have (ideal)
+-- against what it has. ideal = daily sales x (MLT + transit and buffer days); daily sales = units sold in the sales window
+-- (every channel except availability.excluded_channels) / the days the product was on sale in that window (at least 30);
+-- what we have = sellable stock at the goods-receipt warehouse + pending on open purchase orders; reorder = the shortfall
+-- rounded up to the MOQ. Planning fields come from the newest team reorder sheet; settings from meta.pipeline_setting.
+DROP VIEW IF EXISTS mart.v_stock_availability;
+CREATE VIEW mart.v_stock_availability AS
+WITH st AS (
+    SELECT max(setting_value) FILTER (WHERE setting_key = 'availability.transit_buffer_days')::INTEGER AS buffer_days,
+           max(setting_value) FILTER (WHERE setting_key = 'availability.default_mlt_days')::INTEGER AS default_mlt,
+           max(setting_value) FILTER (WHERE setting_key = 'availability.sales_window_days')::INTEGER AS window_days,
+           string_to_array(replace(max(setting_value) FILTER (WHERE setting_key = 'availability.excluded_channels'), ' ', ''), ',') AS excluded,
+           max(setting_value) FILTER (WHERE setting_key = 'availability.overstock_multiple')::NUMERIC AS overstock,
+           max(setting_value) FILTER (WHERE setting_key = 'goods_receipt_location') AS warehouse
+    FROM meta.pipeline_setting),
+period AS (SELECT period_end FROM meta.transform_run WHERE status = 'SUCCEEDED' ORDER BY transform_run_id DESC LIMIT 1),
+sheet AS (SELECT max(as_of_date) AS as_of_date FROM core.dim_product_planning WHERE product_key <> -1),
+plan AS (SELECT DISTINCT ON (f.product_key) f.* FROM core.dim_product_planning f JOIN sheet s USING (as_of_date)
+         WHERE f.product_key <> -1 ORDER BY f.product_key, f.batch_id DESC),
+lines AS (
+    SELECT s.product_key, d.calendar_date, s.quantity, (c.channel_code::TEXT = ANY (st.excluded)) AS is_excluded
+    FROM core.fact_sales_line s
+    CROSS JOIN st
+    JOIN core.dim_date d ON d.date_key = s.bill_date_key
+    JOIN core.dim_channel c ON c.channel_key = s.channel_key
+    JOIN core.dim_partner pt ON pt.partner_key = s.partner_key
+    WHERE NOT pt.is_internal AND d.calendar_date <= (SELECT period_end FROM period)),
+sold AS (
+    SELECT product_key, min(calendar_date) FILTER (WHERE NOT is_excluded) AS first_sale_date,
+           sum(quantity) FILTER (WHERE NOT is_excluded AND calendar_date > (SELECT period_end FROM period) - (SELECT window_days FROM st)) AS units,
+           sum(quantity) FILTER (WHERE is_excluded AND calendar_date > (SELECT period_end FROM period) - (SELECT window_days FROM st)) AS units_excluded
+    FROM lines GROUP BY product_key),
+stock AS (
+    SELECT sku_code, sum(sellable_qty) FILTER (WHERE location_code = (SELECT warehouse FROM st)) AS warehouse_qty,
+           sum(sellable_qty) FILTER (WHERE location_code <> (SELECT warehouse FROM st)) AS elsewhere_qty
+    FROM mart.v_stock_position_latest WHERE is_sellable_stock GROUP BY sku_code),
+stock_date AS (SELECT max(as_of_date) AS as_of_date FROM mart.v_stock_position_latest WHERE location_code = (SELECT warehouse FROM st)),
+po AS (
+    SELECT sku_code, sum(pending_qty) AS pending_qty, sum(pending_qty) FILTER (WHERE due_status LIKE 'Overdue%') AS overdue_qty,
+           count(DISTINCT po_number) AS open_po_count, max(as_of_date) AS as_of_date
+    FROM mart.v_open_purchase_orders GROUP BY sku_code),
+base AS (
+    SELECT p.product_key, p.sku_code, p.product_name, p.category, p.sub_category, p.current_cost,
+           pl.factory_name, pl.grade, coalesce(pl.is_top_40, FALSE) AS is_top_40, pl.list_group, pl.replacement_sku_code,
+           pl.moq, pl.mlt_days AS mlt_days_in_sheet, coalesce(pl.mlt_days, st.default_mlt) AS mlt_days,
+           (pl.mlt_days IS NULL) AS mlt_is_default, st.buffer_days AS transit_buffer_days,
+           coalesce(pl.mlt_days, st.default_mlt) + st.buffer_days AS target_days,
+           (pl.product_key IS NOT NULL) AS in_planning_sheet, (SELECT as_of_date FROM sheet) AS planning_sheet_date,
+           coalesce(so.units, 0) AS units_sold_in_window, coalesce(so.units_excluded, 0) AS units_sold_bulk_excluded,
+           greatest((SELECT period_end FROM period) - (SELECT window_days FROM st) + 1, coalesce(so.first_sale_date, (SELECT period_end FROM period))) AS sales_from,
+           (SELECT period_end FROM period) AS sales_to,
+           greatest(30, least(st.window_days, (SELECT period_end FROM period) - coalesce(so.first_sale_date, (SELECT period_end FROM period) - st.window_days + 1) + 1)) AS sales_days,
+           coalesce(sk.warehouse_qty, 0) AS stock_qty, coalesce(sk.elsewhere_qty, 0) AS stock_elsewhere_qty, (SELECT as_of_date FROM stock_date) AS stock_as_of,
+           coalesce(po.pending_qty, 0) AS on_order_qty, coalesce(po.overdue_qty, 0) AS on_order_overdue_qty,
+           coalesce(po.open_po_count, 0) AS open_po_count, po.as_of_date AS orders_as_of,
+           pl.sheet_po_pending_qty, pl.sheet_warehouse_stock, st.overstock
+    FROM core.dim_product p
+    CROSS JOIN st
+    LEFT JOIN plan pl ON pl.product_key = p.product_key
+    LEFT JOIN sold so ON so.product_key = p.product_key
+    LEFT JOIN stock sk ON sk.sku_code = p.sku_code
+    LEFT JOIN po ON po.sku_code = p.sku_code
+    WHERE p.lifecycle_status = 'CONTINUED' AND p.item_type = 'TRADING' AND NOT p.is_unknown_member),
+calc AS (
+    SELECT b.*, round(b.units_sold_in_window / b.sales_days, 3) AS daily_sales,
+           ceil(b.units_sold_in_window / b.sales_days * b.target_days) AS ideal_qty,
+           b.stock_qty + b.on_order_qty AS available_qty
+    FROM base b)
+SELECT c.sku_code, c.product_name, c.category, c.sub_category, c.factory_name, c.grade, c.is_top_40, c.list_group,
+       c.replacement_sku_code, c.in_planning_sheet, c.planning_sheet_date,
+       c.units_sold_in_window, c.units_sold_bulk_excluded, c.sales_from, c.sales_to, c.sales_days, c.daily_sales,
+       round(c.daily_sales * 30, 1) AS monthly_sales,
+       c.mlt_days, c.mlt_days_in_sheet, c.mlt_is_default, c.transit_buffer_days, c.target_days, c.moq,
+       c.ideal_qty, c.stock_qty, c.on_order_qty, c.on_order_overdue_qty, c.open_po_count, c.available_qty, c.stock_elsewhere_qty,
+       greatest(c.ideal_qty - c.available_qty, 0) AS shortfall_qty,
+       CASE WHEN c.ideal_qty - c.available_qty <= 0 THEN 0
+            WHEN coalesce(c.moq, 0) > 0 THEN ceil((c.ideal_qty - c.available_qty) / c.moq) * c.moq
+            ELSE c.ideal_qty - c.available_qty END AS reorder_qty,
+       round(CASE WHEN c.ideal_qty - c.available_qty <= 0 THEN 0
+            WHEN coalesce(c.moq, 0) > 0 THEN ceil((c.ideal_qty - c.available_qty) / c.moq) * c.moq
+            ELSE c.ideal_qty - c.available_qty END * c.current_cost, 2) AS reorder_value_cost,
+       c.current_cost AS unit_cost,
+       round(c.ideal_qty * c.current_cost, 2) AS ideal_value_cost, round(c.stock_qty * c.current_cost, 2) AS stock_value_cost,
+       CASE WHEN c.daily_sales > 0 THEN round(c.stock_qty / c.daily_sales, 1) END AS days_of_stock,
+       CASE WHEN c.daily_sales > 0 THEN round(c.available_qty / c.daily_sales, 1) END AS days_with_orders,
+       -- a large MOQ on a slow seller buys far more than the ideal: how many days the stock lasts once the reorder arrives
+       CASE WHEN c.daily_sales > 0 AND c.ideal_qty > c.available_qty
+            THEN round((c.available_qty + CASE WHEN coalesce(c.moq, 0) > 0 THEN ceil((c.ideal_qty - c.available_qty) / c.moq) * c.moq
+                                               ELSE c.ideal_qty - c.available_qty END) / c.daily_sales) END AS days_covered_after_reorder,
+       (c.stock_qty <= 0) AS is_out_of_stock,
+       CASE WHEN c.daily_sales = 0 THEN '5. No recent sales'
+            WHEN c.available_qty < c.ideal_qty THEN '1. Reorder now'
+            WHEN c.stock_qty < c.ideal_qty THEN '2. Covered by open orders'
+            WHEN c.available_qty > c.overstock * c.ideal_qty THEN '4. Too much stock'
+            ELSE '3. OK' END AS availability_status,
+       c.stock_as_of, c.orders_as_of, c.sheet_po_pending_qty, c.sheet_warehouse_stock,
+       c.on_order_qty - c.sheet_po_pending_qty AS on_order_minus_sheet
+FROM calc c;

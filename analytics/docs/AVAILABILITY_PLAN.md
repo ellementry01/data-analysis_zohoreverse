@@ -2,7 +2,7 @@
 
 **Goal.** For every product we keep selling, show the stock we have, the stock we should have (the "ideal"), and how much to reorder when we are below the ideal. A **Check availability** button on the Stock dashboard opens this comparison.
 
-Status: **plan agreed by the owner on 14 Nov 2026 (section 6), nothing built yet.**
+Status: **building stopped by the owner on 14 Nov 2026: changes to the plan are coming. What exists is listed in section 7.**
 
 ## 1. The rule in plain words
 
@@ -99,3 +99,49 @@ A flat 60 days instead of MLT + 15 gives 5 to 10 fewer products below ideal.
 4. **Stock and open orders:** from the ERP exports in the warehouse, so the figures match the Stock dashboard. The sheet's "PO PENDING" column is loaded as well and used as a cross-check: a data check lists products where the sheet and the ERP disagree on what is still to arrive (75,894 units in the sheet, 103,732 in the ERP's open purchase orders today; old orders that will never arrive should be closed in the ERP).
 
 **Needed from the team:** a November stock report and purchase order report from the ERP (the same reports as every month). Until they are loaded the screen shows stock as of 15 Sep 2026 and says so.
+
+## 7. Where the work stopped (14 Nov 2026, about 15:45)
+
+The owner stopped the build to change the plan. Everything below is on the branch `stock-availability` (committed, not merged, not pushed).
+
+**Done and checked on the trial copy (`ellementry_dw_trial`, a restore of today's backup):**
+- **Sheet loader:** `warehouse/loader/normalise_planning_master.py` keeps the 15 planning columns of the reorder sheet and drops prices, costs and margins. The 12 Nov sheet becomes `exports/master/SKU_PLANNING_MASTER__2026-11-12.csv` (485 products); the original is kept in `exports/_originals/planning_2026-11-12/` (not in git). Contract `warehouse/loader/contracts/SKU_PLANNING_MASTER.json`.
+- **Migration** `warehouse/sql/260_stock_availability.sql` (schema 2.18): source registry row, raw table, `core.dim_product_planning`, and five settings (`availability.transit_buffer_days` 15, `default_mlt_days` 45, `sales_window_days` 365, `excluded_channels` B2B, EXPORT_DIRECT, EXPORT_VIA_DILEEP and #UNKNOWN, `overstock_multiple` 3).
+- **Transform:**
+  - staging `stg.sku_planning_master`
+  - core load into `dim_product_planning`
+  - data checks: `planning_rows_reconcile` (ERROR); `planning_unknown_product`, `planning_missing_mlt_or_moq` (15 products today) and `continued_product_not_in_planning_sheet` (WARN)
+  - view `mart.v_stock_availability`: one row per continued trading product with ideal stock, stock, on order, shortfall, MOQ-rounded reorder, status, and days after reorder
+- **Trial result** (stock 15 Sep 2026, open orders 26 Sep 2026, 472 products):
+
+  | Status | Products |
+  |---|---|
+  | Reorder now | 108 (14,774 units, Rs 87.66 L at cost) |
+  | Covered by open orders | 100 |
+  | OK | 60 |
+  | Too much stock | 202 |
+  | No recent sales | 2 |
+
+  For 78 products the MOQ buys more than a year of stock. Three products were recomputed by hand and matched exactly.
+- **Tests:** `warehouse/tests/test_stock_availability.py` has 3 sheet tests and 3 view-rule tests. They pass on the trial copy (11 passed, together with the 2.17 normaliser tests).
+
+**App, written but not run:**
+- `configure_warehouse_workspace.py`: dataset `stock_availability` and six metrics: `products_to_reorder`, `reorder_units`, `reorder_value_cost`, `ideal_stock_units`, `availability_products`, `products_out_at_bagru`.
+- `build_executive_dashboards.py`: a new "Stock availability" dashboard (key `stock-availability`) and an `--only` option, so that one dashboard can be built without touching the others.
+- `frontend/src/pages/DashboardView.tsx`: a **Check availability** button on the Stock dashboard and a back button on the new one, both found by dashboard key. The frontend type-check passes; the app has not been rebuilt.
+
+**Live warehouse (`ellementry_dw`), left in a safe half-way state:**
+- Backup taken first: `backups/ellementry_dw_2026-11-14_1453.dump`.
+- Migration 260 is applied: schema 2.18, the new empty table and the settings.
+- The sheet is loaded as batch 91, and `exports/MANIFEST.tsv` has its line.
+- The rebuild was stopped and cancelled, so it rolled back. The last successful build is still run 17 of 12 Nov. `mart.v_stock_availability` does not exist on live, and nothing the app reads has changed.
+- To undo the half-way state, restore the backup above.
+
+**Not done:** live rebuild, reconcile and agents; app dataset, metrics and dashboard in workspace 34; app rebuild; browser check; app tests; docs 01, 08, 09 and the warehouse README.
+
+**To resume after the plan changes:**
+1. Edit the plan and the code on this branch.
+2. Rebuild the trial copy and rerun `tests/test_stock_availability.py`.
+3. Run `python dw.py transform run`, `reconcile.py` and `dw.py agents run all` on live.
+4. Run `configure_warehouse_workspace.py` and then `build_executive_dashboards.py --only "Stock availability"`.
+5. Run `docker compose up -d --build app`.

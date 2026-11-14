@@ -32,7 +32,9 @@ IMPORTS = [("v_purchase_order_lines", "purchase_order_lines"),     # 2.4: every 
            ("v_agent_rules", "agent_rules"),                       # 2.16: the alert rules and their current thresholds
            ("v_agent_runs", "agent_runs"),                         # 2.16: agent runs (succeeded / failed)
            # 2.17: per product, stock that moved with no document vs the ERP documents no export carries
-           ("v_unexplained_stock_by_document", "unexplained_stock_by_document")]
+           ("v_unexplained_stock_by_document", "unexplained_stock_by_document"),
+           # 2.18: per continued product, ideal stock (daily sales x (MLT + 15)) against stock + open orders, and the reorder
+           ("v_stock_availability", "stock_availability")]
 B2C_EXPORT = "WHEN channel_code = 'EXPORT_B2C' THEN 'B2C export' "
 LABEL_COLUMNS = [
     ("fulfilment", "Order status",
@@ -188,6 +190,35 @@ def main() -> int:
          "description": SRC + " (2.17). The stock gap left after the ERP's scrap, adjustment, sub-contractor and supplier-return "
                               "documents.",
          "synonyms": ["remaining stock gap", "still unexplained stock"], "format": "number", "higher_is_better": False},
+        {"name": "products_to_reorder", "label": "Products to reorder", "dataset_id": ds("stock_availability"),
+         "expression": "COUNT(DISTINCT CASE WHEN availability_status = '1. Reorder now' THEN sku_code END)", "filters": [],
+         "description": SRC + " (2.18). Continued products whose stock at Bagru plus open purchase orders is below the ideal "
+                              "stock: daily sales (last 12 months, every channel except B2B and export bulk orders) x (the "
+                              "product's MLT from the team reorder sheet + 15 days transit and buffer).",
+         "synonyms": ["below ideal stock", "reorder needed", "products below reorder level", "availability"],
+         "format": "number", "higher_is_better": False},
+        {"name": "reorder_units", "label": "Units to reorder (MOQ-rounded)", "dataset_id": ds("stock_availability"),
+         "expression": "SUM(reorder_qty)", "filters": [],
+         "description": SRC + " (2.18). Ideal stock minus (stock at Bagru + open purchase orders), rounded up to the "
+                              "factory's MOQ; 0 for products at or above the ideal.",
+         "synonyms": ["reorder quantity", "how much to order", "order quantity"], "format": "number", "higher_is_better": False},
+        {"name": "reorder_value_cost", "label": "Reorder value at cost", "dataset_id": ds("stock_availability"),
+         "expression": "SUM(reorder_value_cost)", "filters": [],
+         "description": SRC + " (2.18). Units to reorder x unit cost from the ERP item master, excluding GST.",
+         "synonyms": ["reorder value", "cost of reorder"], "format": "currency", "higher_is_better": False},
+        {"name": "ideal_stock_units", "label": "Ideal stock (units)", "dataset_id": ds("stock_availability"),
+         "expression": "SUM(ideal_qty)", "filters": [],
+         "description": SRC + " (2.18). Daily sales x (MLT + 15 days) per continued product: the least stock to hold so a "
+                              "new order arrives before it runs out.",
+         "synonyms": ["ideal stock", "required stock", "target stock", "minimum stock"], "format": "number", "higher_is_better": True},
+        {"name": "availability_products", "label": "Products checked for availability", "dataset_id": ds("stock_availability"),
+         "expression": "COUNT(DISTINCT sku_code)", "filters": [],
+         "description": SRC + " (2.18). Continued trading products in the availability check.",
+         "synonyms": ["continued products checked"], "format": "number", "higher_is_better": True},
+        {"name": "products_out_at_bagru", "label": "Continued products out of stock at Bagru", "dataset_id": ds("stock_availability"),
+         "expression": "COUNT(DISTINCT CASE WHEN is_out_of_stock THEN sku_code END)", "filters": [],
+         "description": SRC + " (2.18). Continued products with no sellable stock at the Bagru warehouse on the latest stock report.",
+         "synonyms": ["out of stock at warehouse", "zero stock at bagru"], "format": "number", "higher_is_better": False},
         {"name": "dq_failed_checks", "label": "Quality checks flagging rows", "dataset_id": ds("data_quality_latest"),
          "expression": "SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END)", "filters": [],
          "description": SRC + ". Checks of the latest build that flag at least one row (warnings: known gaps).",

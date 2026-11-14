@@ -1,8 +1,11 @@
 """
 Builds the executive dashboards of the prototype in a workspace connected to the Ellementry warehouse, through the
-public API (the same calls the UI makes). Re-runnable: dashboards with these names are replaced.
+public API (the same calls the UI makes). Re-runnable: dashboards with these names are replaced (new ids).
 
-    python scripts/build_executive_dashboards.py [--base http://localhost:8000] [--workspace 34]
+    python scripts/build_executive_dashboards.py [--base http://localhost:8000] [--workspace 34] [--only NAME ...]
+
+Use --only to add or rebuild single dashboards: Stock (195) and Fulfilment (196) are shown to management and must keep
+their ids, so never rebuild them; update their widgets in place with update_dashboard_widgets.py.
 
 Needs, in that workspace: the warehouse datasets (net_sales_daily, sales_orders_daily, returns_daily, returns_to_sale,
 stock_position_latest, fulfilment, open_purchase_orders, purchase_order_lines, transfer_in_transit), their calculated label
@@ -54,6 +57,18 @@ RENAMED_FROM = {
 # BR-031 confirmed (warehouse 2.10): the warehouse already leaves return-inward lines out; the filter is a safety net
 PURCHASE_PO = {"field": "open_purchase_orders.document_type", "op": "eq", "value": "PURCHASE"}
 PURCHASE_LT = {"field": "supplier_lead_time.document_type", "op": "eq", "value": "PURCHASE"}
+# Stock availability (warehouse 2.18)
+REORDER = {"field": "stock_availability.availability_status", "op": "eq", "value": "1. Reorder now"}
+
+
+def av_count(label, alias, filters=None):
+    return {"measures": [{"field": "stock_availability.sku_code", "agg": "count_distinct", "alias": alias, "label": label}],
+            "filters": filters or []}
+
+
+def av_cols(*cols):
+    """Row-level columns of the availability table: one product per row, so each sum is that product's own figure."""
+    return [{"field": f"stock_availability.{c}", "agg": "sum", "alias": c, "label": label} for c, label in cols]
 
 
 def kpi(title, metric, x, y, w=2, compare="previous_year", filters=None):
@@ -86,6 +101,7 @@ DASHBOARD_META = {
     "Days of cover": ("days-of-cover", "stock"),
     "Instamart": ("instamart", "sales"),
     "Data health": ("data-health", "data"),
+    "Stock availability": ("stock-availability", "stock"),
 }
 
 DASHBOARDS = [
@@ -379,6 +395,52 @@ DASHBOARDS = [
                           {"field": "load_batches.as_of_date", "agg": "max", "alias": "latest", "label": "Latest as-of date"}],
              "filters": [{"field": "load_batches.status", "op": "eq", "value": "LOADED"}],
              "sort": [{"field": "files", "dir": "desc"}], "limit": 30}, 7, 10, 5, 8)]),
+
+    ("Stock availability",
+     "Is there enough stock of each product we keep selling? Ideal stock = daily sales x (the product's manufacturing lead "
+     "time (MLT) + 15 days for transit and buffer). Daily sales = the last 12 months of sales up to 15 Sep 2026, every "
+     "channel except B2B and export bulk orders, divided by the days the product was on sale. What we have = sellable "
+     "stock at the Bagru warehouse (15 Sep 2026 stock report) + pending on open purchase orders (purchase order report of "
+     "26 Sep 2026). Reorder = the shortfall rounded up to the factory's MOQ. Factory, MOQ, MLT and grade come from the team "
+     "reorder sheet of 12 Nov 2026 (MLT 45 days when the sheet has none). Discontinued products are not reordered and are "
+     "left out. 'Covered by open orders' = stock alone is below the ideal but what is on order fills it. 'Too much stock' "
+     "= stock and orders above three times the ideal. 'Days after reorder' shows when a large MOQ buys far more than needed.",
+     [{"id": "factory", "type": "values", "label": "Factory", "field": "stock_availability.factory_name", "value": []},
+      {"id": "status", "type": "values", "label": "Status", "field": "stock_availability.availability_status", "value": []},
+      {"id": "grade", "type": "values", "label": "Grade", "field": "stock_availability.grade", "value": []},
+      {"id": "category", "type": "values", "label": "Category", "field": "stock_availability.category", "value": []}],
+     [("Products checked", "kpi", av_count("Products checked", "n"), {"x": 0, "y": 0, "w": 2, "h": 2}, {}),
+      kpi("Products to reorder", "products_to_reorder", 2, 0, compare=None),
+      ("Covered by open orders", "kpi",
+       av_count("Covered by open orders", "n", [{"field": "stock_availability.availability_status", "op": "eq", "value": "2. Covered by open orders"}]),
+       {"x": 4, "y": 0, "w": 2, "h": 2}, {}),
+      kpi("Units to reorder (MOQ-rounded)", "reorder_units", 6, 0, compare=None),
+      kpi("Reorder value at cost", "reorder_value_cost", 8, 0, compare=None),
+      kpi("Out of stock at Bagru", "products_out_at_bagru", 10, 0, compare=None),
+      chart("Products by availability", "donut",
+            {"dimensions": [{"field": "stock_availability.availability_status"}],
+             "measures": [{"field": "stock_availability.sku_code", "agg": "count_distinct", "alias": "n", "label": "Products"}]}, 0, 2, 4, 5),
+      chart("Units to reorder by factory", "hbar", top("stock_availability.factory_name", "reorder_units", 15, [REORDER]), 4, 2, 8, 5,
+            drill=["stock_availability.product_name"]),
+      chart("Reorder list", "table",
+            {"dimensions": [{"field": "stock_availability.sku_code", "label": "SKU"},
+                            {"field": "stock_availability.product_name", "label": "Product"},
+                            {"field": "stock_availability.factory_name", "label": "Factory"},
+                            {"field": "stock_availability.grade", "label": "Grade"}],
+             "measures": av_cols(("monthly_sales", "Sales per month"), ("target_days", "Days to cover (MLT + 15)"),
+                                 ("ideal_qty", "Ideal stock"), ("stock_qty", "Stock at Bagru"), ("on_order_qty", "On order"),
+                                 ("shortfall_qty", "Short by"), ("moq", "MOQ"), ("reorder_qty", "Reorder (MOQ)"),
+                                 ("reorder_value_cost", "Reorder value"), ("days_covered_after_reorder", "Days after reorder")),
+             "filters": [REORDER], "sort": [{"field": "reorder_value_cost", "dir": "desc"}], "limit": 500}, 0, 7, 12, 8),
+      chart("Every product: stock against ideal", "table",
+            {"dimensions": [{"field": "stock_availability.sku_code", "label": "SKU"},
+                            {"field": "stock_availability.product_name", "label": "Product"},
+                            {"field": "stock_availability.factory_name", "label": "Factory"},
+                            {"field": "stock_availability.availability_status", "label": "Status"}],
+             "measures": av_cols(("monthly_sales", "Sales per month"), ("ideal_qty", "Ideal stock"), ("stock_qty", "Stock at Bagru"),
+                                 ("on_order_qty", "On order"), ("days_of_stock", "Days of stock"),
+                                 ("days_with_orders", "Days incl. orders"), ("reorder_qty", "Reorder (MOQ)")),
+             "sort": [{"field": "availability_status", "dir": "asc"}], "limit": 1000}, 0, 15, 12, 9)]),
 ]
 
 
@@ -397,7 +459,11 @@ def _headers() -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://localhost:8000"); ap.add_argument("--workspace", type=int, default=34)
+    ap.add_argument("--only", nargs="+", metavar="NAME", help="build only these dashboards (the others keep their ids)")
     a = ap.parse_args()
+    unknown = [n for n in a.only or [] if n not in DASHBOARD_META]
+    if unknown:
+        print(f"unknown dashboard(s): {unknown}"); return 2
     base = f"{a.base}/api/workspaces/{a.workspace}"
 
     def call(method, path, body=None):
@@ -414,6 +480,8 @@ def main() -> int:
     by_name = {d["name"]: d["id"] for d in live}
     failures = 0
     for name, desc, filters, widgets in DASHBOARDS:
+        if a.only and name not in a.only:
+            continue
         key, domain = DASHBOARD_META[name]
         old = by_key.get(key) or by_name.get(name)
         if old:

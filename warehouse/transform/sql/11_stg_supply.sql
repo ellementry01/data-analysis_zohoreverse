@@ -153,3 +153,23 @@ SELECT batch_id, source_row_number, btrim(period_from)::DATE AS period_from, btr
        btrim(product_no) AS source_sku_code, stg.sku(product_no) AS sku_code, btrim(document_type) AS document_type,
        stg.num(quantity) AS quantity, stg.num(value) AS value_amount
 FROM src WHERE batch_id = latest_batch AND upper(btrim(document_type)) NOT IN ('OPENING', 'CLOSING');
+
+-- Team reorder sheet (2.18, SKU_PLANNING_MASTER): planning fields per product for the sheet date (--as-of). The newest
+-- load of a sheet date wins. MOQ 0 or empty = none; MLT that is not a whole number of days (e.g. 'NOT') = none.
+DROP TABLE IF EXISTS stg.sku_planning_master;
+CREATE TABLE stg.sku_planning_master AS
+WITH src AS (
+    SELECT r.*, b.as_of_date, max(r.batch_id) OVER (PARTITION BY b.as_of_date) AS latest_batch
+    FROM raw.sku_planning_master r JOIN meta.load_batch b ON b.batch_id = r.batch_id AND b.status = 'LOADED')
+SELECT batch_id, source_row_number, as_of_date, btrim(sku) AS source_sku_code, stg.sku(sku) AS sku_code,
+       nullif(btrim(list_group), '') AS list_group, nullif(btrim(top_40), '') IS NOT NULL AS is_top_40,
+       upper(nullif(btrim(grade), '')) AS grade,
+       coalesce(lower(btrim(amazon_now)) = 'yes', FALSE) AS on_amazon_now, coalesce(lower(btrim(instamart)) = 'yes', FALSE) AS on_instamart,
+       stg.any_date(launch_date) AS launch_date, stg.sku(replacement_sku) AS replacement_sku_code,
+       nullif(btrim(factory), '') AS factory_name,
+       CASE WHEN stg.num(moq) > 0 THEN round(stg.num(moq))::INTEGER END AS moq,
+       CASE WHEN btrim(mlt_days) ~ '^[0-9]+(\.0+)?$' AND stg.num(mlt_days) > 0 THEN stg.num(mlt_days)::INTEGER END AS mlt_days,
+       nullif(btrim(mlt_days), '') AS mlt_as_written,
+       stg.num(po_pending) AS sheet_po_pending_qty, stg.any_date(po_delivery_date) AS sheet_po_delivery_date,
+       stg.num(warehouse_stock) AS sheet_warehouse_stock
+FROM src WHERE batch_id = latest_batch AND stg.sku(sku) IS NOT NULL;

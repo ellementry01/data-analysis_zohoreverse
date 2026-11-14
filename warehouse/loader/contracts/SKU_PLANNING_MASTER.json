@@ -1,0 +1,78 @@
+{
+  "source_name": "SKU_PLANNING_MASTER",
+  "status": "verified",
+  "verified_against": "SKU_PLANNING_MASTER__2026-11-12.csv (team reorder sheet '12-11-26.xls', normalised)",
+  "layout": "TABLE",
+  "sheet": {
+    "name": "CSV"
+  },
+  "other_sheets": "must_be_empty",
+  "header_row": 1,
+  "column_match": "exact_set",
+  "expected_width": 15,
+  "unnamed_columns": [],
+  "columns": [
+    {
+      "header": "SKU",
+      "column": "sku"
+    },
+    {
+      "header": "Product Name",
+      "column": "product_name"
+    },
+    {
+      "header": "List Group",
+      "column": "list_group"
+    },
+    {
+      "header": "Top 40",
+      "column": "top_40"
+    },
+    {
+      "header": "Grade",
+      "column": "grade"
+    },
+    {
+      "header": "Amazon Now",
+      "column": "amazon_now"
+    },
+    {
+      "header": "Instamart",
+      "column": "instamart"
+    },
+    {
+      "header": "Launch Date",
+      "column": "launch_date"
+    },
+    {
+      "header": "Replacement SKU",
+      "column": "replacement_sku"
+    },
+    {
+      "header": "Factory",
+      "column": "factory"
+    },
+    {
+      "header": "MOQ",
+      "column": "moq"
+    },
+    {
+      "header": "MLT Days",
+      "column": "mlt_days"
+    },
+    {
+      "header": "PO Pending",
+      "column": "po_pending"
+    },
+    {
+      "header": "PO Delivery Date",
+      "column": "po_delivery_date"
+    },
+    {
+      "header": "Warehouse Stock",
+      "column": "warehouse_stock"
+    }
+  ],
+  "business_date": null,
+  "as_of_required": true
+}

@@ -247,6 +247,32 @@ FROM core.fact_erp_document_movement f
 WHERE NOT EXISTS (SELECT 1 FROM ref.code_mapping c WHERE c.domain = 'ERP_DOCUMENT_COVERAGE' AND c.source_name = f.source_name AND c.source_value = f.document_type);
 
 -- ============================================================ write results
+-- 2.18 stock availability: the planning sheet must land whole; gaps in it are reported, never guessed silently.
+INSERT INTO dq SELECT 'planning_rows_reconcile', 'core.dim_product_planning', 'ERROR', abs(a - b),
+       format('staged reorder-sheet rows %s, core rows %s', a, b)
+FROM (SELECT (SELECT count(*) FROM stg.sku_planning_master) a, (SELECT count(*) FROM core.dim_product_planning) b) x;
+
+INSERT INTO dq SELECT 'planning_unknown_product', 'core.dim_product_planning', 'WARN', count(*),
+       'products in the newest reorder sheet that are not known SKUs: ' || coalesce(string_agg(DISTINCT f.source_sku_code, ', '), '-')
+FROM core.dim_product_planning f
+WHERE f.product_key = -1 AND f.as_of_date = (SELECT max(as_of_date) FROM core.dim_product_planning);
+
+INSERT INTO dq SELECT 'planning_missing_mlt_or_moq', 'core.dim_product_planning', 'WARN', count(*),
+       'continued products in the newest reorder sheet with no MLT (the default is used) or no MOQ (reorder not rounded): '
+       || coalesce(string_agg(p.sku_code, ', ' ORDER BY p.sku_code), '-')
+FROM core.dim_product_planning f JOIN core.dim_product p ON p.product_key = f.product_key
+WHERE f.as_of_date = (SELECT max(as_of_date) FROM core.dim_product_planning) AND p.lifecycle_status = 'CONTINUED'
+  AND (f.mlt_days IS NULL OR f.moq IS NULL);
+
+INSERT INTO dq SELECT 'continued_product_not_in_planning_sheet', 'core.dim_product_planning', 'WARN', count(*),
+       'continued trading products missing from the newest reorder sheet (no factory, MOQ or MLT): '
+       || coalesce(string_agg(p.sku_code, ', ' ORDER BY p.sku_code), '-')
+FROM core.dim_product p
+WHERE EXISTS (SELECT 1 FROM core.dim_product_planning)
+  AND p.lifecycle_status = 'CONTINUED' AND p.item_type = 'TRADING' AND NOT p.is_unknown_member
+  AND NOT EXISTS (SELECT 1 FROM core.dim_product_planning f WHERE f.product_key = p.product_key
+                  AND f.as_of_date = (SELECT max(as_of_date) FROM core.dim_product_planning));
+
 INSERT INTO meta.dq_check_result (transform_run_id, check_name, target_table, severity, outcome, failed_row_count, details)
 SELECT (SELECT run_id FROM ctx), check_name, target_table, severity, CASE WHEN n > 0 THEN 'FAIL' ELSE 'PASS' END,
        least(coalesce(n, 0), 2147483647), left(coalesce(details, ''), 4000)
